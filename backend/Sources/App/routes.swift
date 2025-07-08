@@ -16,7 +16,7 @@ func routes(_ app: Application) throws {
     authRoutes.post("login", use: login)
     
     // Protected routes
-    let protectedRoutes = app.grouped(User.authenticator())
+    let protectedRoutes = app.grouped(AuthController.JWTAuthenticator())
     protectedRoutes.get("me", use: getMe)
     protectedRoutes.get("stats", use: getUserStats)
     
@@ -63,10 +63,11 @@ func login(req: Request) async throws -> LoginResponse {
         throw Abort(.unauthorized)
     }
     
-    req.auth.login(user)
+    let token = try AuthController.generateToken(for: user, on: req)
+    
     return LoginResponse(
         user: UserResponse(user: user),
-        token: "session-token"
+        token: token
     )
 }
 

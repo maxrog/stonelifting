@@ -5,7 +5,7 @@ struct StoneController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         let stones = routes.grouped("stones")
         
-        let protectedStones = stones.grouped(User.authenticator())
+        let protectedStones = stones.grouped(AuthController.JWTAuthenticator())
         protectedStones.post(use: create)
         protectedStones.get(use: getUserStones)
         protectedStones.get("nearby", use: getNearbyStones)
