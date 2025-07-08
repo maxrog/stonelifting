@@ -1,24 +1,32 @@
-import NIOSSL
+import Vapor
 import Fluent
 import FluentPostgresDriver
-import Vapor
 
-// configures your application
 public func configure(_ app: Application) async throws {
-    // uncomment to serve files from /Public folder
-    // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
-
-    app.databases.use(DatabaseConfigurationFactory.postgres(configuration: .init(
-        hostname: Environment.get("DATABASE_HOST") ?? "localhost",
-        port: Environment.get("DATABASE_PORT").flatMap(Int.init(_:)) ?? SQLPostgresConfiguration.ianaPortNumber,
-        username: Environment.get("DATABASE_USERNAME") ?? "vapor_username",
-        password: Environment.get("DATABASE_PASSWORD") ?? "vapor_password",
-        database: Environment.get("DATABASE_NAME") ?? "vapor_database",
-        tls: .prefer(try .init(configuration: .clientDefault)))
-    ), as: .psql)
-
-    app.migrations.add(CreateTodo())
-
-    // register routes
+    // Configure database
+    if let databaseURL = Environment.get("DATABASE_URL") {
+        try app.databases.use(.postgres(url: databaseURL), as: .psql)
+    } else {
+        app.databases.use(.postgres(
+            hostname: Environment.get("DATABASE_HOST") ?? "localhost",
+            port: Environment.get("DATABASE_PORT").flatMap(Int.init(_:)) ?? 5432,
+            username: Environment.get("DATABASE_USERNAME") ?? "stonelifting",
+            password: Environment.get("DATABASE_PASSWORD") ?? "password",
+            database: Environment.get("DATABASE_NAME") ?? "stonelifting"
+        ), as: .psql)
+    }
+    
+    // Configure migrations
+    app.migrations.add(CreateUser())
+    app.migrations.add(CreateStone())
+    
+    // Configure middleware
+    app.middleware.use(CORSMiddleware(configuration: .init(
+        allowedOrigin: .all,
+        allowedMethods: [.GET, .POST, .PUT, .DELETE, .OPTIONS, .PATCH],
+        allowedHeaders: [.accept, .authorization, .contentType, .origin, .xRequestedWith, .userAgent, .accessControlAllowOrigin]
+    )))
+    
+    // Configure routes
     try routes(app)
 }
