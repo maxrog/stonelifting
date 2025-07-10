@@ -99,6 +99,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = AFF8574E2E1FC5A600C16D6E /* Build configuration list for PBXNativeTarget "StoneLifting" */;
 			buildPhases = (
+				AFF857692E1FF15600C16D6E /* SwiftLint Run Script */,
 				AFF857292E1FC5A400C16D6E /* Sources */,
 				AFF8572A2E1FC5A400C16D6E /* Frameworks */,
 				AFF8572B2E1FC5A400C16D6E /* Resources */,
@@ -230,6 +231,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		AFF857692E1FF15600C16D6E /* SwiftLint Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "SwiftLint Run Script";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# SwiftLint Run Script\nif which swiftlint > /dev/null; then\n  swiftlint\nelse\n  echo \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		AFF857292E1FC5A400C16D6E /* Sources */ = {

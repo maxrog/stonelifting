@@ -1,0 +1,65 @@
+# SwiftLint Configuration for StoneLifting iOS App
+
+# Rules to disable
+disabled_rules:
+  - trailing_whitespace
+  - line_length
+
+# Rules to enable (opt-in)
+opt_in_rules:
+  - empty_count
+  - force_unwrapping
+  - explicit_init
+  - closure_spacing
+  - redundant_nil_coalescing
+  - sorted_imports
+  - vertical_parameter_alignment_on_call
+
+# Paths to include/exclude
+included:
+  - StoneLifting
+
+excluded:
+  - Pods
+  - DerivedData
+  - .build
+  - Tests
+
+# Rule configurations
+line_length:
+  warning: 120
+  error: 150
+
+file_length:
+  warning: 400
+  error: 500
+
+function_body_length:
+  warning: 60
+  error: 80
+
+type_body_length:
+  warning: 300
+  error: 400
+
+identifier_name:
+  min_length: 2
+  max_length: 50
+  excluded:
+    - id
+    - db
+    - x
+    - y
+
+# Force unwrapping configuration
+force_unwrapping:
+  severity: error
+
+# Custom rules
+custom_rules:
+  # Ensure API endpoints are documented
+  api_documentation:
+    name: "API Documentation"
+    regex: "func.*API.*{"
+    message: "API methods should be documented"
+    severity: warning
