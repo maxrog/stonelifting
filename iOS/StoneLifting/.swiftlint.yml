@@ -1,65 +1,56 @@
-# SwiftLint Configuration for StoneLifting iOS App
-
-# Rules to disable
-disabled_rules:
-  - trailing_whitespace
-  - line_length
-
-# Rules to enable (opt-in)
-opt_in_rules:
+disabled_rules: # rule identifiers to exclude from running
+  - identifier_name
+  - nesting
+  - function_parameter_count
+opt_in_rules: # some rules are only opt-in
+  - control_statement
   - empty_count
-  - force_unwrapping
-  - explicit_init
-  - closure_spacing
-  - redundant_nil_coalescing
-  - sorted_imports
-  - vertical_parameter_alignment_on_call
-
-# Paths to include/exclude
-included:
+  - trailing_newline
+  - colon
+  - comma
+included: # paths to include during linting. `--path` is ignored if present.
   - StoneLifting
-
-excluded:
+  - StoneLiftingTests
+  - StoneLiftingUITests
+excluded: # paths to ignore during linting. Takes precedence over `included`.
   - Pods
-  - DerivedData
-  - .build
-  - Tests
+  - Project/R.generated.swift
 
-# Rule configurations
-line_length:
-  warning: 120
-  error: 150
+# configurable rules can be customized from this configuration file
+# binary rules can set their severity level
+force_cast: warning # implicitly. Give warning only for force casting
 
-file_length:
-  warning: 400
-  error: 500
-
-function_body_length:
-  warning: 60
-  error: 80
+force_try:
+  severity: warning # explicitly. Give warning only for force try
 
 type_body_length:
-  warning: 300
-  error: 400
+  - 300 # warning
+  - 400 # error
 
-identifier_name:
-  min_length: 2
-  max_length: 50
-  excluded:
-    - id
-    - db
-    - x
-    - y
+# or they can set both explicitly
+file_length:
+  warning: 500
+  error: 800
 
-# Force unwrapping configuration
-force_unwrapping:
-  severity: error
-
-# Custom rules
-custom_rules:
-  # Ensure API endpoints are documented
-  api_documentation:
-    name: "API Documentation"
-    regex: "func.*API.*{"
-    message: "API methods should be documented"
-    severity: warning
+large_tuple: # warn user when using 3 values in tuple, give error if there are 4
+   - 3
+   - 4
+   
+# naming rules can set warnings/errors for min_length and max_length
+# additionally they can set excluded names
+type_name:
+  min_length: 4 # only warning
+  max_length: # warning and error
+    warning: 30
+    error: 35
+  excluded: iPhone # excluded via string
+  
+# line length rules can set warnings/errors for min_length and max_length
+line_length:
+  warning: 175 # only warning
+  error: 200 # warning and error
+  ignores_function_declarations: true
+  ignores_comments: true
+  ignores_urls: true
+  
+reporter: "xcode"
