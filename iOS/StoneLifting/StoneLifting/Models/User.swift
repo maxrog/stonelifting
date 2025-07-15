@@ -7,7 +7,6 @@
 
 import Foundation
 
-
 // MARK: - User Models
 
 /// Represents a user in the StoneLifting app
@@ -16,6 +15,7 @@ struct User: Codable, Identifiable {
     let id: UUID
     let username: String
     let email: String
+    let createdAt: Date?
 }
 
 // MARK: - Authentication Request Models
@@ -40,6 +40,28 @@ struct AuthResponse: Codable {
     let token: String
 }
 
+/// Request payload for initiating password reset
+struct ForgotPasswordRequest: Codable {
+    let email: String
+}
+
+/// Request payload for completing password reset
+struct ResetPasswordRequest: Codable {
+    /// Email address of the account
+    let email: String
+
+    /// Reset token from email link
+    let token: String
+
+    /// New password to set
+    let newPassword: String
+}
+
+/// Generic message response
+struct MessageResponse: Codable {
+    let message: String
+}
+
 // MARK: - Stone Response Models
 
 /// Response containing user's stone lifting statistics
@@ -49,7 +71,7 @@ struct UserStatsResponse: Codable {
     let username: String
     let email: String
     let createdAt: Date?
-    
+
     /// Array of all stones logged by this user
     let stones: [Stone]
 }
