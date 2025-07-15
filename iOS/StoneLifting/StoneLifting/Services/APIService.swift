@@ -17,6 +17,8 @@ final class APIService {
     // MARK: - Properties
 
     static let shared = APIService()
+    private let logger = AppLogger()
+    
     private let session = URLSession.shared
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
@@ -47,12 +49,14 @@ final class APIService {
     /// Store JWT token for future requests
     /// - Parameter token: JWT token from login response
     func setAuthToken(_ token: String) {
+        logger.info("Setting auth token: \(token)")
         authToken = token
         UserDefaults.standard.set(token, forKey: UserDefaultsKeys.jwtToken)
     }
 
     /// Clear stored JWT token (for logout)
     func clearAuthToken() {
+        logger.info("Clearing auth token")
         authToken = nil
         UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.jwtToken)
     }
@@ -173,6 +177,7 @@ private extension APIService {
         }
 
         do {
+            logger.info("Performing request with url: \(request.url?.absoluteString ?? ""), method: \(request.httpMethod ?? ""), token: \(authToken ?? "N/A"), body: \(String(describing: body))")
             let (data, response) = try await session.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
@@ -181,6 +186,7 @@ private extension APIService {
 
             switch httpResponse.statusCode {
             case 200...299:
+                logger.info("Successful response for url: \(request.url?.absoluteString ?? "")")
                 // Success - decode response
                 if responseType == EmptyResponse.self {
                     return EmptyResponse() as! U
@@ -189,31 +195,39 @@ private extension APIService {
                 do {
                     return try decoder.decode(responseType, from: data)
                 } catch {
+                    logger.error("Error decoding response for url: \(request.url?.absoluteString ?? "")", error: error)
                     throw APIError.decodingFailed(error)
                 }
 
             case 401:
+                logger.error("Error loading url: \(request.url?.absoluteString ?? "")", error: APIError.unauthorized)
                 // Unauthorized - clear stored token
                 clearAuthToken()
                 throw APIError.unauthorized
 
             case 400:
+                logger.error("Error loading url: \(request.url?.absoluteString ?? "")", error: APIError.badRequest)
                 throw APIError.badRequest
 
             case 404:
+                logger.error("Error loading url: \(request.url?.absoluteString ?? "")", error: APIError.notFound)
                 throw APIError.notFound
 
             case 500...599:
+                logger.error("Error loading url: \(request.url?.absoluteString ?? "")", error: APIError.serverError)
                 throw APIError.serverError
 
             default:
+                logger.error("Error loading url: \(request.url?.absoluteString ?? "")", error: APIError.unknown(httpResponse.statusCode))
                 throw APIError.unknown(httpResponse.statusCode)
             }
 
         } catch {
             if error is APIError {
+                logger.error("Error loading url: \(request.url?.absoluteString ?? "")", error: error)
                 throw error
             } else {
+                logger.error("Error loading url: \(request.url?.absoluteString ?? "")", error: error)
                 throw APIError.networkError(error)
             }
         }
