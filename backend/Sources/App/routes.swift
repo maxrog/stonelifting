@@ -14,6 +14,12 @@ func routes(_ app: Application) throws {
     let authRoutes = app.grouped("auth")
     authRoutes.post("register", use: register)
     authRoutes.post("login", use: login)
+    authRoutes.post("forgot-password", use: forgotPassword)
+    authRoutes.post("reset-password", use: resetPassword)
+    
+    // Availability check routes (no auth required)
+    authRoutes.get("check-username", ":username", use: checkUsernameAvailability)
+    authRoutes.get("check-email", ":email", use: checkEmailAvailability)
     
     // Protected routes
     let protectedRoutes = app.grouped(AuthController.JWTAuthenticator())
@@ -25,6 +31,7 @@ func routes(_ app: Application) throws {
 }
 
 // MARK: - Auth Handlers
+
 func register(req: Request) async throws -> HTTPStatus {
     let create = try req.content.decode(CreateUserRequest.self)
     
@@ -70,6 +77,80 @@ func login(req: Request) async throws -> LoginResponse {
         token: token
     )
 }
+
+func forgotPassword(req: Request) async throws -> MessageResponse {
+    let request = try req.content.decode(ForgotPasswordRequest.self)
+    
+    // Check if user exists
+    guard let user = try await User.query(on: req.db)
+        .filter(\.$email == request.email)
+        .first() else {
+        // Don't reveal if email exists or not for security
+        return MessageResponse(message: "If an account with that email exists, you will receive a password reset link.")
+    }
+    
+    // Generate reset token (in production, this should be a secure random token)
+    let resetToken = UUID().uuidString
+    
+    // Store reset token with expiration (you'd need a PasswordResetToken model in production)
+    // For now, we'll just log it
+    req.logger.info("Password reset token for \(user.email): \(resetToken)")
+    
+    // In production, send email with reset link
+    // await emailService.sendPasswordResetEmail(to: user.email, token: resetToken)
+    
+    return MessageResponse(message: "If an account with that email exists, you will receive a password reset link.")
+}
+
+func resetPassword(req: Request) async throws -> MessageResponse {
+    let request = try req.content.decode(ResetPasswordRequest.self)
+    
+    // In production, validate the reset token and check expiration
+    // For demo purposes, we'll accept any token that looks like a UUID
+    guard UUID(uuidString: request.token) != nil else {
+        throw Abort(.badRequest, reason: "Invalid or expired reset token")
+    }
+    
+    // Find user by email (in production, find by token)
+    guard let user = try await User.query(on: req.db)
+        .filter(\.$email == request.email)
+        .first() else {
+        throw Abort(.badRequest, reason: "Invalid reset request")
+    }
+    
+    // Update password
+    user.passwordHash = try Bcrypt.hash(request.newPassword)
+    try await user.save(on: req.db)
+    
+    return MessageResponse(message: "Password has been reset successfully")
+}
+
+// Add these new handler functions
+func checkUsernameAvailability(req: Request) async throws -> AvailabilityResponse {
+    guard let username = req.parameters.get("username") else {
+        throw Abort(.badRequest, reason: "Username parameter required")
+    }
+    
+    let existingUser = try await User.query(on: req.db)
+        .filter(\.$username == username)
+        .first()
+    
+    return AvailabilityResponse(available: existingUser == nil)
+}
+
+func checkEmailAvailability(req: Request) async throws -> AvailabilityResponse {
+    guard let email = req.parameters.get("email") else {
+        throw Abort(.badRequest, reason: "Email parameter required")
+    }
+    
+    let existingUser = try await User.query(on: req.db)
+        .filter(\.$email == email)
+        .first()
+    
+    return AvailabilityResponse(available: existingUser == nil)
+}
+
+// MARK: User Handlers
 
 func getMe(req: Request) async throws -> UserResponse {
     let user = try req.auth.require(User.self)

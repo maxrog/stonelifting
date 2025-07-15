@@ -4,11 +4,13 @@ struct UserResponse: Content {
     let id: UUID?
     let username: String
     let email: String
+    let createdAt: Date?
     
     init(user: User) {
         self.id = user.id
         self.username = user.username
         self.email = user.email
+        self.createdAt = user.createdAt
     }
 }
 
