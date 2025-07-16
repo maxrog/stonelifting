@@ -103,3 +103,38 @@ extension Stone {
         return abs(weight - estimated)
     }
 }
+
+// MARK: - Stone Stats
+
+/// Stone lifting statistics
+struct StoneStats {
+    let stones: [Stone]
+    
+    var totalStones: Int {
+        stones.count
+    }
+    
+    var totalWeight: Double {
+        stones.reduce(0) { $0 + $1.weight }
+    }
+    
+    var heaviestStone: Double {
+        stones.max(by: { $0.weight < $1.weight })?.weight ?? 0
+    }
+    
+    var averageWeight: Double {
+        totalStones > 0 ? totalWeight / Double(totalStones) : 0
+    }
+    
+    var publicStones: Int {
+        stones.filter { $0.isPublic }.count
+    }
+    
+    var privateStones: Int {
+        stones.filter { !$0.isPublic }.count
+    }
+    
+    var stonesWithLocation: Int {
+        stones.filter { $0.hasLocation }.count
+    }
+}
