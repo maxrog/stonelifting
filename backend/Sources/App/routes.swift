@@ -32,6 +32,7 @@ func routes(_ app: Application) throws {
 
 // MARK: - Auth Handlers
 
+// TODO Email code verification
 func register(req: Request) async throws -> HTTPStatus {
     let create = try req.content.decode(CreateUserRequest.self)
     
@@ -89,9 +90,11 @@ func forgotPassword(req: Request) async throws -> MessageResponse {
         return MessageResponse(message: "If an account with that email exists, you will receive a password reset link.")
     }
     
+    // TODO
     // Generate reset token (in production, this should be a secure random token)
     let resetToken = UUID().uuidString
     
+    // TODO
     // Store reset token with expiration (you'd need a PasswordResetToken model in production)
     // For now, we'll just log it
     req.logger.info("Password reset token for \(user.email): \(resetToken)")
@@ -105,12 +108,14 @@ func forgotPassword(req: Request) async throws -> MessageResponse {
 func resetPassword(req: Request) async throws -> MessageResponse {
     let request = try req.content.decode(ResetPasswordRequest.self)
     
+    // TODO
     // In production, validate the reset token and check expiration
     // For demo purposes, we'll accept any token that looks like a UUID
     guard UUID(uuidString: request.token) != nil else {
         throw Abort(.badRequest, reason: "Invalid or expired reset token")
     }
     
+    // TODO
     // Find user by email (in production, find by token)
     guard let user = try await User.query(on: req.db)
         .filter(\.$email == request.email)

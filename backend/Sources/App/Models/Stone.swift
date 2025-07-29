@@ -7,6 +7,9 @@ final class Stone: Model, Content, @unchecked Sendable {
     @ID(key: .id)
     var id: UUID?
     
+    @Field(key: "name")
+    var name: String?
+    
     @Field(key: "weight")
     var weight: Double
     
@@ -46,6 +49,7 @@ final class Stone: Model, Content, @unchecked Sendable {
     init() { }
     
     init(id: UUID? = nil,
+         name: String? = nil,
          weight: Double,
          estimatedWeight: Double? = nil,
          description: String? = nil,
@@ -57,6 +61,7 @@ final class Stone: Model, Content, @unchecked Sendable {
          difficultyRating: Int? = nil,
          userID: UUID) {
         self.id = id
+        self.name = name
         self.weight = weight
         self.estimatedWeight = estimatedWeight
         self.description = description

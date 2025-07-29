@@ -5,6 +5,7 @@ struct CreateStone: AsyncMigration {
     func prepare(on database: Database) async throws {
         try await database.schema("stones")
             .id()
+            .field("name", .string, .required)
             .field("weight", .double, .required)
             .field("estimated_weight", .double)
             .field("description", .string)

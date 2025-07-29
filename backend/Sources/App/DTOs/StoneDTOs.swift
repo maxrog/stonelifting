@@ -1,6 +1,7 @@
 import Vapor
 
 struct CreateStoneRequest: Content {
+    let name: String?
     let weight: Double
     let estimatedWeight: Double?
     let description: String?
@@ -14,6 +15,7 @@ struct CreateStoneRequest: Content {
 
 struct StoneResponse: Content {
     let id: UUID?
+    let name: String?
     let weight: Double
     let estimatedWeight: Double?
     let description: String?
@@ -28,6 +30,7 @@ struct StoneResponse: Content {
     
     init(stone: Stone, user: User) {
         self.id = stone.id
+        self.name = stone.name
         self.weight = stone.weight
         self.estimatedWeight = stone.estimatedWeight
         self.description = stone.description

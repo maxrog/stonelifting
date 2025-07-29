@@ -19,6 +19,7 @@ struct StoneController: RouteCollection {
         let createStone = try req.content.decode(CreateStoneRequest.self)
         
         let stone = Stone(
+            name: createStone.name,
             weight: createStone.weight,
             estimatedWeight: createStone.estimatedWeight,
             description: createStone.description,
@@ -56,6 +57,7 @@ struct StoneController: RouteCollection {
             throw Abort(.badRequest, reason: "Missing required parameters: lat, lon, radius")
         }
         
+        // TODO
         // Simple bounding box query (for production, use PostGIS for proper geospatial queries)
         let latRange = calculateLatRange(centerLat: lat, radiusKm: radius)
         let lonRange = calculateLonRange(centerLon: lon, radiusKm: radius, latitude: lat)
@@ -117,6 +119,7 @@ struct StoneController: RouteCollection {
             throw Abort(.notFound, reason: "Stone not found")
         }
         
+        stone.name = updateStone.name
         stone.weight = updateStone.weight
         stone.estimatedWeight = updateStone.estimatedWeight
         stone.description = updateStone.description
