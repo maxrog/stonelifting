@@ -25,7 +25,7 @@ force_try:
 
 type_body_length:
   - 300 # warning
-  - 400 # error
+  - 420 # error
 
 # or they can set both explicitly
 file_length:
