@@ -3,6 +3,10 @@ import Fluent
 import FluentPostgresDriver
 import Vapor
 import JWT
+/*
+ TODO production migration
+ .env file (better pw + jwt) + TODOs in here
+ */
 
 // configures your application
 public func configure(_ app: Application) async throws {
