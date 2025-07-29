@@ -94,10 +94,12 @@ struct LoadingView: View {
 
 // MARK: - Main App View Placeholder
 
-/// Placeholder for main app view
+/// TODO Placeholder for main app view
 struct MainAppView: View {
 
     private let authService = AuthService.shared
+
+    @State private var showingAddStone = false
 
     var body: some View {
         NavigationStack {
@@ -118,6 +120,12 @@ struct MainAppView: View {
                     }
                 }
 
+                Button("Add Stone") {
+                    showingAddStone = true
+                }
+                .buttonStyle(.borderedProminent)
+                .font(.headline)
+
                 Button("Logout") {
                     authService.logout()
                 }
@@ -126,6 +134,8 @@ struct MainAppView: View {
             }
             .padding()
             .navigationTitle("StoneLifting")
+        }.sheet(isPresented: $showingAddStone) {
+            AddStoneView()
         }
     }
 }

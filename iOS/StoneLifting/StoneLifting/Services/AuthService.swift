@@ -212,7 +212,7 @@ final class AuthService {
             let request = ResetPasswordRequest(email: email,
                                                token: token,
                                                newPassword: newPassword)
-            
+
             let response: MessageResponse = try await apiService.post(endpoint: APIConfig.Endpoints.resetPassword,
                                                                       body: request,
                                                                       responseType: MessageResponse.self)

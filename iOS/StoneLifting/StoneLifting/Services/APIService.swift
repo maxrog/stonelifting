@@ -18,7 +18,7 @@ final class APIService {
 
     static let shared = APIService()
     private let logger = AppLogger()
-    
+
     private let session = URLSession.shared
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
@@ -152,11 +152,11 @@ private extension APIService {
                                                 body: T?,
                                                 requiresAuth: Bool,
                                                 responseType: U.Type) async throws -> U {
-        
+
         guard let url = URL(string: APIConfig.baseURL + endpoint) else {
             throw APIError.invalidURL
         }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue(APIConfig.Headers.applicationJSON, forHTTPHeaderField: APIConfig.Headers.contentType)

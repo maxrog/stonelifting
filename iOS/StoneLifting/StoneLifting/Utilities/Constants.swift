@@ -59,15 +59,15 @@ struct AppConfig {
 
 struct UserDefaultsKeys {
     static let jwtToken = "com.marfodub.StoneLifting.jwtToken"
-    
+
     static let hasCompletedOnboarding = "com.marfodub.StoneLifting.has_completed_onboarding"
-    
+
     static let preferredWeightUnit = "com.marfodub.StoneLifting.preferred_weight_unit"
     static let preferredDistanceUnit = "com.marfodub.StoneLifting.preferred_distance_unit"
-    
+
     static let enableLocationServices = "com.marfodub.StoneLifting.enable_location_services"
     static let enableNotifications = "com.marfodub.StoneLifting.enable_notifications"
-    
+
     static let lastKnownLatitude = "com.marfodub.StoneLifting.last_known_latitude"
     static let lastKnownLongitude = "com.marfodub.StoneLifting.last_known_longitude"
 }

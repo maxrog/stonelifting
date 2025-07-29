@@ -15,6 +15,9 @@ struct Stone: Codable, Identifiable {
     /// Unique identifier for the stone record
     let id: UUID?
 
+    /// Name of the stone
+    let name: String?
+
     /// Actual weight of the stone in pounds/kilograms
     let weight: Double
 
@@ -53,14 +56,15 @@ struct Stone: Codable, Identifiable {
 
 /// Request payload for creating a new stone record
 struct CreateStoneRequest: Codable {
+
+    /// Name of the stone
+    let name: String?
+
     /// Weight of the stone being logged
     let weight: Double
 
     /// AI-estimated weight for comparison
     let estimatedWeight: Double?
-
-    /// Name of the stone
-    let name: String?
 
     /// Description of the stone or lift experience
     let description: String?
@@ -109,31 +113,31 @@ extension Stone {
 /// Stone lifting statistics
 struct StoneStats {
     let stones: [Stone]
-    
+
     var totalStones: Int {
         stones.count
     }
-    
+
     var totalWeight: Double {
         stones.reduce(0) { $0 + $1.weight }
     }
-    
+
     var heaviestStone: Double {
         stones.max(by: { $0.weight < $1.weight })?.weight ?? 0
     }
-    
+
     var averageWeight: Double {
         totalStones > 0 ? totalWeight / Double(totalStones) : 0
     }
-    
+
     var publicStones: Int {
         stones.filter { $0.isPublic }.count
     }
-    
+
     var privateStones: Int {
         stones.filter { !$0.isPublic }.count
     }
-    
+
     var stonesWithLocation: Int {
         stones.filter { $0.hasLocation }.count
     }
