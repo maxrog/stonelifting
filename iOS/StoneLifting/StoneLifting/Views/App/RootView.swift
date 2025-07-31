@@ -61,7 +61,7 @@ struct RootView: View {
 }
 
 // MARK: - Loading View
-
+// TODO use splash / pull out these views (loading view should be generic)
 /// Loading screen shown during app initialization
 struct LoadingView: View {
 
@@ -92,50 +92,48 @@ struct LoadingView: View {
     }
 }
 
-// MARK: - Main App View Placeholder
+// MARK: - Main App View
 
-/// TODO Placeholder for main app view
 struct MainAppView: View {
 
+    /// Authentication service for logout functionality
     private let authService = AuthService.shared
 
-    @State private var showingAddStone = false
-
     var body: some View {
-        NavigationStack {
+        TabView {
+            StoneListView()
+                .tabItem {
+                    Image(systemName: "figure.strengthtraining.traditional")
+                    Text("Stones")
+                }
+
+            // Placeholder for future features
+            Text("Map View")
+                .tabItem {
+                    Image(systemName: "map")
+                    Text("Map")
+                }
+
+            // Profile tab
             VStack(spacing: 20) {
-                Text("Welcome to StoneLifting! 🪨")
+                Text("Profile")
                     .font(.title)
-                    .fontWeight(.bold)
 
                 if let user = authService.currentUser {
                     Text("Hello, \(user.username)!")
                         .font(.title2)
                         .foregroundColor(.secondary)
-
-                    if let createdAt = user.createdAt {
-                        Text("Account created: \(createdAt.formatted(date: .abbreviated, time: .omitted))")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
                 }
-
-                Button("Add Stone") {
-                    showingAddStone = true
-                }
-                .buttonStyle(.borderedProminent)
-                .font(.headline)
 
                 Button("Logout") {
                     authService.logout()
                 }
-                .buttonStyle(.borderedProminent)
-                .padding(.top, 20)
+                .buttonStyle(.bordered)
             }
-            .padding()
-            .navigationTitle("StoneLifting")
-        }.sheet(isPresented: $showingAddStone) {
-            AddStoneView()
+            .tabItem {
+                Image(systemName: "person.circle")
+                Text("Profile")
+            }
         }
     }
 }
