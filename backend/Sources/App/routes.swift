@@ -32,7 +32,7 @@ func routes(_ app: Application) throws {
 
 // MARK: - Auth Handlers
 
-// TODO Email code verification
+// TODO Text code verification
 func register(req: Request) async throws -> HTTPStatus {
     let create = try req.content.decode(CreateUserRequest.self)
     
