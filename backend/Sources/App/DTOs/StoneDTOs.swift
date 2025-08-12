@@ -10,7 +10,8 @@ struct CreateStoneRequest: Content {
     let longitude: Double?
     let locationName: String?
     let isPublic: Bool
-    let difficultyRating: Int?
+    let liftingLevel: String
+    let carryDistance: Double?
 }
 
 struct StoneResponse: Content {
@@ -24,7 +25,8 @@ struct StoneResponse: Content {
     let longitude: Double?
     let locationName: String?
     let isPublic: Bool
-    let difficultyRating: Int?
+    let liftingLevel: String
+    let carryDistance: Double?
     let createdAt: Date?
     let user: UserResponse
     
@@ -39,7 +41,8 @@ struct StoneResponse: Content {
         self.longitude = stone.longitude
         self.locationName = stone.locationName
         self.isPublic = stone.isPublic
-        self.difficultyRating = stone.difficultyRating
+        self.liftingLevel = stone.liftingLevel
+        self.carryDistance = stone.carryDistance
         self.createdAt = stone.createdAt
         self.user = UserResponse(user: user)
     }

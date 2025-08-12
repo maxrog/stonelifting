@@ -282,6 +282,17 @@ struct StoneRowView: View {
     let stone: Stone
     let onTap: () -> Void
 
+    // TODO DRY
+    private func colorForLevel(_ level: LiftingLevel) -> Color {
+        switch level.color {
+        case "orange": return .orange
+        case "yellow": return .yellow
+        case "blue": return .blue
+        case "green": return .green
+        default: return .gray
+        }
+    }
+
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
@@ -337,15 +348,32 @@ struct StoneRowView: View {
 
                         Spacer()
 
-                        // Difficulty and privacy
+                        // achievement and privacy
                         HStack(spacing: 8) {
-                            if let difficulty = stone.difficultyRating {
+                            HStack(spacing: 3) {
+                                Image(systemName: stone.liftingLevel.icon)
+                                    .font(.caption)
+                                    .foregroundColor(colorForLevel(stone.liftingLevel))
+
+                                Text(stone.liftingLevel.displayName)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+
+                            // Carry distance if available
+                            if let carryDistance = stone.formattedCarryDistance {
+                                Text("•")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+
                                 HStack(spacing: 2) {
-                                    ForEach(1...difficulty, id: \.self) { _ in
-                                        Image(systemName: "star.fill")
-                                            .font(.caption2)
-                                            .foregroundColor(.yellow)
-                                    }
+                                    Image(systemName: "figure.walk")
+                                        .font(.caption2)
+                                        .foregroundColor(.purple)
+
+                                    Text(carryDistance)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
                             }
 

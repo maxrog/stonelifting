@@ -154,20 +154,32 @@ struct StoneDetailView: View {
 
                 Spacer()
 
-                // Difficulty rating
-                if let difficulty = stone.difficultyRating {
-                    VStack(alignment: .trailing, spacing: 4) {
-                        HStack(spacing: 2) {
-                            ForEach(1...5, id: \.self) { star in
-                                Image(systemName: star <= difficulty ? "star.fill" : "star")
-                                    .foregroundColor(.yellow)
-                                    .font(.title3)
+                // Lifting completion
+                VStack(alignment: .trailing, spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: stone.liftingLevel.icon)
+                            .foregroundColor(colorForLevel(stone.liftingLevel))
+                            .font(.title2)
+
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(stone.liftingLevel.displayName)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+
+                            if let carryDistance = stone.formattedCarryDistance {
+                                Text("Carried \(carryDistance)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
                         }
+                    }
 
-                        Text(difficultyDescription(difficulty))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    HStack(spacing: 2) {
+                        ForEach(1...4, id: \.self) { level in
+                            Circle()
+                                .fill(level <= stone.liftingLevel.level ? colorForLevel(stone.liftingLevel) : Color.gray.opacity(0.3))
+                                .frame(width: 8, height: 8)
+                        }
                     }
                 }
             }
@@ -366,15 +378,14 @@ struct StoneDetailView: View {
 
     // MARK: - Helper Methods
 
-    /// TODO RESUSED
-    private func difficultyDescription(_ rating: Int) -> String {
-        switch rating {
-        case 1: return "Very Easy"
-        case 2: return "Easy"
-        case 3: return "Moderate"
-        case 4: return "Hard"
-        case 5: return "Very Hard"
-        default: return ""
+    // TODO DRY
+    private func colorForLevel(_ level: LiftingLevel) -> Color {
+        switch level.color {
+        case "orange": return .orange
+        case "yellow": return .yellow
+        case "blue": return .blue
+        case "green": return .green
+        default: return .gray
         }
     }
 
@@ -481,7 +492,8 @@ struct EditStoneView: View {
         longitude: -74.0060,
         locationName: "Central Park",
         isPublic: true,
-        difficultyRating: 4,
+        liftingLevel: .chest,
+        carryDistance: 50,
         createdAt: Date(),
         user: User(
             id: UUID(),

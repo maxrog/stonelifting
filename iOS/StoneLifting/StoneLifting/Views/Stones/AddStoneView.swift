@@ -28,7 +28,8 @@ struct AddStoneView: View {
     @State private var description: String = ""
     @State private var locationName: String = ""
     @State private var isPublic = true
-    @State private var difficultyRating: Int = 1
+    @State private var liftingLevel: LiftingLevel = .wind
+    @State private var carryDistance: String = ""
     @State private var includeLocation = true
 
     @State private var selectedPhoto: PhotosPickerItem?
@@ -56,7 +57,8 @@ struct AddStoneView: View {
                     StoneDetailsFormView(
                         stoneName: $stoneName,
                         description: $description,
-                        difficultyRating: $difficultyRating,
+                        liftingLevel: $liftingLevel,
+                        carryDistance: $carryDistance,
                         focusedField: $focusedField
                     )
 
@@ -308,17 +310,6 @@ struct AddStoneView: View {
         Double(weight)! > 0
     }
 
-    private var difficultyDescription: String {
-        switch difficultyRating {
-        case 1: return "Very Easy"
-        case 2: return "Easy"
-        case 3: return "Moderate"
-        case 4: return "Hard"
-        case 5: return "Very Hard"
-        default: return ""
-        }
-    }
-
     // MARK: - Actions
 
     private func setupView() {
@@ -394,18 +385,17 @@ struct AddStoneView: View {
         focusedField = nil
 
         // Prepare request
-        let request = CreateStoneRequest(
-            name: stoneName.isEmpty ? nil : stoneName,
-            weight: Double(weight) ?? 0,
-            estimatedWeight: Double(estimatedWeight),
-            description: description.isEmpty ? nil : description,
-            imageUrl: nil, // TODO: Implement image upload
-            latitude: includeLocation ? locationService.currentLocation?.coordinate.latitude : nil,
-            longitude: includeLocation ? locationService.currentLocation?.coordinate.longitude : nil,
-            locationName: locationName.isEmpty ? nil : locationName,
-            isPublic: isPublic,
-            difficultyRating: difficultyRating
-        )
+        let request = CreateStoneRequest(name: stoneName.isEmpty ? nil : stoneName,
+                                         weight: Double(weight) ?? 0,
+                                         estimatedWeight: Double(estimatedWeight),
+                                         description: description.isEmpty ? nil : description,
+                                         imageUrl: nil, // TODO: Implement image upload
+                                         latitude: includeLocation ? locationService.currentLocation?.coordinate.latitude : nil,
+                                         longitude: includeLocation ? locationService.currentLocation?.coordinate.longitude : nil,
+                                         locationName: locationName.isEmpty ? nil : locationName,
+                                         isPublic: isPublic,
+                                         liftingLevel: liftingLevel.rawValue,
+                                         carryDistance: carryDistance.isEmpty ? nil : Double(carryDistance))
 
         // Save stone
         Task {
@@ -432,6 +422,7 @@ enum StoneFormField {
     case estimatedWeight
     case description
     case locationName
+    case carryDistance
 }
 
 // MARK: - Preview

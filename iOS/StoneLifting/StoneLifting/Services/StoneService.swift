@@ -48,12 +48,10 @@ final class StoneService {
         stoneError = nil
 
         do {
-            let stone: Stone = try await apiService.post(
-                endpoint: APIConfig.Endpoints.stones,
-                body: request,
-                requiresAuth: true,
-                responseType: Stone.self
-            )
+            let stone: Stone = try await apiService.post(endpoint: APIConfig.Endpoints.stones,
+                                                         body: request,
+                                                         requiresAuth: true,
+                                                         responseType: Stone.self)
 
             logger.info("Successfully created stone with ID: \(stone.id?.uuidString ?? "unknown")")
 

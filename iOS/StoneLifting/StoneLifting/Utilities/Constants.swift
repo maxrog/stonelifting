@@ -51,8 +51,6 @@ struct AppConfig {
     /// Default search radius for nearby stones (in kilometers)
     static let defaultSearchRadius: Double = 10.0
 
-    /// Maximum difficulty rating
-    static let maxDifficultyRating = 5
 }
 
 // MARK: User Defaults

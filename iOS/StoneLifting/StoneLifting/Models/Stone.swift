@@ -42,8 +42,11 @@ struct Stone: Codable, Identifiable {
     /// Whether this stone is visible to other users
     let isPublic: Bool
 
-    /// Subjective difficulty rating (1-5 scale)
-    let difficultyRating: Int?
+    /// Level of lifting completion achieved
+    let liftingLevel: LiftingLevel
+
+    /// Distance carried in feet (optional)
+    let carryDistance: Double?
 
     /// When this stone record was created
     let createdAt: Date?
@@ -84,8 +87,73 @@ struct CreateStoneRequest: Codable {
     /// Whether to make this stone visible to other users
     let isPublic: Bool
 
-    /// Difficulty rating (1-5)
-    let difficultyRating: Int?
+    /// Level of lifting completion achieved
+    let liftingLevel: String
+
+    /// Distance carried in feet (optional)
+    let carryDistance: Double?
+}
+
+// MARK: - Lifting Level
+
+/// Stone lifting completion levels
+enum LiftingLevel: String, Codable, CaseIterable {
+    case wind, lap, chest, shoulder, overhead
+
+    /// Display name for the lifting level
+    var displayName: String {
+        switch self {
+        case .wind: return "Getting Wind"
+        case .lap: return "Stone to Lap"
+        case .chest: return "Stone to Chest"
+        case .shoulder: return "Stone to Shoulder"
+        case .overhead: return "Stone Overhead"
+        }
+    }
+
+    /// Short description of the achievement
+    var description: String {
+        switch self {
+        case .wind: return "Lifted stone just off the ground"
+        case .lap: return "Lifted stone to lap/thigh level"
+        case .chest: return "Lifted stone to chest level"
+        case .shoulder: return "Lifted stone to shoulder level"
+        case .overhead: return "Pressed stone overhead"
+        }
+    }
+
+    /// Icon representing the lifting level
+    var icon: String {
+        switch self {
+        case .wind: return "arrow.up.circle"
+        case .lap: return "figure.seated.side"
+        case .chest: return "figure.arms.open"
+        case .shoulder: return "figure.strengthtraining.functional"
+        case .overhead: return "figure.strengthtraining.functional"
+        }
+    }
+
+    /// Color associated with the lifting level
+    var color: String {
+        switch self {
+        case .wind: return "orange"
+        case .lap: return "yellow"
+        case .chest: return "blue"
+        case .shoulder: return "green"
+        case .overhead: return "green"
+        }
+    }
+
+    /// Achievement level (1-4, higher is better)
+    var level: Int {
+        switch self {
+        case .wind: return 1
+        case .lap: return 2
+        case .chest: return 3
+        case .shoulder: return 4
+        case .overhead: return 4
+        }
+    }
 }
 
 // MARK: - Stone Computed Properties
@@ -105,6 +173,21 @@ extension Stone {
     var estimationAccuracy: Double? {
         guard let estimated = estimatedWeight else { return nil }
         return abs(weight - estimated)
+    }
+
+    /// Returns formatted carry distance
+    var formattedCarryDistance: String? {
+        guard let distance = carryDistance, distance > 0 else { return nil }
+        return String(format: "%.0f ft", distance)
+    }
+
+    /// Returns full achievement description
+    var achievementDescription: String {
+        var description = liftingLevel.displayName
+        if let distance = formattedCarryDistance {
+            description += " • Carried \(distance)"
+        }
+        return description
     }
 }
 

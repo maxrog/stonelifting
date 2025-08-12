@@ -34,8 +34,11 @@ final class Stone: Model, Content, @unchecked Sendable {
     @Field(key: "is_public")
     var isPublic: Bool
     
-    @Field(key: "difficulty_rating")
-    var difficultyRating: Int?
+    @Field(key: "lifting_level")
+    var liftingLevel: String
+    
+    @Field(key: "carry_distance")
+    var carryDistance: Double?
     
     @Parent(key: "user_id")
     var user: User
@@ -58,7 +61,8 @@ final class Stone: Model, Content, @unchecked Sendable {
          longitude: Double? = nil,
          locationName: String? = nil,
          isPublic: Bool = true,
-         difficultyRating: Int? = nil,
+         liftingLevel: String,
+         carryDistance: Double? = nil,
          userID: UUID) {
         self.id = id
         self.name = name
@@ -70,7 +74,8 @@ final class Stone: Model, Content, @unchecked Sendable {
         self.longitude = longitude
         self.locationName = locationName
         self.isPublic = isPublic
-        self.difficultyRating = difficultyRating
+        self.liftingLevel = liftingLevel
+        self.carryDistance = carryDistance
         self.$user.id = userID
     }
 }

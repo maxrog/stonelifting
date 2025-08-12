@@ -75,13 +75,11 @@ final class APIService {
     func get<T: Codable>(endpoint: String,
                          requiresAuth: Bool = false,
                          type: T.Type) async throws -> T {
-        try await performRequest(
-            endpoint: endpoint,
+        try await performRequest(endpoint: endpoint,
             method: "GET",
             body: EmptyBody?.none,
             requiresAuth: requiresAuth,
-            responseType: type
-        )
+            responseType: type)
     }
 
     /// Perform a POST request
@@ -94,13 +92,11 @@ final class APIService {
                                       body: T,
                                       requiresAuth: Bool = false,
                                       responseType: U.Type) async throws -> U {
-        try await performRequest(
-            endpoint: endpoint,
+        try await performRequest(endpoint: endpoint,
             method: "POST",
             body: body,
             requiresAuth: requiresAuth,
-            responseType: responseType
-        )
+            responseType: responseType)
     }
 
     /// Perform a PUT request
@@ -113,13 +109,11 @@ final class APIService {
                                      body: T,
                                      requiresAuth: Bool = true,
                                      responseType: U.Type) async throws -> U {
-        try await performRequest(
-            endpoint: endpoint,
+        try await performRequest(endpoint: endpoint,
             method: "PUT",
             body: body,
             requiresAuth: requiresAuth,
-            responseType: responseType
-        )
+            responseType: responseType)
     }
 
     /// Perform a DELETE request

@@ -14,8 +14,20 @@ struct StoneDetailsFormView: View {
 
     @Binding var stoneName: String
     @Binding var description: String
-    @Binding var difficultyRating: Int
+    @Binding var liftingLevel: LiftingLevel
+    @Binding var carryDistance: String
     @FocusState.Binding var focusedField: StoneFormField?
+
+    // TODO this could be better DRY
+    private func colorForLevel(_ level: LiftingLevel) -> Color {
+        switch level.color {
+        case "orange": return .orange
+        case "yellow": return .yellow
+        case "blue": return .blue
+        case "green": return .green
+        default: return .gray
+        }
+    }
 
     var body: some View {
         VStack(spacing: 24) {
@@ -70,43 +82,65 @@ struct StoneDetailsFormView: View {
                     .lineLimit(3...6)
             }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Difficulty Rating")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Lifting Level")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
 
-                HStack {
-                    ForEach(1...5, id: \.self) { rating in
-                        Button(action: {
-                            difficultyRating = rating
-                        }) {
-                            Image(systemName: rating <= difficultyRating ? "star.fill" : "star")
-                                .foregroundColor(rating <= difficultyRating ? .yellow : .gray)
-                                .font(.title2)
+                    VStack(spacing: 8) {
+                        ForEach(LiftingLevel.allCases, id: \.self) { level in
+                            Button(action: {
+                                liftingLevel = level
+                            }) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: liftingLevel == level ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(liftingLevel == level ? .blue : .gray)
+                                        .font(.title3)
+
+                                    Image(systemName: level.icon)
+                                        .foregroundColor(colorForLevel(level))
+                                        .font(.title3)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(level.displayName)
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+
+                                        Text(level.description)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+
+                                    Spacer()
+                                }
+                                .padding(12)
+                                .background(liftingLevel == level ? Color.blue.opacity(0.1) : Color(.systemGray6))
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
+                }
 
-                    Spacer()
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Carry Distance (Optional)")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
 
-                    Text(difficultyDescription)
+                    HStack {
+                        TextField("0", text: $carryDistance)
+                            .keyboardType(.decimalPad)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .focused($focusedField, equals: .carryDistance)
+
+                        Text("feet")
+                            .foregroundColor(.secondary)
+                    }
+
+                    Text("How far did you carry the stone?")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
         }
     }
-
-    // MARK: - Computed Properties
-
-    // TODO I think this is reused other places
-    private var difficultyDescription: String {
-        switch difficultyRating {
-        case 1: return "Very Easy"
-        case 2: return "Easy"
-        case 3: return "Moderate"
-        case 4: return "Hard"
-        case 5: return "Very Hard"
-        default: return ""
-        }
-    }
-}
