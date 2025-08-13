@@ -16,37 +16,37 @@ struct Stone: Codable, Identifiable {
     let id: UUID?
 
     /// Name of the stone
-    let name: String?
+    var name: String?
 
     /// Actual weight of the stone in pounds/kilograms
-    let weight: Double
+    var weight: Double
 
     /// AI-estimated weight (optional, for comparison)
-    let estimatedWeight: Double?
+    var estimatedWeight: Double?
 
     /// User's description of the stone or lift
-    let description: String?
+    var description: String?
 
     /// URL to the stone's image
-    let imageUrl: String?
+    var imageUrl: String?
 
     /// Geographic latitude of the stone's location
-    let latitude: Double?
+    var latitude: Double?
 
     /// Geographic longitude of the stone's location
-    let longitude: Double?
+    var longitude: Double?
 
     /// Human-readable location name (e.g., "Central Park")
-    let locationName: String?
+    var locationName: String?
 
     /// Whether this stone is visible to other users
-    let isPublic: Bool
+    var isPublic: Bool
 
     /// Level of lifting completion achieved
-    let liftingLevel: LiftingLevel
+    var liftingLevel: LiftingLevel
 
     /// Distance carried in feet (optional)
-    let carryDistance: Double?
+    var carryDistance: Double?
 
     /// When this stone record was created
     let createdAt: Date?

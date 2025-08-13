@@ -16,7 +16,7 @@ struct StoneDetailView: View {
 
     // MARK: - Properties
 
-    let stone: Stone
+    @State var stone: Stone
 
     private let stoneService = StoneService.shared
     private let authService = AuthService.shared
@@ -76,7 +76,7 @@ struct StoneDetailView: View {
                 }
             }
             .sheet(isPresented: $showingEdit) {
-                EditStoneView(stone: stone)
+                EditStoneView(stone: $stone)
             }
             .confirmationDialog(
                 "Delete Stone",
@@ -442,39 +442,6 @@ struct StatCard: View {
         .padding(.vertical, 16)
         .background(color.opacity(0.1))
         .cornerRadius(12)
-    }
-}
-
-// MARK: - Edit Stone View Placeholder
-
-/// TODO Placeholder for edit stone functionality
-struct EditStoneView: View {
-    let stone: Stone
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            VStack {
-                Text("Edit Stone Feature")
-                    .font(.title)
-
-                Text("Coming Soon!")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                Text("Stone: \(stone.name ?? "Unnamed")")
-                    .padding()
-            }
-            .navigationTitle("Edit Stone")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
-        }
     }
 }
 
