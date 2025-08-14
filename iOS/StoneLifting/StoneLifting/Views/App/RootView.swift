@@ -45,7 +45,7 @@ struct RootView: View {
     /// Check authentication state on app launch
     private func checkInitialAuthState() {
         Task {
-            // Add small delay for smooth loading transition
+            // Small delay for smooth loading transition
             try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
 
             // Attempt to refresh user data if token exists
@@ -107,8 +107,7 @@ struct MainAppView: View {
                     Text("Stones")
                 }
 
-            // Placeholder for future features
-            Text("Map View")
+            MapView()
                 .tabItem {
                     Image(systemName: "map")
                     Text("Map")
