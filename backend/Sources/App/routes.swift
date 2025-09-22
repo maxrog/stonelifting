@@ -25,6 +25,8 @@ func routes(_ app: Application) throws {
     let protectedRoutes = app.grouped(AuthController.JWTAuthenticator())
     protectedRoutes.get("me", use: getMe)
     protectedRoutes.get("stats", use: getUserStats)
+    protectedRoutes.on(.POST, "upload", "image", body: .collect(maxSize: "5mb"), use: uploadImage)
+
     
     // API routes
     try app.register(collection: StoneController())
@@ -130,7 +132,6 @@ func resetPassword(req: Request) async throws -> MessageResponse {
     return MessageResponse(message: "Password has been reset successfully")
 }
 
-// Add these new handler functions
 func checkUsernameAvailability(req: Request) async throws -> AvailabilityResponse {
     guard let username = req.parameters.get("username") else {
         throw Abort(.badRequest, reason: "Username parameter required")
@@ -173,4 +174,74 @@ func getUserStats(req: Request) async throws -> UserStatsResponse {
     let stoneResponses = stones.map { StoneResponse(stone: $0, user: user) }
     
     return UserStatsResponse(user: user, stones: stoneResponses)
+}
+
+// MARK: Image Handlers
+
+
+func uploadImage(req: Request) async throws -> ImageUploadResponse {
+    let user = try req.auth.require(User.self)
+    let uploadRequest = try req.content.decode(ImageUploadRequest.self)
+    
+    // Decode base64 image data
+    guard let imageData = Data(base64Encoded: uploadRequest.imageData) else {
+        throw Abort(.badRequest, reason: "Invalid base64 image data")
+    }
+    
+    // Validate file size (max 5MB)
+    guard imageData.count <= 5_000_000 else {
+        throw Abort(.badRequest, reason: "File too large. Maximum size is 5MB.")
+    }
+    
+    // Validate it's actually an image
+    guard isValidImageData(imageData) else {
+        throw Abort(.badRequest, reason: "Invalid image format. Only JPEG and PNG are supported.")
+    }
+    
+    let fileExtension = uploadRequest.contentType == "image/png" ? "png" : "jpg"
+    let fileName = "\(UUID().uuidString).\(fileExtension)"
+    
+    let uploadsDirectory = req.application.directory.publicDirectory + "uploads/"
+    let filePath = uploadsDirectory + fileName
+    
+    try createUploadsDirectoryIfNeeded(uploadsDirectory)
+    try imageData.write(to: URL(fileURLWithPath: filePath))
+    
+    // Generate URL // TODO -- actual server
+    let baseURL = Environment.get("BASE_URL") ?? "http://localhost:8080"
+    let imageURL = "\(baseURL)/uploads/\(fileName)"
+    
+    req.logger.info("Image uploaded successfully: \(imageURL)")
+    
+    return ImageUploadResponse(
+        success: true,
+        imageUrl: imageURL,
+        message: "Image uploaded successfully"
+    )
+}
+
+// Helper functions
+private func isValidImageData(_ data: Data) -> Bool {
+    guard data.count >= 4 else { return false }
+    
+    let header = data.prefix(4)
+    
+    // JPEG magic numbers
+    if header.starts(with: [0xFF, 0xD8]) {
+        return true
+    }
+    
+    // PNG magic numbers
+    if header.starts(with: [0x89, 0x50, 0x4E, 0x47]) {
+        return true
+    }
+    
+    return false
+}
+
+private func createUploadsDirectoryIfNeeded(_ path: String) throws {
+    let url = URL(fileURLWithPath: path)
+    if !FileManager.default.fileExists(atPath: path) {
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    }
 }

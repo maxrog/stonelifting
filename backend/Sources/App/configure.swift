@@ -13,6 +13,11 @@ public func configure(_ app: Application) async throws {
     // JWT configuration
     app.jwt.signers.use(.hs256(key: Environment.get("JWT_SECRET") ?? "secret-key"))
     
+    
+    // TODO prod figure out which middleware actually needed in prod
+    // Filesystem middleware
+    app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
+
     // CORS middleware
     app.middleware.use(CORSMiddleware(configuration: .init(
         allowedOrigin: .all,
