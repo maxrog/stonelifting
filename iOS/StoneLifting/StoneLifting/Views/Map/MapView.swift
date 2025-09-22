@@ -98,7 +98,7 @@ struct MapView: View {
 
     @ViewBuilder
     private var mapControls: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .trailing, spacing: 12) {
             if mapFilter != .all {
                 Button(action: {
                     showingFilters = true
@@ -116,7 +116,7 @@ struct MapView: View {
                 }
             }
 
-            VStack(alignment: .trailing, spacing: 4) {
+            VStack(spacing: 4) {
                 Button(action: zoomIn) {
                     Image(systemName: "plus")
                         .font(.title2)
@@ -419,7 +419,7 @@ enum MapFilter: CaseIterable {
 
 fileprivate
 extension Stone {
-    
+
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(
             latitude: latitude ?? 0,
