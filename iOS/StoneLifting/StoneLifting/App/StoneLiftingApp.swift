@@ -9,6 +9,7 @@ import SwiftUI
 
 /*
  TODO:
+ 􁊕 feature circle.dotted.and.circle in app, rotated so dotted is vertical and with wiggle animation (palette / hierarchical coloring with accent) - wiggle makes it seem like you're picking it up
  App Name: Go On
  Subtitle: Pick it up
  Badges for half/full sterker 
