@@ -413,34 +413,52 @@ struct EditStoneView: View {
         focusedField = nil
         isLoading = true
 
-        // Update location if user requested it
-        if let currentLocation = locationService.currentLocation {
-            stone.latitude = currentLocation.coordinate.latitude
-            stone.longitude = currentLocation.coordinate.longitude
-        }
-
-        let request = CreateStoneRequest(
-            name: stone.name,
-            weight: stone.weight,
-            estimatedWeight: stone.estimatedWeight,
-            description: stone.description,
-            imageUrl: stone.imageUrl, // TODO when working Keep existing image URL for now
-            latitude: stone.latitude,
-            longitude: stone.longitude,
-            locationName: stone.locationName,
-            isPublic: stone.isPublic,
-            liftingLevel: stone.liftingLevel.rawValue,
-            carryDistance: stone.carryDistance
-        )
-
         Task {
+            // Upload new image if changed
+            var finalImageURL = stone.imageUrl
+
+            if hasPhotoChanged, let photoData = photoData {
+                logger.info("Uploading new image for stone")
+                finalImageURL = await ImageUploadService.shared.uploadImage(photoData)
+
+                if finalImageURL == nil {
+                    await MainActor.run {
+                        errorMessage = "Failed to upload image. Please try again."
+                        isLoading = false
+                    }
+                    return
+                }
+            } else if hasPhotoChanged && photoData == nil {
+                // User removed the photo
+                finalImageURL = nil
+            }
+
+            // Update location if user requested it
+            if let currentLocation = locationService.currentLocation {
+                stone.latitude = currentLocation.coordinate.latitude
+                stone.longitude = currentLocation.coordinate.longitude
+            }
+
+            let request = CreateStoneRequest(
+                name: stone.name,
+                weight: stone.weight,
+                estimatedWeight: stone.estimatedWeight,
+                description: stone.description,
+                imageUrl: finalImageURL,
+                latitude: stone.latitude,
+                longitude: stone.longitude,
+                locationName: stone.locationName,
+                isPublic: stone.isPublic,
+                liftingLevel: stone.liftingLevel.rawValue,
+                carryDistance: stone.carryDistance
+            )
+
             let updatedStone = await stoneService.updateStone(id: stoneId, with: request)
 
             await MainActor.run {
                 isLoading = false
                 if let updatedStone = updatedStone {
                     logger.info("Stone updated successfully")
-                    // Update the binding with the fresh server data
                     stone = updatedStone
                     dismiss()
                 } else {

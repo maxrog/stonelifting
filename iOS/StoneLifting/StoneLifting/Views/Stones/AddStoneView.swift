@@ -377,28 +377,43 @@ struct AddStoneView: View {
         }
     }
 
-    /// Save stone to backend
     private func saveStone() {
         logger.info("Saving stone with weight: \(weight)")
 
         // Dismiss keyboard
         focusedField = nil
 
-        // Prepare request
-        let request = CreateStoneRequest(name: stoneName.isEmpty ? nil : stoneName,
-                                         weight: Double(weight) ?? 0,
-                                         estimatedWeight: Double(estimatedWeight),
-                                         description: description.isEmpty ? nil : description,
-                                         imageUrl: nil, // TODO: Implement image upload
-                                         latitude: includeLocation ? locationService.currentLocation?.coordinate.latitude : nil,
-                                         longitude: includeLocation ? locationService.currentLocation?.coordinate.longitude : nil,
-                                         locationName: locationName.isEmpty ? nil : locationName,
-                                         isPublic: isPublic,
-                                         liftingLevel: liftingLevel.rawValue,
-                                         carryDistance: carryDistance.isEmpty ? nil : Double(carryDistance))
-
-        // Save stone
         Task {
+            // Upload image first if we have one
+            var imageURL: String?
+
+            if let photoData = photoData {
+                logger.info("Uploading image for new stone")
+                imageURL = await ImageUploadService.shared.uploadImage(photoData)
+
+                if imageURL == nil {
+                    await MainActor.run {
+                        logger.error("Failed to upload image")
+                        // TODO Could show an alert here or continue without image
+                    }
+                    return
+                }
+            }
+
+            let request = CreateStoneRequest(
+                name: stoneName.isEmpty ? nil : stoneName,
+                weight: Double(weight) ?? 0,
+                estimatedWeight: Double(estimatedWeight),
+                description: description.isEmpty ? nil : description,
+                imageUrl: imageURL,
+                latitude: includeLocation ? locationService.currentLocation?.coordinate.latitude : nil,
+                longitude: includeLocation ? locationService.currentLocation?.coordinate.longitude : nil,
+                locationName: locationName.isEmpty ? nil : locationName,
+                isPublic: isPublic,
+                liftingLevel: liftingLevel.rawValue,
+                carryDistance: carryDistance.isEmpty ? nil : Double(carryDistance)
+            )
+
             let stone = await stoneService.createStone(request)
 
             await MainActor.run {

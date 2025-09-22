@@ -11,6 +11,7 @@ import Foundation
 
 /// Configuration constants for the StoneLifting app
 struct APIConfig {
+    // TODO prod
     /// Base URL for the StoneLifting API
     static let baseURL = "http://localhost:8080"
 
