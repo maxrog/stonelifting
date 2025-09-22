@@ -181,6 +181,7 @@ func getUserStats(req: Request) async throws -> UserStatsResponse {
 
 func uploadImage(req: Request) async throws -> ImageUploadResponse {
     let user = try req.auth.require(User.self)
+    let userId = try user.requireID()
     let uploadRequest = try req.content.decode(ImageUploadRequest.self)
     
     // Decode base64 image data
@@ -200,17 +201,18 @@ func uploadImage(req: Request) async throws -> ImageUploadResponse {
     
     let fileExtension = uploadRequest.contentType == "image/png" ? "png" : "jpg"
     let fileName = "\(UUID().uuidString).\(fileExtension)"
-    
+
     let uploadsDirectory = req.application.directory.publicDirectory + "uploads/"
-    let filePath = uploadsDirectory + fileName
+    let userDirectory = uploadsDirectory + "\(userId)/"
+    let filePath = userDirectory + fileName
     
-    try createUploadsDirectoryIfNeeded(uploadsDirectory)
+    try createDirectoriesIfNeeded(userDirectory)
     try imageData.write(to: URL(fileURLWithPath: filePath))
     
     // Generate URL // TODO -- actual server
     let baseURL = Environment.get("BASE_URL") ?? "http://localhost:8080"
-    let imageURL = "\(baseURL)/uploads/\(fileName)"
-    
+    let imageURL = "\(baseURL)/uploads/\(userId)/\(fileName)"
+
     req.logger.info("Image uploaded successfully: \(imageURL)")
     
     return ImageUploadResponse(
@@ -239,7 +241,7 @@ private func isValidImageData(_ data: Data) -> Bool {
     return false
 }
 
-private func createUploadsDirectoryIfNeeded(_ path: String) throws {
+private func createDirectoriesIfNeeded(_ path: String) throws {
     let url = URL(fileURLWithPath: path)
     if !FileManager.default.fileExists(atPath: path) {
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
