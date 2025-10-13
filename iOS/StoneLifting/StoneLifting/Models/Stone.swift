@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CoreLocation
 
 // MARK: - Stone Models
 
@@ -159,9 +160,19 @@ enum LiftingLevel: String, Codable, CaseIterable {
 // MARK: - Stone Computed Properties
 
 extension Stone {
-    /// Returns true if this stone has location data
-    var hasLocation: Bool {
-        latitude != nil && longitude != nil
+
+    /// CL coordinate of stone location
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(
+            latitude: latitude ?? 0,
+            longitude: longitude ?? 0
+        )
+    }
+
+    /// Returns whether stone has valid location data
+    var hasValidLocation: Bool {
+        guard let lat = latitude, let lon = longitude else { return false }
+        return lat != 0 && lon != 0 && abs(lat) <= 90 && abs(lon) <= 180
     }
 
     /// Returns a formatted weight string with units
@@ -222,6 +233,6 @@ struct StoneStats {
     }
 
     var stonesWithLocation: Int {
-        stones.filter { $0.hasLocation }.count
+        stones.filter { $0.hasValidLocation }.count
     }
 }

@@ -137,7 +137,7 @@ struct EditStoneView: View {
                 Spacer()
 
                 Toggle("Include Location", isOn: Binding(
-                    get: { stone.hasLocation },
+                    get: { stone.hasValidLocation },
                     set: { includeLocation in
                         if !includeLocation {
                             stone.latitude = nil
@@ -149,7 +149,7 @@ struct EditStoneView: View {
                 .labelsHidden()
             }
 
-            if stone.hasLocation || stone.latitude != nil || stone.longitude != nil {
+            if stone.hasValidLocation || stone.latitude != nil || stone.longitude != nil {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Location Name (Optional)")
                         .font(.subheadline)
@@ -312,7 +312,7 @@ struct EditStoneView: View {
 
     private var includeLocationBinding: Binding<Bool> {
         Binding(
-            get: { stone.hasLocation },
+            get: { stone.hasValidLocation },
             set: { includeLocation in
                 if !includeLocation {
                     stone.latitude = nil

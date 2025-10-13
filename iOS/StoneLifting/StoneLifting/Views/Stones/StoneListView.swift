@@ -336,7 +336,7 @@ struct StoneRowView: View {
 
                     HStack {
                         // Location
-                        if stone.hasLocation {
+                        if stone.hasValidLocation {
                             Label {
                                 Text(stone.locationName ?? "Unknown Location")
                             } icon: {

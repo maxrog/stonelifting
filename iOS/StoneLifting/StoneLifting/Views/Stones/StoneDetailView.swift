@@ -41,7 +41,7 @@ struct StoneDetailView: View {
                     stoneInfoSection
                     stoneStatsSection
 
-                    if stone.hasLocation {
+                    if stone.hasValidLocation {
                         locationSection
                     }
 

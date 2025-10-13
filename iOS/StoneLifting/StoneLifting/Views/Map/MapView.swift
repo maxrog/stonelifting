@@ -18,6 +18,8 @@ struct MapView: View {
 
     private let stoneService = StoneService.shared
     private let locationService = LocationService.shared
+    private let clusteringSystem = StoneClusteringSystem()
+
     private let logger = AppLogger()
 
     @State private var mapRegion = MKCoordinateRegion(
@@ -27,6 +29,8 @@ struct MapView: View {
 
     @State private var selectedStone: Stone?
     @State private var showingStoneDetail = false
+    @State private var selectedCluster: ClusterItem?
+    @State private var showingClusterDetail = false
     @State private var showingFilters = false
     @State private var mapFilter: MapFilter = .all
 
@@ -74,6 +78,11 @@ struct MapView: View {
             .sheet(item: $selectedStone) { stone in
                 StoneDetailView(stone: stone)
             }
+            .sheet(item: $selectedCluster) { cluster in
+                ClusterDetailSheet(clusterItem: cluster) { selectedStone in
+                    self.selectedStone = selectedStone
+                }
+            }
         }
     }
 
@@ -82,10 +91,18 @@ struct MapView: View {
     @ViewBuilder
     private var mapContent: some View {
         Map(position: .constant(.region(mapRegion))) {
-            ForEach(filteredStones, id: \.id) { stone in
-                Annotation(stone.name ?? "Stone", coordinate: stone.coordinate) {
-                    StoneMapPin(stone: stone) {
-                        selectedStone = stone
+            ForEach(clusteredStones, id: \.id) { clusterItem in
+                Annotation(
+                    clusterItem.isCluster ? "\(clusterItem.count) stones" : (clusterItem.stones.first?.name ?? "Stone"),
+                    coordinate: clusterItem.coordinate,
+                    anchor: .bottom
+                ) {
+                    ClusterMapPin(clusterItem: clusterItem) {
+                        if clusterItem.isCluster {
+                            selectedCluster = clusterItem
+                        } else {
+                            selectedStone = clusterItem.stones.first
+                        }
                     }
                 }
             }
@@ -139,8 +156,8 @@ struct MapView: View {
     // MARK: - Computed Properties
 
     private var allStones: [Stone] {
-        let userStones = stoneService.userStones.filter { $0.hasLocation }
-        let publicStones = stoneService.publicStones.filter { $0.hasLocation }
+        let userStones = stoneService.userStones.filter { $0.hasValidLocation }
+        let publicStones = stoneService.publicStones.filter { $0.hasValidLocation }
 
         // Avoid duplication
         var combined = userStones
@@ -164,6 +181,11 @@ struct MapView: View {
                 return stone.isPublic && !stoneService.userStones.contains(where: { $0.id == stone.id })
             }
         }
+    }
+
+    /// Clustered stones based on current map region and zoom level
+    private var clusteredStones: [ClusterItem] {
+        clusteringSystem.generateClusters(from: filteredStones, in: mapRegion)
     }
 
     // MARK: - Actions
@@ -412,24 +434,6 @@ enum MapFilter: CaseIterable {
         case .myStones: return .blue
         case .publicStones: return .green
         }
-    }
-}
-
-// MARK: - Stone Extension
-
-fileprivate
-extension Stone {
-
-    var coordinate: CLLocationCoordinate2D {
-        CLLocationCoordinate2D(
-            latitude: latitude ?? 0,
-            longitude: longitude ?? 0
-        )
-    }
-
-    var hasValidLocation: Bool {
-        guard let lat = latitude, let lon = longitude else { return false }
-        return lat != 0 && lon != 0 && abs(lat) <= 90 && abs(lon) <= 180
     }
 }
 
