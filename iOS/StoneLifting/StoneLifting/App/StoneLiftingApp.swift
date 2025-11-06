@@ -24,6 +24,7 @@ import SwiftUI
  Accessibility
  Widgets
  Push
+ Apple/Google Sign In
  */
 
 @main
