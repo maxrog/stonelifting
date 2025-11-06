@@ -38,6 +38,10 @@ struct AddStoneView: View {
     @State private var showingPhotoPicker = false
     @State private var showingCamera = false
 
+    @State private var showingError = false
+    @State private var errorMessage = ""
+    @State private var isLoading = false
+
     @FocusState private var focusedField: StoneFormField?
 
     /// Dismissal action
@@ -119,6 +123,24 @@ struct AddStoneView: View {
             }
         } message: {
             Text(stoneService.stoneError?.localizedDescription ?? "")
+        }
+        .alert("Image Upload Failed", isPresented: $showingError) {
+            Button("Retry") {
+                showingError = false
+                saveStone()
+            }
+            Button("Continue Without Photo") {
+                showingError = false
+                // Clear photo data and retry
+                photoData = nil
+                saveStone()
+            }
+            Button("Cancel", role: .cancel) {
+                showingError = false
+                isLoading = false
+            }
+        } message: {
+            Text(errorMessage)
         }
     }
 
@@ -380,11 +402,9 @@ struct AddStoneView: View {
     private func saveStone() {
         logger.info("Saving stone with weight: \(weight)")
 
-        // Dismiss keyboard
         focusedField = nil
 
         Task {
-            // Upload image first if we have one
             var imageURL: String?
 
             if let photoData = photoData {
@@ -394,7 +414,9 @@ struct AddStoneView: View {
                 if imageURL == nil {
                     await MainActor.run {
                         logger.error("Failed to upload image")
-                        // TODO Could show an alert here or continue without image
+                        errorMessage = "Failed to upload image. Please try again or continue without a photo."
+                        showingError = true
+                        isLoading = false
                     }
                     return
                 }

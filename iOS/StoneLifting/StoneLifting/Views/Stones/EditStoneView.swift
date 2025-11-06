@@ -423,7 +423,7 @@ struct EditStoneView: View {
 
                 if finalImageURL == nil {
                     await MainActor.run {
-                        errorMessage = "Failed to upload image. Please try again."
+                        errorMessage = "Failed to upload image. You can retry or continue editing without updating the photo."
                         isLoading = false
                     }
                     return
