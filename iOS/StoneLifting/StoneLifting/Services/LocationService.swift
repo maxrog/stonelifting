@@ -27,6 +27,9 @@ final class LocationService: NSObject {
     private(set) var isLocationEnabled = false
     private(set) var locationError: LocationError?
 
+    // Continuation for async location requests
+    private var locationContinuation: CheckedContinuation<CLLocation?, Never>?
+
     // MARK: - Initialization
 
     override init() {
@@ -99,10 +102,21 @@ final class LocationService: NSObject {
             return nil
         }
 
-        locationManager.requestLocation()
+        // Use continuation to wait for location update
+        return await withCheckedContinuation { continuation in
+            locationContinuation = continuation
+            locationManager.requestLocation()
 
-        // TODO Wait for location update (simplified - in production use proper async/await)
-        return currentLocation
+            // Timeout after 10 seconds
+            Task {
+                try? await Task.sleep(nanoseconds: 10_000_000_000)
+                if let cont = locationContinuation {
+                    logger.warning("Location request timed out")
+                    locationContinuation = nil
+                    cont.resume(returning: currentLocation)
+                }
+            }
+        }
     }
 
     // MARK: - Utility Methods
@@ -174,13 +188,24 @@ extension LocationService: CLLocationManagerDelegate {
         // Clear any previous errors
         locationError = nil
 
+        // Resume continuation if waiting
+        if let continuation = locationContinuation {
+            locationContinuation = nil
+            continuation.resume(returning: location)
+        }
+
         // Stop updates after getting location (for one-time requests)
-        // TODO might want to continue updates for tracking
         stopLocationUpdates()
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         logger.error("Location manager failed", error: error)
+
+        // Resume continuation with nil on error
+        if let continuation = locationContinuation {
+            locationContinuation = nil
+            continuation.resume(returning: nil)
+        }
 
         if let clError = error as? CLError {
             switch clError.code {
