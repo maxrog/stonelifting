@@ -14,6 +14,40 @@ struct CreateStoneRequest: Content {
     let carryDistance: Double?
 }
 
+extension CreateStoneRequest: Validatable {
+    static func validations(_ validations: inout Validations) {
+        // Name: optional but max 100 chars if provided
+        validations.add("name", as: String?.self, is: .nil || .count(...100), required: false)
+
+        // Weight: positive, reasonable range (1kg to 1000kg)
+        validations.add("weight", as: Double.self, is: .range(1...1000))
+
+        // Estimated weight: positive if provided
+        validations.add("estimatedWeight", as: Double?.self, is: .nil || .range(1...1000), required: false)
+
+        // Description: max 1000 chars if provided
+        validations.add("description", as: String?.self, is: .nil || .count(...1000), required: false)
+
+        // Image URL: max 500 chars if provided
+        validations.add("imageUrl", as: String?.self, is: .nil || .count(...500), required: false)
+
+        // Latitude: valid range if provided
+        validations.add("latitude", as: Double?.self, is: .nil || .range(-90...90), required: false)
+
+        // Longitude: valid range if provided
+        validations.add("longitude", as: Double?.self, is: .nil || .range(-180...180), required: false)
+
+        // Location name: max 200 chars if provided
+        validations.add("locationName", as: String?.self, is: .nil || .count(...200), required: false)
+
+        // Lifting level: max 50 chars (should be enum in future)
+        validations.add("liftingLevel", as: String.self, is: .count(...50))
+
+        // Carry distance: positive if provided
+        validations.add("carryDistance", as: Double?.self, is: .nil || .range(0...10000), required: false)
+    }
+}
+
 struct StoneResponse: Content {
     let id: UUID?
     let name: String?

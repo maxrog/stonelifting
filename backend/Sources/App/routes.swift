@@ -36,8 +36,9 @@ func routes(_ app: Application) throws {
 
 // TODO Text code verification
 func register(req: Request) async throws -> HTTPStatus {
+    try CreateUserRequest.validate(content: req)
     let create = try req.content.decode(CreateUserRequest.self)
-    
+
     // Check if user exists
     let existingUser = try await User.query(on: req.db)
         .group(.or) { group in
@@ -61,8 +62,9 @@ func register(req: Request) async throws -> HTTPStatus {
 }
 
 func login(req: Request) async throws -> LoginResponse {
+    try LoginRequest.validate(content: req)
     let loginRequest = try req.content.decode(LoginRequest.self)
-    
+
     guard let user = try await User.query(on: req.db)
         .filter(\.$username == loginRequest.username)
         .first() else {
@@ -82,8 +84,9 @@ func login(req: Request) async throws -> LoginResponse {
 }
 
 func forgotPassword(req: Request) async throws -> MessageResponse {
+    try ForgotPasswordRequest.validate(content: req)
     let request = try req.content.decode(ForgotPasswordRequest.self)
-    
+
     // Check if user exists
     guard let user = try await User.query(on: req.db)
         .filter(\.$email == request.email)
@@ -106,8 +109,9 @@ func forgotPassword(req: Request) async throws -> MessageResponse {
 }
 
 func resetPassword(req: Request) async throws -> MessageResponse {
+    try ResetPasswordRequest.validate(content: req)
     let request = try req.content.decode(ResetPasswordRequest.self)
-    
+
     // TODO
     // In production, validate the reset token and check expiration
     // For demo purposes, we'll accept any token that looks like a UUID

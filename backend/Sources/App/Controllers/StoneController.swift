@@ -16,8 +16,9 @@ struct StoneController: RouteCollection {
     
     func create(req: Request) async throws -> StoneResponse {
         let user = try req.auth.require(User.self)
+        try CreateStoneRequest.validate(content: req)
         let createStone = try req.content.decode(CreateStoneRequest.self)
-        
+
         let stone = Stone(
             name: createStone.name,
             weight: createStone.weight,
@@ -107,8 +108,9 @@ struct StoneController: RouteCollection {
     
     func update(req: Request) async throws -> StoneResponse {
         let user = try req.auth.require(User.self)
+        try CreateStoneRequest.validate(content: req)
         let updateStone = try req.content.decode(CreateStoneRequest.self)
-        
+
         guard let stoneID = req.parameters.get("stoneID", as: UUID.self) else {
             throw Abort(.badRequest, reason: "Invalid stone ID")
         }
