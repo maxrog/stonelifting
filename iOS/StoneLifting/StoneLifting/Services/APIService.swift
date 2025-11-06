@@ -183,7 +183,10 @@ private extension APIService {
                 logger.info("Successful response for url: \(request.url?.absoluteString ?? "")")
                 // Success - decode response
                 if responseType == EmptyResponse.self {
-                    return EmptyResponse() as! U
+                    guard let emptyResponse = EmptyResponse() as? U else {
+                        throw APIError.invalidResponse
+                    }
+                    return emptyResponse
                 }
 
                 do {
