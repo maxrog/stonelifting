@@ -11,16 +11,32 @@ import JWT
 // configures your application
 public func configure(_ app: Application) async throws {
     // JWT configuration
-    app.jwt.signers.use(.hs256(key: Environment.get("JWT_SECRET") ?? "secret-key"))
-    
-    
+    guard let jwtSecret = Environment.get("JWT_SECRET") else {
+        app.logger.critical("JWT_SECRET environment variable is not set. Application cannot start securely.")
+        fatalError("JWT_SECRET must be set in environment variables")
+    }
+    app.jwt.signers.use(.hs256(key: jwtSecret))
+
+
     // TODO prod figure out which middleware actually needed in prod
     // Filesystem middleware
     app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
 
-    // CORS middleware
+    // CORS middleware - configure allowed origins based on environment
+    let allowedOrigin: CORSMiddleware.AllowOriginSetting
+    if let corsOrigin = Environment.get("CORS_ALLOWED_ORIGIN") {
+        // Production: use specific origin from environment
+        allowedOrigin = .custom(corsOrigin)
+    } else if app.environment == .development {
+        // Development: allow localhost
+        allowedOrigin = .custom("http://localhost:3000")
+    } else {
+        app.logger.critical("CORS_ALLOWED_ORIGIN must be set for non-development environments")
+        fatalError("CORS_ALLOWED_ORIGIN environment variable must be set")
+    }
+
     app.middleware.use(CORSMiddleware(configuration: .init(
-        allowedOrigin: .all,
+        allowedOrigin: allowedOrigin,
         allowedMethods: [.GET, .POST, .PUT, .DELETE, .OPTIONS, .PATCH],
         allowedHeaders: [.accept, .authorization, .contentType, .origin, .xRequestedWith, .userAgent, .accessControlAllowOrigin]
     )))

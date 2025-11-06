@@ -171,7 +171,7 @@ private extension APIService {
         }
 
         do {
-            logger.info("Performing request with url: \(request.url?.absoluteString ?? ""), method: \(request.httpMethod ?? ""), token: \(authToken ?? "N/A"), body: \(String(describing: body))")
+            logger.info("Performing request with url: \(request.url?.absoluteString ?? ""), method: \(request.httpMethod ?? "")")
             let (data, response) = try await session.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {

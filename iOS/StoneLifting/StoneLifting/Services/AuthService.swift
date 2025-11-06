@@ -108,7 +108,7 @@ final class AuthService {
             isAuthenticated = true
 
             isLoading = false
-            logger.info("Successfully logged in user with id: \(response.user.id), username: \(response.user.username), email: \(response.user.email), token: \(response.token)")
+            logger.info("Successfully logged in user with id: \(response.user.id), username: \(response.user.username)")
             return true
 
         } catch {
@@ -342,7 +342,7 @@ final class AuthService {
     /// - Parameter password: Password to validate
     /// - Returns: Validation result
     func validatePassword(_ password: String) -> ValidationResult {
-        logger.info("Validating password \(password)...")
+        logger.info("Validating password...")
         if password.isEmpty {
             let result = ValidationResult.invalid("Password cannot be empty")
             logger.error("Password invalid, error: \(result.errorMessage ?? "")")

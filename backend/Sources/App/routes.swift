@@ -98,9 +98,7 @@ func forgotPassword(req: Request) async throws -> MessageResponse {
     
     // TODO
     // Store reset token with expiration (you'd need a PasswordResetToken model in production)
-    // For now, we'll just log it
-    req.logger.info("Password reset token for \(user.email): \(resetToken)")
-    
+
     // In production, send email with reset link
     // await emailService.sendPasswordResetEmail(to: user.email, token: resetToken)
     
