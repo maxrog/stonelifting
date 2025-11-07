@@ -9,6 +9,7 @@ import SwiftUI
 
 /*
  TODO:
+ Pull to refresh on stone list causes error - network error please check connection
  - icon8 system sf icons
  or
  􁊕 feature circle.dotted.and.circle in app, rotated so dotted is vertical and with wiggle animation (palette / hierarchical coloring with accent) - wiggle makes it seem like you're picking it up
