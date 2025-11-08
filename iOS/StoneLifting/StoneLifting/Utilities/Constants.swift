@@ -11,9 +11,32 @@ import Foundation
 
 /// Configuration constants for the StoneLifting app
 struct APIConfig {
-    // TODO prod
+    
+    /// Environment selection
+    enum Environment {
+        case local
+        case development
+        case production
+    }
+
+    /// Current environment
+    /// - local: Your Mac running at localhost:8080
+    /// - development: Railway dev environment for testing
+    /// - production: Railway production environment for real users
+    static let currentEnvironment: Environment = .development
+
     /// Base URL for the StoneLifting API
-    static let baseURL = "http://localhost:8080"
+    /// Automatically switches based on currentEnvironment
+    static let baseURL: String = {
+        switch currentEnvironment {
+        case .local:
+            return "http://localhost:8080"
+        case .development:
+            return "https://stonelifting-dev.up.railway.app"
+        case .production:
+            return "https://stonelifting-production.up.railway.app"
+        }
+    }()
 
     /// API endpoints
     enum Endpoints {
