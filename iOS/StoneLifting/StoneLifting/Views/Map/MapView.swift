@@ -29,7 +29,7 @@ struct MapView: View {
 
     @State private var selectedStone: Stone?
     @State private var showingStoneDetail = false
-    @State private var selectedCluster: ClusterItem?
+    @State private var selectedCluster: StoneClusterItem?
     @State private var showingClusterDetail = false
     @State private var showingFilters = false
     @State private var mapFilter: MapFilter = .all
@@ -184,7 +184,7 @@ struct MapView: View {
     }
 
     /// Clustered stones based on current map region and zoom level
-    private var clusteredStones: [ClusterItem] {
+    private var clusteredStones: [StoneClusterItem] {
         clusteringSystem.generateClusters(from: filteredStones, in: mapRegion)
     }
 

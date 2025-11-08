@@ -9,7 +9,7 @@ import SwiftUI
 
 /// Sheet showing stones within a cluster
 struct ClusterDetailSheet: View {
-    let clusterItem: ClusterItem
+    let clusterItem: StoneClusterItem
     let onStoneSelect: (Stone) -> Void
 
     @Environment(\.dismiss) private var dismiss
