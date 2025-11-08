@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "App",
+    name: "StoneLifting",
     platforms: [
        .macOS(.v13)
     ],
@@ -20,7 +20,7 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "App",
+            name: "StoneLifting",
             dependencies: [
                 .product(name: "Fluent", package: "fluent"),
                 .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
@@ -34,7 +34,7 @@ let package = Package(
         .testTarget(
             name: "AppTests",
             dependencies: [
-                .target(name: "App"),
+                .target(name: "StoneLifting"),
                 .product(name: "VaporTesting", package: "vapor"),
             ],
             swiftSettings: swiftSettings

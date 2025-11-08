@@ -201,27 +201,35 @@ func uploadImage(req: Request) async throws -> ImageUploadResponse {
         throw Abort(.badRequest, reason: "Invalid image format. Only JPEG and PNG are supported.")
     }
     
-    let fileExtension = uploadRequest.contentType == "image/png" ? "png" : "jpg"
-    let fileName = "\(UUID().uuidString).\(fileExtension)"
+    // Upload to Cloudinary
+    guard let cloudName = Environment.get("CLOUDINARY_CLOUD_NAME"),
+          let apiKey = Environment.get("CLOUDINARY_API_KEY"),
+          let apiSecret = Environment.get("CLOUDINARY_API_SECRET") else {
+        throw Abort(.internalServerError, reason: "Cloudinary configuration missing")
+    }
 
-    let uploadsDirectory = req.application.directory.publicDirectory + "uploads/"
-    let userDirectory = uploadsDirectory + "\(userId)/"
-    let filePath = userDirectory + fileName
-    
-    try createDirectoriesIfNeeded(userDirectory)
-    try imageData.write(to: URL(fileURLWithPath: filePath))
-    
-    // Generate URL // TODO -- actual server
-    let baseURL = Environment.get("BASE_URL") ?? "http://localhost:8080"
-    let imageURL = "\(baseURL)/uploads/\(userId)/\(fileName)"
+    let cloudinary = CloudinaryService(cloudName: cloudName,
+                                       apiKey: apiKey,
+                                       apiSecret: apiSecret)
 
-    req.logger.info("Image uploaded successfully: \(imageURL)")
-    
-    return ImageUploadResponse(
-        success: true,
-        imageUrl: imageURL,
-        message: "Image uploaded successfully"
-    )
+    // Use user ID and UUID for unique public ID
+    let publicId = "user_\(userId)_\(UUID().uuidString)"
+
+    do {
+        let imageURL = try await cloudinary.uploadImage(imageData,
+                                                        publicId: publicId,
+                                                        folder: "stonelifting/stones",
+                                                        on: req.client)
+
+        req.logger.info("Image uploaded successfully to Cloudinary: \(imageURL)")
+        
+        return ImageUploadResponse(success: true,
+                                   imageUrl: imageURL,
+                                   message: "Image uploaded successfully")
+    } catch {
+        req.logger.error("Failed to upload image to Cloudinary: \(error)")
+        throw Abort(.internalServerError, reason: "Failed to upload image")
+    }
 }
 
 // Helper functions
@@ -241,11 +249,4 @@ private func isValidImageData(_ data: Data) -> Bool {
     }
     
     return false
-}
-
-private func createDirectoriesIfNeeded(_ path: String) throws {
-    let url = URL(fileURLWithPath: path)
-    if !FileManager.default.fileExists(atPath: path) {
-        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-    }
 }
