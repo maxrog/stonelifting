@@ -44,7 +44,9 @@ public func configure(_ app: Application) async throws {
     // Database configuration
     if let databaseURL = Environment.get("DATABASE_URL") {
         // Production/Railway: use DATABASE_URL connection string
-        try app.databases.use(.postgres(url: databaseURL), as: .psql)
+        var postgresConfig = try SQLPostgresConfiguration(url: databaseURL)
+        postgresConfig.coreConfiguration.tls = .prefer(try .init(configuration: .clientDefault))
+        app.databases.use(.postgres(configuration: postgresConfig), as: .psql)
     } else {
         // Local development: use individual variables
         app.databases.use(DatabaseConfigurationFactory.postgres(configuration: .init(
