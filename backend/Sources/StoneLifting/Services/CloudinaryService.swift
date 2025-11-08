@@ -26,7 +26,7 @@ struct CloudinaryService {
         _ imageData: Data,
         publicId: String? = nil,
         folder: String = "stonelifting",
-        on client: Client
+        on client: any Client
     ) async throws -> String {
 
         // Cloudinary upload URL

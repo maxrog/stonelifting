@@ -88,16 +88,16 @@ func forgotPassword(req: Request) async throws -> MessageResponse {
     let request = try req.content.decode(ForgotPasswordRequest.self)
 
     // Check if user exists
-    guard let user = try await User.query(on: req.db)
+    guard try await User.query(on: req.db)
         .filter(\.$email == request.email)
-        .first() else {
+        .first() != nil else {
         // Don't reveal if email exists or not for security
         return MessageResponse(message: "If an account with that email exists, you will receive a password reset link.")
     }
     
     // TODO
     // Generate reset token (in production, this should be a secure random token)
-    let resetToken = UUID().uuidString
+    _ = UUID().uuidString
     
     // TODO
     // Store reset token with expiration (you'd need a PasswordResetToken model in production)

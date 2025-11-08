@@ -2,7 +2,7 @@ import Fluent
 import Vapor
 
 struct StoneController: RouteCollection {
-    func boot(routes: RoutesBuilder) throws {
+    func boot(routes: any RoutesBuilder) throws {
         let stones = routes.grouped("stones")
         
         let protectedStones = stones.grouped(AuthController.JWTAuthenticator())
@@ -51,7 +51,7 @@ struct StoneController: RouteCollection {
     }
     
     func getNearbyStones(req: Request) async throws -> [StoneResponse] {
-        let user = try req.auth.require(User.self)
+        _ = try req.auth.require(User.self)
         
         guard let lat = req.query[Double.self, at: "lat"],
               let lon = req.query[Double.self, at: "lon"],
