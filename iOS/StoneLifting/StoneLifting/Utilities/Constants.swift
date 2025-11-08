@@ -11,7 +11,7 @@ import Foundation
 
 /// Configuration constants for the StoneLifting app
 struct APIConfig {
-    
+
     /// Environment selection
     enum Environment {
         case local
