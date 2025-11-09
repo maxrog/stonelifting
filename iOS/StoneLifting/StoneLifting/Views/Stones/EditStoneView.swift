@@ -94,7 +94,7 @@ struct EditStoneView: View {
                 }
 
                 if viewModel.isLoading {
-                    loadingView
+                    LoadingView(message: "Updating stone...")
                 }
             }
         }
@@ -268,20 +268,6 @@ struct EditStoneView: View {
                 .buttonStyle(.plain)
             }
         }
-    }
-
-    @ViewBuilder
-    private var loadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .scaleEffect(1.2)
-
-            Text("Updating stone...")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .background(Color.primary.opacity(0.4))
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Binding Helpers

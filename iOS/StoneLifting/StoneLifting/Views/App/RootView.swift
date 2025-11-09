@@ -24,7 +24,7 @@ struct RootView: View {
         Group {
             if isLoading {
                 // Loading screen while checking authentication
-                LoadingView()
+                RootLoadingView()
             } else if authService.isAuthenticated {
                 // User is logged in - show main app
                 MainAppView()
@@ -63,7 +63,7 @@ struct RootView: View {
 
 // TODO: use splash / pull out these views (loading view should be generic)
 /// Loading screen shown during app initialization
-struct LoadingView: View {
+struct RootLoadingView: View {
     /// Animation state for the loading indicator
     @State private var isAnimating = false
 

@@ -33,7 +33,7 @@ struct StoneListView: View {
                 filterSection
 
                 if viewModel.isLoading {
-                    loadingView
+                    LoadingView(message: "Loading stones...")
                 } else {
                     stoneListContent
                 }
@@ -98,19 +98,6 @@ struct StoneListView: View {
         }
         .padding(.vertical, 8)
         .background(Color(.systemBackground))
-    }
-
-    @ViewBuilder
-    private var loadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .scaleEffect(1.2)
-
-            Text("Loading stones...")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder
