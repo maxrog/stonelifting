@@ -99,6 +99,8 @@ struct MainAppView: View {
     /// Authentication service for logout functionality
     private let authService = AuthService.shared
 
+    @State private var username: String?
+
     var body: some View {
         TabView {
             StoneListView()
@@ -118,8 +120,8 @@ struct MainAppView: View {
                 Text("Profile")
                     .font(.title)
 
-                if let user = authService.currentUser {
-                    Text("Hello, \(user.username)!")
+                if let username = username {
+                    Text("Hello, \(username)!")
                         .font(.title2)
                         .foregroundColor(.secondary)
                 }
@@ -133,6 +135,9 @@ struct MainAppView: View {
                 Image(systemName: "person.circle")
                 Text("Profile")
             }
+        }
+        .onAppear {
+            username = authService.currentUser?.username
         }
     }
 }

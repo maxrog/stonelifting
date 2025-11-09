@@ -11,7 +11,7 @@ import Observation
 // MARK: - Authentication Service
 
 /// Service responsible for user authentication and session management
-/// Handles login, registration, logout, and token persistence
+/// Handles login, registration, logout, token persistence, password reset
 @Observable
 final class AuthService {
 
@@ -23,7 +23,6 @@ final class AuthService {
     private let apiService = APIService.shared
     private(set) var currentUser: User?
     private(set) var isAuthenticated = false
-    private(set) var isLoading = false
     private(set) var authError: AuthError?
 
     // MARK: - Initialization
@@ -43,7 +42,6 @@ final class AuthService {
     /// - Returns: Success status
     @MainActor
     func register(username: String, email: String, password: String) async -> Bool {
-        isLoading = true
         authError = nil
 
         do {
@@ -56,12 +54,10 @@ final class AuthService {
             // Auto-login after successful registration
             let loginSuccess = await login(username: username, password: password)
 
-            isLoading = false
             return loginSuccess
 
         } catch {
             await handleAuthError(error)
-            isLoading = false
             return false
         }
     }
@@ -93,7 +89,6 @@ final class AuthService {
     /// - Returns: Success status
     @MainActor
     func login(username: String, password: String) async -> Bool {
-        isLoading = true
         authError = nil
 
         do {
@@ -107,13 +102,11 @@ final class AuthService {
             currentUser = response.user
             isAuthenticated = true
 
-            isLoading = false
             logger.info("Successfully logged in user with id: \(response.user.id), username: \(response.user.username)")
             return true
 
         } catch {
             await handleAuthError(error)
-            isLoading = false
             logger.error("Error logging in user: \(username)", error: error)
             return false
         }

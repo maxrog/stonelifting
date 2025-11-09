@@ -25,7 +25,6 @@ final class StoneService {
     private(set) var userStones: [Stone] = []
     private(set) var publicStones: [Stone] = []
 
-    private(set) var isCreatingStone = false
     private(set) var isLoadingUserStones = false
     private(set) var isLoadingPublicStones = false
 
@@ -44,7 +43,6 @@ final class StoneService {
     @MainActor
     func createStone(_ request: CreateStoneRequest) async -> Stone? {
         logger.info("Creating stone with weight: \(request.weight), public: \(request.isPublic)")
-        isCreatingStone = true
         stoneError = nil
 
         do {
@@ -63,13 +61,11 @@ final class StoneService {
                 logger.debug("Added stone to public stones list. Total public stones: \(publicStones.count)")
             }
 
-            isCreatingStone = false
             return stone
 
         } catch {
             logger.error("Failed to create stone", error: error)
             await handleStoneError(error)
-            isCreatingStone = false
             return nil
         }
     }

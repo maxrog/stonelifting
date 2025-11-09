@@ -15,8 +15,8 @@ struct StoneListView: View {
 
     // MARK: - Properties
 
-    private let stoneService = StoneService.shared
-    private let authService = AuthService.shared
+    @State private var viewModel = StoneListViewModel()
+
     private let logger = AppLogger()
 
     @State private var selectedFilter: StoneFilter = .myStones
@@ -33,7 +33,7 @@ struct StoneListView: View {
             VStack(spacing: 0) {
                 filterSection
 
-                if stoneService.isLoadingUserStones || stoneService.isLoadingPublicStones {
+                if viewModel.isLoading {
                     loadingView
                 } else {
                     stoneListContent
@@ -68,12 +68,12 @@ struct StoneListView: View {
             .sheet(item: $selectedStone) { stone in
                 StoneDetailView(stone: stone)
             }
-            .alert("Error", isPresented: .constant(stoneService.stoneError != nil)) {
+            .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
                 Button("OK") {
-                    stoneService.clearError()
+                    viewModel.clearError()
                 }
             } message: {
-                Text(stoneService.stoneError?.localizedDescription ?? "")
+                Text(viewModel.errorMessage ?? "")
             }
         }
     }
@@ -168,41 +168,11 @@ struct StoneListView: View {
 
     /// Filtered stones based on current selection and search
     private var filteredStones: [Stone] {
-        let stones: [Stone]
-
-        switch selectedFilter {
-        case .myStones:
-            stones = stoneService.userStones
-        case .publicStones:
-            stones = stoneService.publicStones
-        case .heavy:
-            stones = stoneService.userStones.filter { $0.weight >= 100 }
-        case .recent:
-            stones = Array(stoneService.userStones.prefix(10))
-        }
-
-        if searchText.isEmpty {
-            return stones
-        } else {
-            return stones.filter { stone in
-                stone.name?.localizedCaseInsensitiveContains(searchText) == true ||
-                stone.description?.localizedCaseInsensitiveContains(searchText) == true ||
-                stone.locationName?.localizedCaseInsensitiveContains(searchText) == true
-            }
-        }
+        viewModel.filteredStones(for: selectedFilter, searchText: searchText)
     }
 
     private func stoneCount(for filter: StoneFilter) -> Int {
-        switch filter {
-        case .myStones:
-            return stoneService.userStones.count
-        case .publicStones:
-            return stoneService.publicStones.count
-        case .heavy:
-            return stoneService.userStones.filter { $0.weight >= 100 }.count
-        case .recent:
-            return min(stoneService.userStones.count, 10)
-        }
+        viewModel.stoneCount(for: filter)
     }
 
     // MARK: - Actions
@@ -218,9 +188,9 @@ struct StoneListView: View {
         Task {
             switch selectedFilter {
             case .myStones, .heavy, .recent:
-                await stoneService.fetchUserStones()
+                await viewModel.fetchUserStones()
             case .publicStones:
-                await stoneService.fetchPublicStones()
+                await viewModel.fetchPublicStones()
             }
         }
     }
@@ -231,8 +201,7 @@ struct StoneListView: View {
     }
 
     private func refreshStonesAsync() async {
-        await stoneService.fetchUserStones()
-        await stoneService.fetchPublicStones()
+        await viewModel.refreshAllStones()
     }
 }
 

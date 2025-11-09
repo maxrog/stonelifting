@@ -15,7 +15,7 @@ struct LoginView: View {
 
     // MARK: - Properties
 
-    private let authService = AuthService.shared
+    @State private var viewModel = LoginViewModel()
 
     @State private var username = ""
     @State private var password = ""
@@ -52,12 +52,12 @@ struct LoginView: View {
         .onSubmit {
             handleSubmit()
         }
-        .alert("Login Error", isPresented: .constant(authService.authError != nil)) {
+        .alert("Login Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") {
-                authService.clearError()
+                viewModel.clearError()
             }
         } message: {
-            Text(authService.authError?.localizedDescription ?? "")
+            Text(viewModel.errorMessage ?? "")
         }
     }
 
@@ -139,7 +139,7 @@ struct LoginView: View {
         VStack(spacing: 16) {
             Button(action: handleLogin) {
                 HStack {
-                    if authService.isLoading {
+                    if viewModel.isLoading {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             .scaleEffect(0.8)
@@ -154,7 +154,7 @@ struct LoginView: View {
                 .foregroundColor(.white)
                 .cornerRadius(12)
             }
-            .disabled(!isFormValid || authService.isLoading)
+            .disabled(!isFormValid || viewModel.isLoading)
         }
     }
 
@@ -204,7 +204,7 @@ struct LoginView: View {
         focusedField = nil
 
         Task {
-            await authService.login(username: username, password: password)
+            await viewModel.login(username: username, password: password)
         }
     }
 }

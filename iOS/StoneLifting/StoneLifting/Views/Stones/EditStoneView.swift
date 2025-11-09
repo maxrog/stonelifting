@@ -17,7 +17,8 @@ struct EditStoneView: View {
 
     @Binding var stone: Stone
 
-    private let stoneService = StoneService.shared
+    @State private var viewModel: StoneFormViewModel
+
     private let locationService = LocationService.shared
     private let logger = AppLogger()
 
@@ -28,9 +29,6 @@ struct EditStoneView: View {
     @State private var showingCamera = false
     @State private var hasPhotoChanged = false
 
-    @State private var isLoading = false
-    @State private var errorMessage: String?
-
     @FocusState private var focusedField: StoneFormField?
 
     @Environment(\.dismiss) private var dismiss
@@ -39,55 +37,66 @@ struct EditStoneView: View {
 
     init(stone: Binding<Stone>) {
         self._stone = stone
+        if let stoneId = stone.wrappedValue.id {
+            self._viewModel = State(initialValue: StoneFormViewModel(stoneId: stoneId))
+        } else {
+            self._viewModel = State(initialValue: StoneFormViewModel())
+        }
     }
 
     // MARK: - Body
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    StonePhotoFormView(photoData: $photoData, showingPhotoOptions: $showingPhotoOptions)
+            ZStack {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        StonePhotoFormView(photoData: $photoData, showingPhotoOptions: $showingPhotoOptions)
 
-                    StoneDetailsFormView(
-                        stoneName: nameBinding,
-                        description: descriptionBinding,
-                        liftingLevel: $stone.liftingLevel,
-                        carryDistance: carryDistanceBinding,
-                        focusedField: $focusedField
-                    )
+                        StoneDetailsFormView(
+                            stoneName: nameBinding,
+                            description: descriptionBinding,
+                            liftingLevel: $stone.liftingLevel,
+                            carryDistance: carryDistanceBinding,
+                            focusedField: $focusedField
+                        )
 
-                    StoneWeightFormView(
-                        weight: weightBinding,
-                        estimatedWeight: estimatedWeightBinding,
-                        focusedField: $focusedField
-                    )
+                        StoneWeightFormView(
+                            weight: weightBinding,
+                            estimatedWeight: estimatedWeightBinding,
+                            focusedField: $focusedField
+                        )
 
-                    locationSection
-                    visibilitySection
+                        locationSection
+                        visibilitySection
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
-            }
-            .navigationTitle("Edit Stone")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        logger.info("User cancelled stone editing")
-                        dismiss()
+                .navigationTitle("Edit Stone")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Cancel") {
+                            logger.info("User cancelled stone editing")
+                            dismiss()
+                        }
+                    }
+
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Save") {
+                            updateStone()
+                        }
+                        .disabled(!isFormValid || viewModel.isLoading)
                     }
                 }
-
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        updateStone()
-                    }
-                    .disabled(!isFormValid || isLoading)
+                .onAppear {
+                    setupView()
                 }
-            }
-            .onAppear {
-                setupView()
+
+                if viewModel.isLoading {
+                    loadingView
+                }
             }
         }
         .confirmationDialog("Change Photo", isPresented: $showingPhotoOptions) {
@@ -116,12 +125,12 @@ struct EditStoneView: View {
         .onChange(of: selectedPhoto) { _, newValue in
             loadSelectedPhoto(newValue)
         }
-        .alert("Error", isPresented: .constant(errorMessage != nil)) {
+        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") {
-                errorMessage = nil
+                viewModel.clearError()
             }
         } message: {
-            Text(errorMessage ?? "")
+            Text(viewModel.errorMessage ?? "")
         }
     }
 
@@ -260,6 +269,20 @@ struct EditStoneView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    @ViewBuilder
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.2)
+
+            Text("Updating stone...")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .background(Color.primary.opacity(0.4))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Binding Helpers
@@ -402,8 +425,8 @@ struct EditStoneView: View {
     }
 
     private func updateStone() {
-        guard let stoneId = stone.id else {
-            errorMessage = "Unable to update stone - missing ID"
+        guard stone.id != nil else {
+            viewModel.errorMessage = "Unable to update stone - missing ID"
             return
         }
 
@@ -411,40 +434,20 @@ struct EditStoneView: View {
 
         // Dismiss keyboard
         focusedField = nil
-        isLoading = true
+
+        // Update location if user requested it
+        if let currentLocation = locationService.currentLocation {
+            stone.latitude = currentLocation.coordinate.latitude
+            stone.longitude = currentLocation.coordinate.longitude
+        }
 
         Task {
-            // Upload new image if changed
-            var finalImageURL = stone.imageUrl
-
-            if hasPhotoChanged, let photoData = photoData {
-                logger.info("Uploading new image for stone")
-                finalImageURL = await ImageUploadService.shared.uploadImage(photoData)
-
-                if finalImageURL == nil {
-                    await MainActor.run {
-                        errorMessage = "Failed to upload image. You can retry or continue editing without updating the photo."
-                        isLoading = false
-                    }
-                    return
-                }
-            } else if hasPhotoChanged && photoData == nil {
-                // User removed the photo
-                finalImageURL = nil
-            }
-
-            // Update location if user requested it
-            if let currentLocation = locationService.currentLocation {
-                stone.latitude = currentLocation.coordinate.latitude
-                stone.longitude = currentLocation.coordinate.longitude
-            }
-
             let request = CreateStoneRequest(
                 name: stone.name,
                 weight: stone.weight,
                 estimatedWeight: stone.estimatedWeight,
                 description: stone.description,
-                imageUrl: finalImageURL,
+                imageUrl: stone.imageUrl,
                 latitude: stone.latitude,
                 longitude: stone.longitude,
                 locationName: stone.locationName,
@@ -453,18 +456,15 @@ struct EditStoneView: View {
                 carryDistance: stone.carryDistance
             )
 
-            let updatedStone = await stoneService.updateStone(id: stoneId, with: request)
+            let updatedStone = await viewModel.saveStone(
+                request: request,
+                photoData: photoData,
+                hasPhotoChanged: hasPhotoChanged
+            )
 
-            await MainActor.run {
-                isLoading = false
-                if let updatedStone = updatedStone {
-                    logger.info("Stone updated successfully")
-                    stone = updatedStone
-                    dismiss()
-                } else {
-                    logger.error("Failed to update stone")
-                    errorMessage = "Failed to update stone. Please try again."
-                }
+            if let updatedStone = updatedStone {
+                stone = updatedStone
+                dismiss()
             }
         }
     }

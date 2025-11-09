@@ -18,7 +18,8 @@ struct AddStoneView: View {
 
     // MARK: - Properties
 
-    private let stoneService = StoneService.shared
+    @State private var viewModel = StoneFormViewModel()
+
     private let locationService = LocationService.shared
     private let logger = AppLogger()
 
@@ -38,10 +39,6 @@ struct AddStoneView: View {
     @State private var showingPhotoPicker = false
     @State private var showingCamera = false
 
-    @State private var showingError = false
-    @State private var errorMessage = ""
-    @State private var isLoading = false
-
     @FocusState private var focusedField: StoneFormField?
 
     /// Dismissal action
@@ -51,51 +48,56 @@ struct AddStoneView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    StonePhotoFormView(
-                        photoData: $photoData,
-                        showingPhotoOptions: $showingPhotoOptions
-                    )
+            ZStack {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        StonePhotoFormView(
+                            photoData: $photoData,
+                            showingPhotoOptions: $showingPhotoOptions
+                        )
 
-                    StoneDetailsFormView(
-                        stoneName: $stoneName,
-                        description: $description,
-                        liftingLevel: $liftingLevel,
-                        carryDistance: $carryDistance,
-                        focusedField: $focusedField
-                    )
+                        StoneDetailsFormView(
+                            stoneName: $stoneName,
+                            description: $description,
+                            liftingLevel: $liftingLevel,
+                            carryDistance: $carryDistance,
+                            focusedField: $focusedField
+                        )
 
-                    StoneWeightFormView(
-                        weight: $weight,
-                        estimatedWeight: $estimatedWeight,
-                        focusedField: $focusedField
-                    )
-                    locationSection
-                    visibilitySection
+                        StoneWeightFormView(
+                            weight: $weight,
+                            estimatedWeight: $estimatedWeight,
+                            focusedField: $focusedField
+                        )
+                        locationSection
+                        visibilitySection
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
-            }
-            .navigationTitle("Add Stone")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        logger.info("User cancelled stone creation")
-                        dismiss()
+                .navigationTitle("Add Stone")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Cancel") {
+                            logger.info("User cancelled stone creation")
+                            dismiss()
+                        }
+                    }
+
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Save") {
+                            saveStone()
+                        }
+                        .disabled(!isFormValid || viewModel.isLoading)
                     }
                 }
-
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        saveStone()
-                    }
-                    .disabled(!isFormValid || stoneService.isCreatingStone)
+                .onAppear {
+                    setupView()
                 }
-            }
-            .onAppear {
-                setupView()
+                if viewModel.isLoading {
+                    loadingView
+                }
             }
         }
         .confirmationDialog("Add Photo", isPresented: $showingPhotoOptions) {
@@ -117,30 +119,29 @@ struct AddStoneView: View {
         .onChange(of: selectedPhoto) { _, newValue in
             loadSelectedPhoto(newValue)
         }
-        .alert("Stone Creation Error", isPresented: .constant(stoneService.stoneError != nil)) {
+        .alert("Stone Creation Error", isPresented: .constant(viewModel.stoneError != nil)) {
             Button("OK") {
-                stoneService.clearError()
+                viewModel.clearError()
             }
         } message: {
-            Text(stoneService.stoneError?.localizedDescription ?? "")
+            Text(viewModel.stoneError?.localizedDescription ?? "")
         }
-        .alert("Image Upload Failed", isPresented: $showingError) {
+        .alert("Image Upload Failed", isPresented: $viewModel.showingError) {
             Button("Retry") {
-                showingError = false
+                viewModel.showingError = false
                 saveStone()
             }
             Button("Continue Without Photo") {
-                showingError = false
+                viewModel.showingError = false
                 // Clear photo data and retry
                 photoData = nil
                 saveStone()
             }
             Button("Cancel", role: .cancel) {
-                showingError = false
-                isLoading = false
+                viewModel.clearError()
             }
         } message: {
-            Text(errorMessage)
+            Text(viewModel.errorMessage ?? "")
         }
     }
 
@@ -199,6 +200,20 @@ struct AddStoneView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    @ViewBuilder
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.2)
+
+            Text("Adding stone...")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .background(Color.primary.opacity(0.4))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder
@@ -405,29 +420,12 @@ struct AddStoneView: View {
         focusedField = nil
 
         Task {
-            var imageURL: String?
-
-            if let photoData = photoData {
-                logger.info("Uploading image for new stone")
-                imageURL = await ImageUploadService.shared.uploadImage(photoData)
-
-                if imageURL == nil {
-                    await MainActor.run {
-                        logger.error("Failed to upload image")
-                        errorMessage = "Failed to upload image. Please try again or continue without a photo."
-                        showingError = true
-                        isLoading = false
-                    }
-                    return
-                }
-            }
-
             let request = CreateStoneRequest(
                 name: stoneName.isEmpty ? nil : stoneName,
                 weight: Double(weight) ?? 0,
                 estimatedWeight: Double(estimatedWeight),
                 description: description.isEmpty ? nil : description,
-                imageUrl: imageURL,
+                imageUrl: nil, // Will be set by ViewModel after upload
                 latitude: includeLocation ? locationService.currentLocation?.coordinate.latitude : nil,
                 longitude: includeLocation ? locationService.currentLocation?.coordinate.longitude : nil,
                 locationName: locationName.isEmpty ? nil : locationName,
@@ -436,15 +434,10 @@ struct AddStoneView: View {
                 carryDistance: carryDistance.isEmpty ? nil : Double(carryDistance)
             )
 
-            let stone = await stoneService.createStone(request)
+            let stone = await viewModel.saveStone(request: request, photoData: photoData)
 
-            await MainActor.run {
-                if stone != nil {
-                    logger.info("Stone created successfully")
-                    dismiss()
-                } else {
-                    logger.error("Failed to create stone")
-                }
+            if stone != nil {
+                dismiss()
             }
         }
     }

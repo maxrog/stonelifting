@@ -15,7 +15,7 @@ struct RegisterView: View {
 
     // MARK: - Properties
 
-    private let authService = AuthService.shared
+    @State private var viewModel = RegisterViewModel()
 
     @State private var username = ""
     @State private var email = ""
@@ -62,12 +62,12 @@ struct RegisterView: View {
         .onSubmit {
             handleSubmit()
         }
-        .alert("Registration Error", isPresented: .constant(authService.authError != nil)) {
+        .alert("Registration Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") {
-                authService.clearError()
+                viewModel.clearError()
             }
         } message: {
-            Text(authService.authError?.localizedDescription ?? "")
+            Text(viewModel.errorMessage ?? "")
         }
     }
 
@@ -125,7 +125,7 @@ struct RegisterView: View {
 
                     if !username.isEmpty {
                         ValidationFeedbackView(
-                            result: authService.validateUsername(username),
+                            result: viewModel.validateUsername(username),
                             availabilityResult: usernameAvailable,
                             isChecking: isCheckingUsername,
                             itemType: "Username"
@@ -163,7 +163,7 @@ struct RegisterView: View {
 
                     if !email.isEmpty {
                         ValidationFeedbackView(
-                            result: authService.validateEmail(email),
+                            result: viewModel.validateEmail(email),
                             availabilityResult: emailAvailable,
                             isChecking: isCheckingEmail,
                             itemType: "Email"
@@ -202,7 +202,7 @@ struct RegisterView: View {
                 .autocorrectionDisabled()
 
                 if !password.isEmpty {
-                    ValidationFeedbackView(result: authService.validatePassword(password))
+                    ValidationFeedbackView(result: viewModel.validatePassword(password))
                 }
             }
 
@@ -248,7 +248,7 @@ struct RegisterView: View {
         VStack(spacing: 16) {
             Button(action: handleRegistration) {
                 HStack {
-                    if authService.isLoading {
+                    if viewModel.isLoading {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             .scaleEffect(0.8)
@@ -263,7 +263,7 @@ struct RegisterView: View {
                 .foregroundColor(.white)
                 .cornerRadius(12)
             }
-            .disabled(!isFormValid || authService.isLoading)
+            .disabled(!isFormValid || viewModel.isLoading)
 
             Text("By creating an account, you agree to our Terms of Service and Privacy Policy")
                 .font(.caption)
@@ -300,7 +300,7 @@ struct RegisterView: View {
         usernameAvailable = nil
 
         // Don't check if empty or invalid
-        guard !username.isEmpty && authService.validateUsername(username).isValid else {
+        guard !username.isEmpty && viewModel.validateUsername(username).isValid else {
             isCheckingUsername = false
             return
         }
@@ -314,7 +314,7 @@ struct RegisterView: View {
 
             guard !Task.isCancelled else { return }
 
-            let available = await authService.checkUsernameAvailability(username)
+            let available = await viewModel.checkUsernameAvailability(username)
 
             await MainActor.run {
                 guard !Task.isCancelled else { return }
@@ -333,7 +333,7 @@ struct RegisterView: View {
         emailAvailable = nil
 
         // Don't check if empty or invalid
-        guard !email.isEmpty && authService.validateEmail(email).isValid else {
+        guard !email.isEmpty && viewModel.validateEmail(email).isValid else {
             isCheckingEmail = false
             return
         }
@@ -347,7 +347,7 @@ struct RegisterView: View {
 
             guard !Task.isCancelled else { return }
 
-            let available = await authService.checkEmailAvailability(email)
+            let available = await viewModel.checkEmailAvailability(email)
 
             await MainActor.run {
                 guard !Task.isCancelled else { return }
@@ -360,9 +360,9 @@ struct RegisterView: View {
     // MARK: - Computed Properties
 
     private var isFormValid: Bool {
-        authService.validateUsername(username).isValid &&
-        authService.validateEmail(email).isValid &&
-        authService.validatePassword(password).isValid &&
+        viewModel.validateUsername(username).isValid &&
+        viewModel.validateEmail(email).isValid &&
+        viewModel.validatePassword(password).isValid &&
         passwordMatchValidation.isValid &&
         usernameAvailable == true &&
         emailAvailable == true &&
@@ -407,7 +407,7 @@ struct RegisterView: View {
 
         // Perform registration
         Task {
-            await authService.register(username: username, email: email, password: password)
+            await viewModel.register(username: username, email: email, password: password)
         }
     }
 }
