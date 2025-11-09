@@ -5,8 +5,8 @@
 //  Created by Max Rogers on 7/16/25.
 //
 
-import Foundation
 import CoreLocation
+import Foundation
 import Observation
 
 // MARK: - Location Service
@@ -15,7 +15,6 @@ import Observation
 /// Handles GPS coordinates, location permissions, and nearby stone searches
 @Observable
 final class LocationService: NSObject {
-
     // MARK: - Properties
 
     static let shared = LocationService()
@@ -60,7 +59,7 @@ final class LocationService: NSObject {
             locationManager.requestWhenInUseAuthorization()
         case .denied, .restricted:
             logger.warning("Location permission denied - directing user to settings")
-            // TODO show alert directing user to settings
+        // TODO: show alert directing user to settings
         case .authorizedWhenInUse, .authorizedAlways:
             logger.info("Location permission already granted")
             startLocationUpdates()
@@ -72,7 +71,7 @@ final class LocationService: NSObject {
     // MARK: - Location Updates
 
     private func startLocationUpdates() {
-        guard isLocationEnabled && (authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways) else {
+        guard isLocationEnabled, authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
             logger.warning("Cannot start location updates - not authorized or disabled")
             return
         }
@@ -177,8 +176,7 @@ final class LocationService: NSObject {
 // MARK: - CLLocationManagerDelegate
 
 extension LocationService: CLLocationManagerDelegate {
-
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    func locationManager(_: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
 
         currentLocation = location
@@ -197,7 +195,7 @@ extension LocationService: CLLocationManagerDelegate {
         stopLocationUpdates()
     }
 
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    func locationManager(_: CLLocationManager, didFailWithError error: Error) {
         logger.error("Location manager failed", error: error)
 
         // Resume continuation with nil on error
@@ -222,7 +220,7 @@ extension LocationService: CLLocationManagerDelegate {
         }
     }
 
-    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+    func locationManager(_: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
         logger.info("Location authorization changed: \(status.description)")
 
         authorizationStatus = status
@@ -261,7 +259,7 @@ enum LocationError: Error, LocalizedError {
             return "Unable to determine your location. Please try again."
         case .networkError:
             return "Network error while getting location. Please check your connection."
-        case .unknownError(let message):
+        case let .unknownError(message):
             return message
         }
     }

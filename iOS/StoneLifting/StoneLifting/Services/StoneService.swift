@@ -14,7 +14,6 @@ import Observation
 /// Handles creating, fetching, updating, and deleting stone records
 @Observable
 final class StoneService {
-
     // MARK: - Properties
 
     static let shared = StoneService()
@@ -46,10 +45,12 @@ final class StoneService {
         stoneError = nil
 
         do {
-            let stone: Stone = try await apiService.post(endpoint: APIConfig.Endpoints.stones,
-                                                         body: request,
-                                                         requiresAuth: true,
-                                                         responseType: Stone.self)
+            let stone: Stone = try await apiService.post(
+                endpoint: APIConfig.Endpoints.stones,
+                body: request,
+                requiresAuth: true,
+                responseType: Stone.self
+            )
 
             logger.info("Successfully created stone with ID: \(stone.id?.uuidString ?? "unknown")")
 
@@ -81,9 +82,11 @@ final class StoneService {
         stoneError = nil
 
         do {
-            let stones: [Stone] = try await apiService.get(endpoint: APIConfig.Endpoints.stones,
-                                                           requiresAuth: true,
-                                                           type: [Stone].self)
+            let stones: [Stone] = try await apiService.get(
+                endpoint: APIConfig.Endpoints.stones,
+                requiresAuth: true,
+                type: [Stone].self
+            )
 
             userStones = stones
             logger.info("Successfully fetched \(stones.count) user stones")
@@ -107,9 +110,11 @@ final class StoneService {
         stoneError = nil
 
         do {
-            let stones: [Stone] = try await apiService.get(endpoint: APIConfig.Endpoints.publicStones,
-                                                           requiresAuth: false,
-                                                           type: [Stone].self)
+            let stones: [Stone] = try await apiService.get(
+                endpoint: APIConfig.Endpoints.publicStones,
+                requiresAuth: false,
+                type: [Stone].self
+            )
 
             publicStones = stones
             logger.info("Successfully fetched \(stones.count) public stones")
@@ -137,9 +142,11 @@ final class StoneService {
         do {
             let endpoint = "\(APIConfig.Endpoints.nearbyStones)?lat=\(latitude)&lon=\(longitude)&radius=\(radius)"
 
-            let stones: [Stone] = try await apiService.get(endpoint: endpoint,
-                                                           requiresAuth: true,
-                                                           type: [Stone].self)
+            let stones: [Stone] = try await apiService.get(
+                endpoint: endpoint,
+                requiresAuth: true,
+                type: [Stone].self
+            )
 
             logger.info("Successfully fetched \(stones.count) nearby stones")
             return stones
@@ -163,10 +170,12 @@ final class StoneService {
         logger.info("Updating stone with ID: \(stoneId.uuidString)")
 
         do {
-            let stone: Stone = try await apiService.put(endpoint: "\(APIConfig.Endpoints.stones)/\(stoneId)",
-                                                        body: request,
-                                                        requiresAuth: true,
-                                                        responseType: Stone.self)
+            let stone: Stone = try await apiService.put(
+                endpoint: "\(APIConfig.Endpoints.stones)/\(stoneId)",
+                body: request,
+                requiresAuth: true,
+                responseType: Stone.self
+            )
 
             logger.info("Successfully updated stone with ID: \(stoneId.uuidString)")
 
@@ -205,8 +214,10 @@ final class StoneService {
         logger.info("Deleting stone with ID: \(stoneId.uuidString)")
 
         do {
-            try await apiService.delete(endpoint: "\(APIConfig.Endpoints.stones)/\(stoneId)",
-                                        requiresAuth: true)
+            try await apiService.delete(
+                endpoint: "\(APIConfig.Endpoints.stones)/\(stoneId)",
+                requiresAuth: true
+            )
 
             logger.info("Successfully deleted stone with ID: \(stoneId.uuidString)")
 
@@ -246,7 +257,6 @@ final class StoneService {
 // MARK: - Private Methods
 
 private extension StoneService {
-
     /// Handle stone-related errors
     /// - Parameter error: The error to handle
     @MainActor
@@ -295,7 +305,7 @@ enum StoneError: Error, LocalizedError {
             return "Network error. Please check your connection"
         case .invalidData:
             return "Invalid stone data"
-        case .unknownError(let message):
+        case let .unknownError(message):
             return message
         }
     }

@@ -14,7 +14,6 @@ import Observation
 /// Manages registration state and business logic
 @Observable
 final class RegisterViewModel {
-
     // MARK: - Properties
 
     private let authService = AuthService.shared

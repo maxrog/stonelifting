@@ -12,7 +12,6 @@ import SwiftUI
 /// Root view that manages the app's main navigation flow
 /// Decides whether to show authentication or main app based on auth state
 struct RootView: View {
-
     // MARK: - Properties
 
     private let authService = AuthService.shared
@@ -61,10 +60,10 @@ struct RootView: View {
 }
 
 // MARK: - Loading View
-// TODO use splash / pull out these views (loading view should be generic)
+
+// TODO: use splash / pull out these views (loading view should be generic)
 /// Loading screen shown during app initialization
 struct LoadingView: View {
-
     /// Animation state for the loading indicator
     @State private var isAnimating = false
 
@@ -95,7 +94,6 @@ struct LoadingView: View {
 // MARK: - Main App View
 
 struct MainAppView: View {
-
     /// Authentication service for logout functionality
     private let authService = AuthService.shared
 

@@ -13,7 +13,6 @@ import Foundation
 /// Handles HTTP requests, authentication, and response parsing
 @Observable
 final class APIService {
-
     // MARK: - Properties
 
     static let shared = APIService()
@@ -72,14 +71,18 @@ final class APIService {
     ///   - endpoint: API endpoint path
     ///   - requiresAuth: Whether this endpoint requires authentication
     /// - Returns: Decoded response data
-    func get<T: Codable>(endpoint: String,
-                         requiresAuth: Bool = false,
-                         type: T.Type) async throws -> T {
-        try await performRequest(endpoint: endpoint,
+    func get<T: Codable>(
+        endpoint: String,
+        requiresAuth: Bool = false,
+        type: T.Type
+    ) async throws -> T {
+        try await performRequest(
+            endpoint: endpoint,
             method: "GET",
             body: EmptyBody?.none,
             requiresAuth: requiresAuth,
-            responseType: type)
+            responseType: type
+        )
     }
 
     /// Perform a POST request
@@ -88,15 +91,19 @@ final class APIService {
     ///   - body: Request body to encode as JSON
     ///   - requiresAuth: Whether this endpoint requires authentication
     /// - Returns: Decoded response data
-    func post<T: Codable, U: Codable>(endpoint: String,
-                                      body: T,
-                                      requiresAuth: Bool = false,
-                                      responseType: U.Type) async throws -> U {
-        try await performRequest(endpoint: endpoint,
+    func post<T: Codable, U: Codable>(
+        endpoint: String,
+        body: T,
+        requiresAuth: Bool = false,
+        responseType: U.Type
+    ) async throws -> U {
+        try await performRequest(
+            endpoint: endpoint,
             method: "POST",
             body: body,
             requiresAuth: requiresAuth,
-            responseType: responseType)
+            responseType: responseType
+        )
     }
 
     /// Perform a PUT request
@@ -105,15 +112,19 @@ final class APIService {
     ///   - body: Request body to encode as JSON
     ///   - requiresAuth: Whether this endpoint requires authentication
     /// - Returns: Decoded response data
-    func put<T: Codable, U: Codable>(endpoint: String,
-                                     body: T,
-                                     requiresAuth: Bool = true,
-                                     responseType: U.Type) async throws -> U {
-        try await performRequest(endpoint: endpoint,
+    func put<T: Codable, U: Codable>(
+        endpoint: String,
+        body: T,
+        requiresAuth: Bool = true,
+        responseType: U.Type
+    ) async throws -> U {
+        try await performRequest(
+            endpoint: endpoint,
             method: "PUT",
             body: body,
             requiresAuth: requiresAuth,
-            responseType: responseType)
+            responseType: responseType
+        )
     }
 
     /// Perform a DELETE request
@@ -121,18 +132,19 @@ final class APIService {
     ///   - endpoint: API endpoint path
     ///   - requiresAuth: Whether this endpoint requires authentication
     func delete(endpoint: String, requiresAuth: Bool = true) async throws {
-        let _: EmptyResponse = try await performRequest(endpoint: endpoint,
-                                                        method: "DELETE",
-                                                        body: EmptyBody?.none,
-                                                        requiresAuth: requiresAuth,
-                                                        responseType: EmptyResponse.self)
+        let _: EmptyResponse = try await performRequest(
+            endpoint: endpoint,
+            method: "DELETE",
+            body: EmptyBody?.none,
+            requiresAuth: requiresAuth,
+            responseType: EmptyResponse.self
+        )
     }
 }
 
 // MARK: - Private Methods
 
 private extension APIService {
-
     /// Core method for performing HTTP requests
     /// - Parameters:
     ///   - endpoint: API endpoint path
@@ -141,12 +153,13 @@ private extension APIService {
     ///   - requiresAuth: Whether to include JWT token
     ///   - responseType: Expected response type
     /// - Returns: Decoded response
-    func performRequest<T: Codable, U: Codable>(endpoint: String,
-                                                method: String,
-                                                body: T?,
-                                                requiresAuth: Bool,
-                                                responseType: U.Type) async throws -> U {
-
+    func performRequest<T: Codable, U: Codable>(
+        endpoint: String,
+        method: String,
+        body: T?,
+        requiresAuth: Bool,
+        responseType: U.Type
+    ) async throws -> U {
         guard let url = URL(string: APIConfig.baseURL + endpoint) else {
             throw APIError.invalidURL
         }
@@ -179,7 +192,7 @@ private extension APIService {
             }
 
             switch httpResponse.statusCode {
-            case 200...299:
+            case 200 ... 299:
                 logger.info("Successful response for url: \(request.url?.absoluteString ?? "")")
                 // Success - decode response
                 if responseType == EmptyResponse.self {
@@ -210,7 +223,7 @@ private extension APIService {
                 logger.error("Error loading url: \(request.url?.absoluteString ?? "")", error: APIError.notFound)
                 throw APIError.notFound
 
-            case 500...599:
+            case 500 ... 599:
                 logger.error("Error loading url: \(request.url?.absoluteString ?? "")", error: APIError.serverError)
                 throw APIError.serverError
 
@@ -233,8 +246,8 @@ private extension APIService {
 
 // MARK: - Supporting Types
 
-private struct EmptyResponse: Codable { }
-struct EmptyBody: Codable { }
+private struct EmptyResponse: Codable {}
+struct EmptyBody: Codable {}
 
 /// API error types
 enum APIError: Error, LocalizedError {
@@ -256,11 +269,11 @@ enum APIError: Error, LocalizedError {
             return "Invalid API URL"
         case .notAuthenticated:
             return "Authentication required"
-        case .encodingFailed(let error):
+        case let .encodingFailed(error):
             return "Failed to encode request: \(error.localizedDescription)"
-        case .decodingFailed(let error):
+        case let .decodingFailed(error):
             return "Failed to decode response: \(error.localizedDescription)"
-        case .networkError(let error):
+        case let .networkError(error):
             return "Network error: \(error.localizedDescription)"
         case .invalidResponse:
             return "Invalid server response"
@@ -272,7 +285,7 @@ enum APIError: Error, LocalizedError {
             return "Resource not found"
         case .serverError:
             return "Server error - please try again later"
-        case .unknown(let code):
+        case let .unknown(code):
             return "Unknown error (HTTP \(code))"
         }
     }

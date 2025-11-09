@@ -1,5 +1,5 @@
 //
-//  StoneWeightInputView.swift
+//  StoneWeightFormView.swift
 //  StoneLifting
 //
 //  Created by Max Rogers on 7/27/25.
@@ -11,7 +11,6 @@ import SwiftUI
 
 /// Weight input component for stone creation
 struct StoneWeightFormView: View {
-
     @Binding var weight: String
     @Binding var estimatedWeight: String
     @FocusState.Binding var focusedField: StoneFormField?
@@ -60,7 +59,6 @@ struct StoneWeightFormView: View {
             if let actualWeight = Double(weight),
                let estimatedWeight = Double(estimatedWeight),
                actualWeight > 0 && estimatedWeight > 0 {
-
                 let difference = abs(actualWeight - estimatedWeight)
                 let percentage = (difference / actualWeight) * 100
 

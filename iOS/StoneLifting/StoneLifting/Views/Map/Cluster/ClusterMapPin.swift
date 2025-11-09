@@ -63,9 +63,9 @@ struct ClusterMapPin: View {
     private var pinSize: CGFloat {
         let count = clusterItem.count
         switch count {
-        case 2...5: return 35
-        case 6...10: return 42
-        case 11...20: return 50
+        case 2 ... 5: return 35
+        case 6 ... 10: return 42
+        case 11 ... 20: return 50
         default: return 55
         }
     }
@@ -73,8 +73,8 @@ struct ClusterMapPin: View {
     private var fontSize: CGFloat {
         let count = clusterItem.count
         switch count {
-        case 2...9: return 12
-        case 10...99: return 10
+        case 2 ... 9: return 12
+        case 10 ... 99: return 10
         default: return 8
         }
     }

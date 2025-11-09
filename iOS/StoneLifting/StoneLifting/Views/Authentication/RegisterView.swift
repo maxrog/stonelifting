@@ -12,7 +12,6 @@ import SwiftUI
 /// User registration screen with form validation
 /// Handles new user account creation with comprehensive validation
 struct RegisterView: View {
-
     // MARK: - Properties
 
     @State private var viewModel = RegisterViewModel()
@@ -300,7 +299,7 @@ struct RegisterView: View {
         usernameAvailable = nil
 
         // Don't check if empty or invalid
-        guard !username.isEmpty && viewModel.validateUsername(username).isValid else {
+        guard !username.isEmpty, viewModel.validateUsername(username).isValid else {
             isCheckingUsername = false
             return
         }
@@ -333,7 +332,7 @@ struct RegisterView: View {
         emailAvailable = nil
 
         // Don't check if empty or invalid
-        guard !email.isEmpty && viewModel.validateEmail(email).isValid else {
+        guard !email.isEmpty, viewModel.validateEmail(email).isValid else {
             isCheckingEmail = false
             return
         }
@@ -361,13 +360,13 @@ struct RegisterView: View {
 
     private var isFormValid: Bool {
         viewModel.validateUsername(username).isValid &&
-        viewModel.validateEmail(email).isValid &&
-        viewModel.validatePassword(password).isValid &&
-        passwordMatchValidation.isValid &&
-        usernameAvailable == true &&
-        emailAvailable == true &&
-        !isCheckingUsername &&
-        !isCheckingEmail
+            viewModel.validateEmail(email).isValid &&
+            viewModel.validatePassword(password).isValid &&
+            passwordMatchValidation.isValid &&
+            usernameAvailable == true &&
+            emailAvailable == true &&
+            !isCheckingUsername &&
+            !isCheckingEmail
     }
 
     private var passwordMatchValidation: ValidationResult {
@@ -424,9 +423,9 @@ struct ValidationFeedbackView: View {
     // For fields without availability checking
     init(result: ValidationResult) {
         self.result = result
-        self.availabilityResult = nil
-        self.isChecking = false
-        self.itemType = ""
+        availabilityResult = nil
+        isChecking = false
+        itemType = ""
     }
 
     // For fields with availability checking

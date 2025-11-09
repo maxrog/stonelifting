@@ -10,7 +10,6 @@ import MapKit
 
 /// Handles clustering of stones based on map zoom level and proximity
 class StoneClusteringSystem {
-
     // MARK: - Properties
 
     /// Minimum distance between pins before clustering (in meters)
@@ -23,7 +22,7 @@ class StoneClusteringSystem {
 
     init(clusterDistance: CLLocationDistance = 1000) { // 1km default
         self.clusterDistance = clusterDistance
-        self.zoomThresholds = ZoomThresholds()
+        zoomThresholds = ZoomThresholds()
     }
 
     // MARK: - Public Methods
@@ -38,7 +37,7 @@ class StoneClusteringSystem {
         let currentZoom = calculateZoomLevel(from: region)
         let shouldCluster = currentZoom < zoomThresholds.individualPinThreshold
 
-        guard shouldCluster && stones.count > 1 else {
+        guard shouldCluster, stones.count > 1 else {
             // Show individual pins
             return stones.compactMap { stone in
                 guard stone.hasValidLocation else { return nil }
@@ -53,7 +52,7 @@ class StoneClusteringSystem {
     // MARK: - Private Methods
 
     /// Perform the actual clustering algorithm
-    private func performClustering(stones: [Stone], region: MKCoordinateRegion) -> [StoneClusterItem] {
+    private func performClustering(stones: [Stone], region _: MKCoordinateRegion) -> [StoneClusterItem] {
         var clusters: [StoneClusterItem] = []
         var processedStones: Set<UUID> = []
 
@@ -138,7 +137,7 @@ class StoneClusteringSystem {
         // Rough approximation of zoom level based on span
         // Lower span = higher zoom level
         let span = max(region.span.latitudeDelta, region.span.longitudeDelta)
-        return max(0, 20 - log2(span * 111000)) // Convert degrees to meters roughly
+        return max(0, 20 - log2(span * 111_000)) // Convert degrees to meters roughly
     }
 }
 
@@ -151,18 +150,18 @@ enum StoneClusterItem: Identifiable {
 
     var id: UUID {
         switch self {
-        case .individual(let stone):
+        case let .individual(stone):
             return stone.id ?? UUID()
-        case .cluster(let id, _, _, _):
+        case let .cluster(id, _, _, _):
             return id
         }
     }
 
     var coordinate: CLLocationCoordinate2D {
         switch self {
-        case .individual(let stone):
+        case let .individual(stone):
             return stone.coordinate
-        case .cluster(_, let coordinate, _, _):
+        case let .cluster(_, coordinate, _, _):
             return coordinate
         }
     }
@@ -178,9 +177,9 @@ enum StoneClusterItem: Identifiable {
 
     var stones: [Stone] {
         switch self {
-        case .individual(let stone):
+        case let .individual(stone):
             return [stone]
-        case .cluster(_, _, let stones, _):
+        case let .cluster(_, _, stones, _):
             return stones
         }
     }
@@ -189,7 +188,7 @@ enum StoneClusterItem: Identifiable {
         switch self {
         case .individual:
             return 1
-        case .cluster(_, _, _, let count):
+        case let .cluster(_, _, _, count):
             return count
         }
     }

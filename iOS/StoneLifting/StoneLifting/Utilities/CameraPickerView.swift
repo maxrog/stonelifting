@@ -12,7 +12,6 @@ import UIKit
 
 /// CameraPicker that uses UIImagePickerController with SwiftUI presentation
 struct CameraPickerView: UIViewControllerRepresentable {
-
     private let logger = AppLogger()
 
     let onImageCaptured: (Data) -> Void
@@ -25,7 +24,7 @@ struct CameraPickerView: UIViewControllerRepresentable {
         picker.cameraDevice = .rear
         picker.delegate = context.coordinator
 
-        // TODO This needed?
+        // TODO: This needed?
         // iOS 17+ optimizations
         if #available(iOS 17.0, *) {
             picker.preferredContentSize = CGSize(width: 390, height: 844) // iPhone size
@@ -35,7 +34,7 @@ struct CameraPickerView: UIViewControllerRepresentable {
         return picker
     }
 
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) { }
+    func updateUIViewController(_: UIImagePickerController, context _: Context) {}
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -44,7 +43,6 @@ struct CameraPickerView: UIViewControllerRepresentable {
     // MARK: - Coordinator
 
     class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-
         let parent: CameraPickerView
         private let logger = AppLogger()
 
@@ -53,7 +51,7 @@ struct CameraPickerView: UIViewControllerRepresentable {
         }
 
         func imagePickerController(
-            _ picker: UIImagePickerController,
+            _: UIImagePickerController,
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
             logger.info("Camera image captured")
@@ -71,7 +69,7 @@ struct CameraPickerView: UIViewControllerRepresentable {
             }
         }
 
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        func imagePickerControllerDidCancel(_: UIImagePickerController) {
             logger.info("Camera picker cancelled")
             parent.dismiss()
         }

@@ -10,8 +10,7 @@ import Foundation
 // MARK: - API Configuration
 
 /// Configuration constants for the StoneLifting app
-struct APIConfig {
-
+enum APIConfig {
     /// Environment selection
     enum Environment {
         case local
@@ -65,7 +64,7 @@ struct APIConfig {
 // MARK: - App Configuration
 
 /// General app configuration constants
-struct AppConfig {
+enum AppConfig {
     /// Maximum file size for image uploads (in bytes)
     static let maxImageSize = 10 * 1024 * 1024 // 10MB
 
@@ -74,12 +73,11 @@ struct AppConfig {
 
     /// Default search radius for nearby stones (in kilometers)
     static let defaultSearchRadius: Double = 10.0
-
 }
 
 // MARK: User Defaults
 
-struct UserDefaultsKeys {
+enum UserDefaultsKeys {
     static let jwtToken = "com.marfodub.StoneLifting.jwtToken"
 
     static let hasCompletedOnboarding = "com.marfodub.StoneLifting.has_completed_onboarding"

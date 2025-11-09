@@ -14,7 +14,6 @@ import Observation
 /// Manages login state and business logic
 @Observable
 final class LoginViewModel {
-
     // MARK: - Properties
 
     private let authService = AuthService.shared

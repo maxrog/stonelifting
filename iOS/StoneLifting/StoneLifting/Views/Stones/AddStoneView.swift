@@ -5,8 +5,8 @@
 //  Created by Max Rogers on 7/25/25.
 //
 
-import SwiftUI
 import PhotosUI
+import SwiftUI
 
 // TOOD: offline saving
 
@@ -15,7 +15,6 @@ import PhotosUI
 /// Stone creation view with camera, weight input, and location capture
 /// Allows users to log new stone lifting records
 struct AddStoneView: View {
-
     // MARK: - Properties
 
     @State private var viewModel = StoneFormViewModel()
@@ -107,7 +106,7 @@ struct AddStoneView: View {
             Button("Photo Library") {
                 showingPhotoPicker = true
             }
-            Button("Cancel", role: .cancel) { }
+            Button("Cancel", role: .cancel) {}
         }
         .photosPicker(isPresented: $showingPhotoPicker, selection: $selectedPhoto, matching: .images)
         .sheet(isPresented: $showingCamera) {
@@ -342,9 +341,9 @@ struct AddStoneView: View {
 
     private var isFormValid: Bool {
         !weight.isEmpty &&
-        !stoneName.isEmpty &&
-        Double(weight) != nil &&
-        Double(weight)! > 0
+            !stoneName.isEmpty &&
+            Double(weight) != nil &&
+            Double(weight)! > 0
     }
 
     // MARK: - Actions
@@ -377,7 +376,7 @@ struct AddStoneView: View {
 
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
 
-        // TODO better way
+        // TODO: better way
         // Present alert
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let rootViewController = windowScene.windows.first?.rootViewController {
@@ -392,14 +391,14 @@ struct AddStoneView: View {
 
         item.loadTransferable(type: Data.self) { result in
             switch result {
-            case .success(let data):
+            case let .success(data):
                 if let data = data {
                     DispatchQueue.main.async {
                         self.photoData = data
                         self.logger.info("Photo loaded successfully")
                     }
                 }
-            case .failure(let error):
+            case let .failure(error):
                 logger.error("Failed to load photo", error: error)
             }
         }

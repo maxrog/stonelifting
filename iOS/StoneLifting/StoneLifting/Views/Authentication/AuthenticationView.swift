@@ -12,7 +12,6 @@ import SwiftUI
 /// Main authentication coordinator view
 /// Manages the flow between login and registration screens
 struct AuthenticationView: View {
-
     // MARK: - Properties
 
     @State private var currentScreen: AuthScreen = .login
@@ -41,11 +40,11 @@ struct AuthenticationView: View {
                                 removal: .move(edge: .leading).combined(with: .opacity)
                             ))
                     case .forgotPassword:
-                            ForgotPasswordView(onReturnToLogin: showLogin)
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .bottom).combined(with: .opacity),
-                                    removal: .move(edge: .bottom).combined(with: .opacity)
-                                ))
+                        ForgotPasswordView(onReturnToLogin: showLogin)
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .bottom).combined(with: .opacity),
+                                removal: .move(edge: .bottom).combined(with: .opacity)
+                            ))
                     }
                 }
                 .animation(.easeInOut(duration: 0.3), value: currentScreen)

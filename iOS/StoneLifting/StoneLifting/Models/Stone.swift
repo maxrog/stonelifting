@@ -5,8 +5,8 @@
 //  Created by Max Rogers on 7/10/25.
 //
 
-import Foundation
 import CoreLocation
+import Foundation
 
 // MARK: - Stone Models
 
@@ -60,7 +60,6 @@ struct Stone: Codable, Identifiable {
 
 /// Request payload for creating a new stone record
 struct CreateStoneRequest: Codable {
-
     /// Name of the stone
     let name: String?
 
@@ -160,7 +159,6 @@ enum LiftingLevel: String, Codable, CaseIterable {
 // MARK: - Stone Computed Properties
 
 extension Stone {
-
     /// CL coordinate of stone location
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(

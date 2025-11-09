@@ -5,15 +5,14 @@
 //  Created by Max Rogers on 8/13/25.
 //
 
-import SwiftUI
 import MapKit
+import SwiftUI
 
 // MARK: - Map View
 
 /// Interactive map displaying stone locations with filtering and detail views
 /// Shows both user's stones and public stones with different markers
 struct MapView: View {
-
     // MARK: - Properties
 
     private let stoneService = StoneService.shared
@@ -216,7 +215,7 @@ struct MapView: View {
         }
 
         if locationService.authorizationStatus == .authorizedWhenInUse ||
-           locationService.authorizationStatus == .authorizedAlways {
+            locationService.authorizationStatus == .authorizedAlways {
             isTrackingUser = true
             centerOnUserLocation()
         }

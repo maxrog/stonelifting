@@ -5,14 +5,13 @@
 //  Created by Max Rogers on 7/27/25.
 //
 
-import SwiftUI
 import PhotosUI
+import SwiftUI
 
 // MARK: - Photo Section View
 
 /// Photo selection component for stone creation
 struct StonePhotoFormView: View {
-
     @Binding var photoData: Data?
     @Binding var showingPhotoOptions: Bool
 

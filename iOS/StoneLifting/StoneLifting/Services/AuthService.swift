@@ -14,7 +14,6 @@ import Observation
 /// Handles login, registration, logout, token persistence, password reset
 @Observable
 final class AuthService {
-
     // MARK: - Properties
 
     static let shared = AuthService()
@@ -45,9 +44,11 @@ final class AuthService {
         authError = nil
 
         do {
-            let request = CreateUserRequest(username: username,
-                                            email: email,
-                                            password: password)
+            let request = CreateUserRequest(
+                username: username,
+                email: email,
+                password: password
+            )
 
             try await registerUser(request: request)
 
@@ -75,7 +76,8 @@ final class AuthService {
         let (_, response) = try await URLSession.shared.data(for: urlRequest)
 
         guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 201 else {
+              httpResponse.statusCode == 201
+        else {
             logger.error("Error registering user", error: APIError.badRequest)
             throw APIError.badRequest
         }
@@ -94,9 +96,11 @@ final class AuthService {
         do {
             let request = LoginRequest(username: username, password: password)
 
-            let response: AuthResponse = try await apiService.post(endpoint: APIConfig.Endpoints.login,
-                                                                   body: request,
-                                                                   responseType: AuthResponse.self)
+            let response: AuthResponse = try await apiService.post(
+                endpoint: APIConfig.Endpoints.login,
+                body: request,
+                responseType: AuthResponse.self
+            )
 
             apiService.setAuthToken(response.token)
             currentUser = response.user
@@ -130,9 +134,11 @@ final class AuthService {
         guard isAuthenticated else { return false }
 
         do {
-            let user: User = try await apiService.get(endpoint: APIConfig.Endpoints.me,
-                                                      requiresAuth: true,
-                                                      type: User.self)
+            let user: User = try await apiService.get(
+                endpoint: APIConfig.Endpoints.me,
+                requiresAuth: true,
+                type: User.self
+            )
 
             logger.info("")
             currentUser = user
@@ -153,9 +159,11 @@ final class AuthService {
             throw AuthError.notAuthenticated
         }
 
-        return try await apiService.get(endpoint: APIConfig.Endpoints.stats,
-                                        requiresAuth: true,
-                                        type: UserStatsResponse.self)
+        return try await apiService.get(
+            endpoint: APIConfig.Endpoints.stats,
+            requiresAuth: true,
+            type: UserStatsResponse.self
+        )
     }
 
     // MARK: - Password Reset
@@ -174,9 +182,11 @@ final class AuthService {
         do {
             let request = ForgotPasswordRequest(email: email)
 
-            let response: MessageResponse = try await apiService.post(endpoint: APIConfig.Endpoints.forgotPassword,
-                                                                      body: request,
-                                                                      responseType: MessageResponse.self)
+            let response: MessageResponse = try await apiService.post(
+                endpoint: APIConfig.Endpoints.forgotPassword,
+                body: request,
+                responseType: MessageResponse.self
+            )
             logger.info("Sent password reset to \(email), response: \(response.message)")
             return (true, response.message)
 
@@ -202,13 +212,17 @@ final class AuthService {
         }
 
         do {
-            let request = ResetPasswordRequest(email: email,
-                                               token: token,
-                                               newPassword: newPassword)
+            let request = ResetPasswordRequest(
+                email: email,
+                token: token,
+                newPassword: newPassword
+            )
 
-            let response: MessageResponse = try await apiService.post(endpoint: APIConfig.Endpoints.resetPassword,
-                                                                      body: request,
-                                                                      responseType: MessageResponse.self)
+            let response: MessageResponse = try await apiService.post(
+                endpoint: APIConfig.Endpoints.resetPassword,
+                body: request,
+                responseType: MessageResponse.self
+            )
             logger.info("Reset password for email \(email), response: \(response.message)")
             return (true, response.message)
 
@@ -231,9 +245,11 @@ final class AuthService {
         }
 
         do {
-            let response: AvailabilityResponse = try await apiService.get(endpoint: "\(APIConfig.Endpoints.checkUsername)/\(username)",
-                                                                          requiresAuth: false,
-                                                                          type: AvailabilityResponse.self)
+            let response: AvailabilityResponse = try await apiService.get(
+                endpoint: "\(APIConfig.Endpoints.checkUsername)/\(username)",
+                requiresAuth: false,
+                type: AvailabilityResponse.self
+            )
             logger.info("Checking username availability for \(username), available: \(response.available)")
             return response.available
         } catch {
@@ -252,9 +268,11 @@ final class AuthService {
         }
 
         do {
-            let response: AvailabilityResponse = try await apiService.get(endpoint: "\(APIConfig.Endpoints.checkEmail)/\(email)",
-                                                                          requiresAuth: false,
-                                                                          type: AvailabilityResponse.self)
+            let response: AvailabilityResponse = try await apiService.get(
+                endpoint: "\(APIConfig.Endpoints.checkEmail)/\(email)",
+                requiresAuth: false,
+                type: AvailabilityResponse.self
+            )
             logger.info("Checking email availability for \(email), available: \(response.available)")
             return response.available
         } catch {
@@ -372,7 +390,6 @@ final class AuthService {
 // MARK: - Private Methods
 
 private extension AuthService {
-
     /// Check if user is already authenticated on app launch
     func checkAuthenticationStatus() {
         let authenticated = apiService.isAuthenticated
@@ -413,8 +430,7 @@ private extension AuthService {
 // MARK: - Supporting Types
 
 /// Empty response for endpoints that don't return data
-private struct EmptyResponse: Codable {
-}
+private struct EmptyResponse: Codable {}
 
 /// Availability response for username / email
 struct AvailabilityResponse: Codable {
@@ -442,7 +458,7 @@ enum AuthError: Error, LocalizedError {
             return "Registration failed. Username or email may already be taken"
         case .networkError:
             return "Network error. Please check your connection and try again"
-        case .unknownError(let message):
+        case let .unknownError(message):
             return message
         }
     }
@@ -461,7 +477,7 @@ enum ValidationResult {
     }
 
     var errorMessage: String? {
-        if case .invalid(let message) = self {
+        if case let .invalid(message) = self {
             return message
         }
         return nil

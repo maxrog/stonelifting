@@ -11,14 +11,13 @@ import SwiftUI
 
 /// Details input for stone creation
 struct StoneDetailsFormView: View {
-
     @Binding var stoneName: String
     @Binding var description: String
     @Binding var liftingLevel: LiftingLevel
     @Binding var carryDistance: String
     @FocusState.Binding var focusedField: StoneFormField?
 
-    // TODO this could be better DRY
+    // TODO: this could be better DRY
     private func colorForLevel(_ level: LiftingLevel) -> Color {
         switch level.color {
         case "orange": return .orange
@@ -79,68 +78,68 @@ struct StoneDetailsFormView: View {
                 TextField("Tell us about this stone...", text: $description, axis: .vertical)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .focused($focusedField, equals: .description)
-                    .lineLimit(3...6)
+                    .lineLimit(3 ... 6)
             }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Lifting Level")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Lifting Level")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
 
-                    VStack(spacing: 8) {
-                        ForEach(LiftingLevel.allCases, id: \.self) { level in
-                            Button(action: {
-                                liftingLevel = level
-                            }) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: liftingLevel == level ? "checkmark.circle.fill" : "circle")
-                                        .foregroundColor(liftingLevel == level ? .blue : .gray)
-                                        .font(.title3)
+                VStack(spacing: 8) {
+                    ForEach(LiftingLevel.allCases, id: \.self) { level in
+                        Button(action: {
+                            liftingLevel = level
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: liftingLevel == level ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(liftingLevel == level ? .blue : .gray)
+                                    .font(.title3)
 
-                                    Image(systemName: level.icon)
-                                        .foregroundColor(colorForLevel(level))
-                                        .font(.title3)
+                                Image(systemName: level.icon)
+                                    .foregroundColor(colorForLevel(level))
+                                    .font(.title3)
 
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(level.displayName)
-                                            .font(.subheadline)
-                                            .fontWeight(.medium)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(level.displayName)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
 
-                                        Text(level.description)
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-
-                                    Spacer()
+                                    Text(level.description)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
-                                .padding(12)
-                                .background(liftingLevel == level ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                                .cornerRadius(8)
+
+                                Spacer()
                             }
-                            .buttonStyle(.plain)
+                            .padding(12)
+                            .background(liftingLevel == level ? Color.blue.opacity(0.1) : Color(.systemGray6))
+                            .cornerRadius(8)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
+            }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Carry Distance (Optional)")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Carry Distance (Optional)")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
 
-                    HStack {
-                        TextField("0", text: $carryDistance)
-                            .keyboardType(.decimalPad)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .focused($focusedField, equals: .carryDistance)
+                HStack {
+                    TextField("0", text: $carryDistance)
+                        .keyboardType(.decimalPad)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .focused($focusedField, equals: .carryDistance)
 
-                        Text("feet")
-                            .foregroundColor(.secondary)
-                    }
-
-                    Text("How far did you carry the stone?")
-                        .font(.caption)
+                    Text("feet")
                         .foregroundColor(.secondary)
                 }
+
+                Text("How far did you carry the stone?")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         }
     }
+}

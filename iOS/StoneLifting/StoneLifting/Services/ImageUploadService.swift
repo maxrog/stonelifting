@@ -13,7 +13,6 @@ import UIKit
 /// Service for handling image uploads to the backend
 @MainActor
 final class ImageUploadService: ObservableObject {
-
     // MARK: - Properties
 
     static let shared = ImageUploadService()
@@ -98,7 +97,7 @@ final class ImageUploadService: ObservableObject {
                     return
                 }
 
-                // TODO check if reasonable for deployment
+                // TODO: check if reasonable for deployment
                 let maxDimension: CGFloat = 1200
                 let originalSize = image.size
                 let aspectRatio = originalSize.width / originalSize.height
@@ -118,11 +117,11 @@ final class ImageUploadService: ObservableObject {
                     finalImage = image
                 }
 
-                // TODO check if reasonable for deployment
+                // TODO: check if reasonable for deployment
                 var compressionQuality: CGFloat = 0.6
                 var compressedData = finalImage.jpegData(compressionQuality: compressionQuality)
 
-                // TODO check if reasonable for deployment
+                // TODO: check if reasonable for deployment
                 // Reduce quality if file is still too large (> 1MB)
                 while let data = compressedData, data.count > 1_000_000 && compressionQuality > 0.3 {
                     compressionQuality -= 0.1
@@ -172,9 +171,9 @@ enum ImageUploadError: LocalizedError {
         switch self {
         case .invalidImageData:
             return "Invalid image data"
-        case .networkError(let error):
+        case let .networkError(error):
             return "Network error: \(error.localizedDescription)"
-        case .serverError(let message):
+        case let .serverError(message):
             return "Server error: \(message)"
         case .fileTooLarge:
             return "Image file is too large"

@@ -10,7 +10,6 @@ import SwiftUI
 /// Forgot password screen for requesting password reset
 /// Allows users to enter email and receive reset instructions
 struct ForgotPasswordView: View {
-
     // MARK: - Properties
 
     private let authService = AuthService.shared

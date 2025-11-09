@@ -14,7 +14,6 @@ import Observation
 /// Manages stone creation and editing with photo upload
 @Observable
 final class StoneFormViewModel {
-
     // MARK: - Properties
 
     private let stoneService = StoneService.shared
@@ -34,7 +33,7 @@ final class StoneFormViewModel {
 
     /// Initialize for creating a new stone
     init() {
-        self.stoneId = nil
+        stoneId = nil
     }
 
     /// Initialize for editing an existing stone
@@ -70,7 +69,7 @@ final class StoneFormViewModel {
         let imageURL = await uploadPhotoIfNeeded(photoData: photoData, hasPhotoChanged: hasPhotoChanged)
 
         // Check if photo upload failed when photo was provided
-        if photoData != nil && hasPhotoChanged && imageURL == nil {
+        if photoData != nil, hasPhotoChanged, imageURL == nil {
             logger.error("Failed to upload image for stone")
             errorMessage = "Failed to upload image. Please try again or continue without a photo."
             showingError = true
@@ -142,7 +141,7 @@ final class StoneFormViewModel {
         // Only upload if photo exists and has changed
         guard hasPhotoChanged, let photoData = photoData else {
             // If photo was removed (hasPhotoChanged but no data), return nil
-            if hasPhotoChanged && photoData == nil {
+            if hasPhotoChanged, photoData == nil {
                 logger.info("Photo removed by user")
                 return nil
             }

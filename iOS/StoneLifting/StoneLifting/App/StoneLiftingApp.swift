@@ -19,7 +19,7 @@ import SwiftUI
  AI sparkle thing for stone weight estimation
  App Name: Go On
  Subtitle: Pick it up
- Badges for half/full sterker 
+ Badges for half/full sterker
  CI/CD
  Localization
  Theming
@@ -28,7 +28,7 @@ import SwiftUI
  Push
  Apple/Google Sign In
  Run profiler for optimization
- 
+
  ### Recommended Backend Improvements
  1. **Add Database Indexes** (see main README)
  2. **Set up Sentry** for error tracking

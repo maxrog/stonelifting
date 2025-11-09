@@ -14,7 +14,6 @@ import Observation
 /// Manages stone list state and data fetching
 @Observable
 final class StoneListViewModel {
-
     // MARK: - Properties
 
     private let stoneService = StoneService.shared
@@ -84,8 +83,8 @@ final class StoneListViewModel {
         } else {
             return stones.filter { stone in
                 stone.name?.localizedCaseInsensitiveContains(searchText) == true ||
-                stone.description?.localizedCaseInsensitiveContains(searchText) == true ||
-                stone.locationName?.localizedCaseInsensitiveContains(searchText) == true
+                    stone.description?.localizedCaseInsensitiveContains(searchText) == true ||
+                    stone.locationName?.localizedCaseInsensitiveContains(searchText) == true
             }
         }
     }

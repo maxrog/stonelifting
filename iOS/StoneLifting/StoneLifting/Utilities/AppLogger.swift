@@ -13,7 +13,6 @@ import os.log
 /// Logging system
 /// Each class instantiates its own logger with automatic class name detection
 final class AppLogger {
-
     // MARK: - Properties
 
     private let logger: Logger
@@ -25,7 +24,7 @@ final class AppLogger {
     /// - Parameter className: Class name for filtering (automatically detected from call site)
     init(className: String = #fileID) {
         self.className = Self.extractClassName(from: className)
-        self.logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Bundle", category: "App")
+        logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Bundle", category: "App")
     }
 
     // MARK: - Public Logging Methods
@@ -93,7 +92,6 @@ final class AppLogger {
 // MARK: - Private Methods
 
 private extension AppLogger {
-
     /// Format log message with metadata
     /// - Parameters:
     ///   - message: Original message

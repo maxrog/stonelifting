@@ -12,7 +12,6 @@ import SwiftUI
 /// User login screen with username/password form
 /// Handles user authentication and navigation to main app
 struct LoginView: View {
-
     // MARK: - Properties
 
     @State private var viewModel = LoginViewModel()
@@ -161,23 +160,23 @@ struct LoginView: View {
     @ViewBuilder
     private var footerSection: some View {
         VStack(spacing: 16) {
-             Button("Forgot Password?") {
-                 onShowForgotPassword()
-             }
-             .font(.subheadline)
-             .foregroundColor(.blue)
+            Button("Forgot Password?") {
+                onShowForgotPassword()
+            }
+            .font(.subheadline)
+            .foregroundColor(.blue)
 
-             HStack {
-                 Text("Don't have an account?")
-                     .foregroundColor(.secondary)
+            HStack {
+                Text("Don't have an account?")
+                    .foregroundColor(.secondary)
 
-                 Button("Sign Up") {
-                     onShowRegister()
-                 }
-                 .fontWeight(.medium)
-             }
-             .font(.subheadline)
-         }
+                Button("Sign Up") {
+                    onShowRegister()
+                }
+                .fontWeight(.medium)
+            }
+            .font(.subheadline)
+        }
     }
 
     // MARK: - Computed Properties

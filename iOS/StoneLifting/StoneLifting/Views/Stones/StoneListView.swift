@@ -12,7 +12,6 @@ import SwiftUI
 /// Displays user's stone lifting records in a scrollable list
 /// Shows both personal and public stones with filtering options
 struct StoneListView: View {
-
     // MARK: - Properties
 
     @State private var viewModel = StoneListViewModel()
@@ -85,9 +84,11 @@ struct StoneListView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 ForEach(StoneFilter.allCases, id: \.self) { filter in
-                    FilterChip(title: filter.title,
+                    FilterChip(
+                        title: filter.title,
                         stoneCount: stoneCount(for: filter),
-                        isSelected: selectedFilter == filter) {
+                        isSelected: selectedFilter == filter
+                    ) {
                         selectedFilter = filter
                         loadStonesForFilter()
                     }
@@ -251,7 +252,7 @@ struct StoneRowView: View {
     let stone: Stone
     let onTap: () -> Void
 
-    // TODO DRY
+    // TODO: DRY
     private func colorForLevel(_ level: LiftingLevel) -> Color {
         switch level.color {
         case "orange": return .orange

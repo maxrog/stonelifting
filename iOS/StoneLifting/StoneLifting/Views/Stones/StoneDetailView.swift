@@ -5,15 +5,14 @@
 //  Created by Max Rogers on 7/30/25.
 //
 
-import SwiftUI
 import MapKit
+import SwiftUI
 
 // MARK: - Stone Detail View
 
 /// Displays complete stone information with edit and delete options
 /// Shows stone photo, stats, location, and user details
 struct StoneDetailView: View {
-
     // MARK: - Properties
 
     @State var stone: Stone
@@ -86,7 +85,7 @@ struct StoneDetailView: View {
                 Button("Delete", role: .destructive) {
                     deleteStone()
                 }
-                Button("Cancel", role: .cancel) { }
+                Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Are you sure you want to delete \"\(stone.name ?? "this stone")\"? This action cannot be undone.")
             }
@@ -175,7 +174,7 @@ struct StoneDetailView: View {
                     }
 
                     HStack(spacing: 2) {
-                        ForEach(1...4, id: \.self) { level in
+                        ForEach(1 ... 4, id: \.self) { level in
                             Circle()
                                 .fill(level <= stone.liftingLevel.level ? colorForLevel(stone.liftingLevel) : Color.gray.opacity(0.3))
                                 .frame(width: 8, height: 8)
@@ -333,7 +332,7 @@ struct StoneDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 12) {
-                // TODO User avatar placeholder
+                // TODO: User avatar placeholder
                 Circle()
                     .fill(Color.blue.gradient)
                     .frame(width: 40, height: 40)
@@ -378,7 +377,7 @@ struct StoneDetailView: View {
 
     // MARK: - Helper Methods
 
-    // TODO DRY
+    // TODO: DRY
     private func colorForLevel(_ level: LiftingLevel) -> Color {
         switch level.color {
         case "orange": return .orange

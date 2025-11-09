@@ -5,14 +5,13 @@
 //  Created by Max Rogers on 7/30/25.
 //
 
-import SwiftUI
 import PhotosUI
+import SwiftUI
 
 // MARK: - Edit Stone View
 
 /// Stone editing view that allows users to modify existing stone records
 struct EditStoneView: View {
-
     // MARK: - Properties
 
     @Binding var stone: Stone
@@ -36,11 +35,11 @@ struct EditStoneView: View {
     // MARK: - Initialization
 
     init(stone: Binding<Stone>) {
-        self._stone = stone
+        _stone = stone
         if let stoneId = stone.wrappedValue.id {
-            self._viewModel = State(initialValue: StoneFormViewModel(stoneId: stoneId))
+            _viewModel = State(initialValue: StoneFormViewModel(stoneId: stoneId))
         } else {
-            self._viewModel = State(initialValue: StoneFormViewModel())
+            _viewModel = State(initialValue: StoneFormViewModel())
         }
     }
 
@@ -112,7 +111,7 @@ struct EditStoneView: View {
                     hasPhotoChanged = true
                 }
             }
-            Button("Cancel", role: .cancel) { }
+            Button("Cancel", role: .cancel) {}
         }
         .photosPicker(isPresented: $showingPhotoPicker, selection: $selectedPhoto, matching: .images)
         .sheet(isPresented: $showingCamera) {
@@ -395,7 +394,7 @@ struct EditStoneView: View {
 
         item.loadTransferable(type: Data.self) { result in
             switch result {
-            case .success(let data):
+            case let .success(data):
                 if let data = data {
                     DispatchQueue.main.async {
                         self.photoData = data
@@ -403,7 +402,7 @@ struct EditStoneView: View {
                         self.logger.info("Photo loaded successfully for edit")
                     }
                 }
-            case .failure(let error):
+            case let .failure(error):
                 logger.error("Failed to load photo for edit", error: error)
             }
         }
