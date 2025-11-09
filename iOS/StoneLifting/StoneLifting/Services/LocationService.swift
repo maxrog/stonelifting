@@ -45,10 +45,9 @@ final class LocationService: NSObject {
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
         locationManager.distanceFilter = 10 // Update every 10 meters
 
-        authorizationStatus = locationManager.authorizationStatus
         isLocationEnabled = CLLocationManager.locationServicesEnabled()
 
-        logger.debug("Location manager configured - Status: \(authorizationStatus.description), Enabled: \(isLocationEnabled)")
+        logger.debug("Location manager configured - Enabled: \(isLocationEnabled)")
     }
 
     // MARK: - Permission Management
