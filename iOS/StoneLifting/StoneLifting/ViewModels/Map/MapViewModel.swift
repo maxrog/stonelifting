@@ -15,7 +15,7 @@ import Observation
 /// Manages map state, stone clustering, and location tracking
 @Observable
 final class MapViewModel {
-    
+
     // MARK: - Properties
 
     private let stoneService = StoneService.shared

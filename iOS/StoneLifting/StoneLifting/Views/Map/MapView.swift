@@ -13,7 +13,6 @@ import SwiftUI
 /// Interactive map displaying stone locations with filtering and detail views
 /// Shows both user's stones and public stones with different markers
 struct MapView: View {
-
     // MARK: - Properties
 
     @State private var viewModel = MapViewModel()
@@ -82,6 +81,8 @@ struct MapView: View {
                         ClusterMapPin(clusterItem: clusterItem) {
                             viewModel.selectClusterItem(clusterItem)
                         }
+                        .scaleEffect(1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: clusterItem.count)
                     }
                 }
             }
