@@ -21,13 +21,12 @@ final class LocationService: NSObject {
     private let logger = AppLogger()
 
     private let locationManager = CLLocationManager()
+    private let continuationManager = LocationContinuationManager()
+
     private(set) var currentLocation: CLLocation?
     private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
     private(set) var isLocationEnabled = false
     private(set) var locationError: LocationError?
-
-    // Continuation for async location requests
-    private var locationContinuation: CheckedContinuation<CLLocation?, Never>?
 
     // MARK: - Initialization
 
@@ -43,6 +42,11 @@ final class LocationService: NSObject {
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
         locationManager.distanceFilter = 10 // Update every 10 meters
+
+        Task { @MainActor in
+            authorizationStatus = locationManager.authorizationStatus
+            isLocationEnabled = authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways
+        }
     }
 
     // MARK: - Permission Management
@@ -55,7 +59,7 @@ final class LocationService: NSObject {
             locationManager.requestWhenInUseAuthorization()
         case .denied, .restricted:
             logger.warning("Location permission denied - directing user to settings")
-        // TODO: show alert directing user to settings
+            // TODO: show alert directing user to settings
         case .authorizedWhenInUse, .authorizedAlways:
             logger.info("Location permission already granted")
             startLocationUpdates()
@@ -81,6 +85,9 @@ final class LocationService: NSObject {
         locationManager.stopUpdatingLocation()
     }
 
+    /// Gets current location asynchronously with timeout protection
+    /// Uses actor-based continuation management to prevent leaks and race conditions
+    /// - Returns: Current CLLocation or nil if unavailable/timeout
     func getCurrentLocation() async -> CLLocation? {
         logger.info("Getting current location")
 
@@ -96,24 +103,42 @@ final class LocationService: NSObject {
             return nil
         }
 
-        // Use continuation to wait for location update
-        return await withCheckedContinuation { continuation in
-            locationContinuation = continuation
-            locationManager.requestLocation()
+        // Check for recent cached location (within 30 seconds)
+        if let current = currentLocation,
+           current.timestamp.timeIntervalSinceNow > -30 {
+            logger.debug("Returning cached location")
+            return current
+        }
 
-            // Timeout after 10 seconds
+        // Use continuation to wait for location update with actor-based safety
+        return await withCheckedContinuation { continuation in
             Task {
-                try? await Task.sleep(nanoseconds: 10_000_000_000)
-                if let cont = locationContinuation {
-                    logger.warning("Location request timed out")
-                    locationContinuation = nil
-                    cont.resume(returning: currentLocation)
+                await continuationManager.setContinuation(continuation)
+
+                await MainActor.run { [weak self] in
+                    self?.locationManager.requestLocation()
+                }
+
+                // Timeout after 10 seconds with automatic cleanup
+                Task { [weak self] in
+                    try? await Task.sleep(nanoseconds: 10_000_000_000)
+
+                    guard let self else { return }
+
+                    // Safely resume with cached location if available
+                    let cachedLocation = await MainActor.run { self.currentLocation }
+                    await self.continuationManager.resumeIfNeeded(with: cachedLocation)
+
+                    await MainActor.run {
+                        self.logger.warning("Location request timed out")
+                    }
                 }
             }
         }
     }
 
     // MARK: - Utility Methods
+    // TODO are these used?
 
     /// Get human-readable address from coordinates
     /// - Parameters:
@@ -181,10 +206,9 @@ extension LocationService: CLLocationManagerDelegate {
         // Clear any previous errors
         locationError = nil
 
-        // Resume continuation if waiting
-        if let continuation = locationContinuation {
-            locationContinuation = nil
-            continuation.resume(returning: location)
+        // Safely resume continuation using actor
+        Task {
+            await continuationManager.resumeIfNeeded(with: location)
         }
 
         // Stop updates after getting location (for one-time requests)
@@ -194,10 +218,11 @@ extension LocationService: CLLocationManagerDelegate {
     func locationManager(_: CLLocationManager, didFailWithError error: Error) {
         logger.error("Location manager failed", error: error)
 
-        // Resume continuation with nil on error
-        if let continuation = locationContinuation {
-            locationContinuation = nil
-            continuation.resume(returning: nil)
+        // Safely resume continuation with current location or nil
+        Task { [weak self] in
+            guard let self else { return }
+            let currentLoc = await MainActor.run { self.currentLocation }
+            await self.continuationManager.resumeIfNeeded(with: currentLoc)
         }
 
         if let clError = error as? CLError {
@@ -220,19 +245,51 @@ extension LocationService: CLLocationManagerDelegate {
         logger.info("Location authorization changed: \(status.description)")
 
         authorizationStatus = status
-        isLocationEnabled = CLLocationManager.locationServicesEnabled()
 
         switch status {
         case .authorizedWhenInUse, .authorizedAlways:
             startLocationUpdates()
+            isLocationEnabled = true
         case .denied, .restricted:
             stopLocationUpdates()
             locationError = .notAuthorized
-        case .notDetermined:
-            break
+            isLocationEnabled = false
+            case .notDetermined:
+            isLocationEnabled = false
         @unknown default:
+            isLocationEnabled = false
             logger.error("Unknown authorization status: \(status.rawValue)")
         }
+    }
+}
+
+// MARK: - Location Continuation Manager
+
+/// Actor for thread-safe continuation management
+/// Prevents race conditions between location updates and timeouts
+actor LocationContinuationManager {
+    private var continuation: CheckedContinuation<CLLocation?, Never>?
+    private var hasResumed = false
+
+    /// Sets a new continuation for location request
+    func setContinuation(_ cont: CheckedContinuation<CLLocation?, Never>) {
+        continuation = cont
+        hasResumed = false
+    }
+
+    /// Safely resumes continuation if not already resumed
+    /// - Parameter location: Location to return (or nil)
+    func resumeIfNeeded(with location: CLLocation?) {
+        guard !hasResumed, let cont = continuation else { return }
+        hasResumed = true
+        continuation = nil
+        cont.resume(returning: location)
+    }
+
+    /// Clears continuation state
+    func clear() {
+        continuation = nil
+        hasResumed = false
     }
 }
 
