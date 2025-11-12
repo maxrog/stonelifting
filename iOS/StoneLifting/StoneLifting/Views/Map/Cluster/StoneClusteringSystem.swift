@@ -143,7 +143,7 @@ final class StoneClusteringSystem {
         let span = max(region.span.latitudeDelta, region.span.longitudeDelta)
         return max(0, 20 - log2(span * 111_000)) // approximate meters per degree
     }
-    
+
     /// Generate deterministic cluster ID from stone IDs
     /// Uses DJB2 hash algorithm to ensure stable IDs across app launches
     /// - Parameter stones: Stones in the cluster
