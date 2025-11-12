@@ -9,8 +9,8 @@ import SwiftUI
 
 /*
  TODO:
- Cannot show Automatic Strong Passwords for app bundleID: com.marfodub.StoneLifting due to error: Cannot save passwords for this app. Make sure you have set up Associated Domains for your app and AutoFill Passwords is enabled in Settings
- Pull to refresh on stone list causes error - network error please check connection
+ 
+ • Ability to log completions of other user's stones. Multiple logs (ticks) of same stone?
  - icon8 system sf icons
  or
  􁊕 feature circle.dotted.and.circle in app, rotated so dotted is vertical and with wiggle animation (palette / hierarchical coloring with accent) - wiggle makes it seem like you're picking it up
@@ -28,6 +28,7 @@ import SwiftUI
  Push
  Apple/Google Sign In
  Run profiler for optimization
+ •  Cannot show Automatic Strong Passwords for app bundleID: com.marfodub.StoneLifting due to error: Cannot save passwords for this app. Make sure you have set up Associated Domains for your app and AutoFill Passwords is enabled in Settings
 
  ### Recommended Backend Improvements
  1. **Add Database Indexes** (see main README)
