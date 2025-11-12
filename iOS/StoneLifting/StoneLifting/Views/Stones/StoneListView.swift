@@ -24,6 +24,7 @@ struct StoneListView: View {
     @State private var showingAddStone = false
     @State private var selectedStone: Stone?
     @State private var showingStoneDetail = false
+    @State private var hasLoadedInitially = false
 
     // MARK: - Body
 
@@ -32,7 +33,7 @@ struct StoneListView: View {
             VStack(spacing: 0) {
                 filterSection
 
-                if viewModel.isLoading {
+                if viewModel.isLoading && !hasLoadedInitially {
                     LoadingView(message: "Loading stones...")
                 } else {
                     stoneListContent
@@ -48,13 +49,6 @@ struct StoneListView: View {
                         Image(systemName: "plus")
                             .font(.headline)
                     }
-                }
-
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Refresh") {
-                        refreshStones()
-                    }
-                    .font(.caption)
                 }
             }
             .onAppear {
@@ -180,16 +174,22 @@ struct StoneListView: View {
             case .publicStones:
                 await viewModel.fetchPublicStones()
             }
+
+            if !hasLoadedInitially {
+                hasLoadedInitially = true
+            }
         }
     }
 
-    private func refreshStones() {
-        logger.info("Refreshing stones data")
-        loadStonesForFilter()
-    }
-
     private func refreshStonesAsync() async {
-        await viewModel.refreshAllStones()
+        logger.info("Pull to refresh for filter: \(selectedFilter.title)")
+
+        switch selectedFilter {
+        case .myStones, .heavy, .recent:
+            await viewModel.fetchUserStones()
+        case .publicStones:
+            await viewModel.fetchPublicStones()
+        }
     }
 }
 
