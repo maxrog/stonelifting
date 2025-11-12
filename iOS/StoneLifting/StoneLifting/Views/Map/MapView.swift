@@ -18,23 +18,55 @@ struct MapView: View {
     private let stoneService = StoneService.shared
     private let locationService = LocationService.shared
     private let clusteringSystem = StoneClusteringSystem()
-
     private let logger = AppLogger()
 
-    @State private var mapRegion = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194), // Default to SF
-        span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
-    )
+    // Typical spans for initial load / location button
+    private let initialLoadSpan = MKCoordinateSpan(latitudeDelta: 0.2, longitudeDelta: 0.2)
+    private let locationButtonSpan = MKCoordinateSpan(latitudeDelta: 0.12, longitudeDelta: 0.12)
 
+    // MARK: - Zoom limits
+    private let minLatitudeDelta: CLLocationDegrees = 0.01
+    private let maxLatitudeDelta: CLLocationDegrees = 180
+    private let minLongitudeDelta: CLLocationDegrees = 0.01
+    private let maxLongitudeDelta: CLLocationDegrees = 360
+    private let zoomScaleFactor: Double = 0.6
+    private let minPaddingFactor: Double = 1.2
+    private let maxPaddingFactor: Double = 2.0
+
+    @State private var mapRegion: MKCoordinateRegion?
     @State private var selectedStone: Stone?
     @State private var showingStoneDetail = false
     @State private var selectedCluster: StoneClusterItem?
     @State private var showingClusterDetail = false
     @State private var showingFilters = false
     @State private var mapFilter: MapFilter = .all
-
+    @State private var currentZoomLevel: Double = 0
     @State private var isTrackingUser = false
     @State private var hasRequestedLocation = false
+    
+    private var allStones: [Stone] {
+        let userStones = stoneService.userStones.filter { $0.hasValidLocation }
+        let publicStones = stoneService.publicStones.filter { $0.hasValidLocation }
+        var combined = userStones
+        for stone in publicStones where !combined.contains(where: { $0.id == stone.id }) {
+            combined.append(stone)
+        }
+        return combined
+    }
+
+    private var filteredStones: [Stone] {
+        allStones.filter { stone in
+            switch mapFilter {
+            case .all: return true
+            case .myStones: return stoneService.userStones.contains(where: { $0.id == stone.id })
+            case .publicStones: return stone.isPublic && !stoneService.userStones.contains(where: { $0.id == stone.id })
+            }
+        }
+    }
+
+    private var clusteredStones: [StoneClusterItem] {
+        if let mapRegion { return clusteringSystem.generateClusters(from: filteredStones, in: mapRegion) } else { return [] }
+    }
 
     // MARK: - Body
 
@@ -42,7 +74,6 @@ struct MapView: View {
         NavigationStack {
             ZStack {
                 mapContent
-
                 VStack {
                     Spacer()
                     HStack {
@@ -56,27 +87,23 @@ struct MapView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Filter") {
-                        showingFilters = true
+                    Button { showingFilters = true } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
                     }
                 }
-
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("My Location") {
-                        centerOnUserLocation()
+                    Button {
+                        Task { await centerOnUserLocation(zoomSpan: locationButtonSpan) }
+                    } label: {
+                        Image(systemName: "location.viewfinder")
                     }
-                    .font(.caption)
                 }
             }
-            .onAppear {
-                setupMapView()
+            .task(id: mapFilter) {
+                await setupMapView()
             }
-            .sheet(isPresented: $showingFilters) {
-                MapFilterView(selectedFilter: $mapFilter)
-            }
-            .sheet(item: $selectedStone) { stone in
-                StoneDetailView(stone: stone)
-            }
+            .sheet(isPresented: $showingFilters) { MapFilterView(selectedFilter: $mapFilter) }
+            .sheet(item: $selectedStone) { StoneDetailView(stone: $0) }
             .sheet(item: $selectedCluster) { cluster in
                 ClusterDetailSheet(clusterItem: cluster) { selectedStone in
                     self.selectedStone = selectedStone
@@ -89,36 +116,50 @@ struct MapView: View {
 
     @ViewBuilder
     private var mapContent: some View {
-        Map(position: .constant(.region(mapRegion))) {
-            ForEach(clusteredStones, id: \.id) { clusterItem in
-                Annotation(
-                    clusterItem.isCluster ? "\(clusterItem.count) stones" : (clusterItem.stones.first?.name ?? "Stone"),
-                    coordinate: clusterItem.coordinate,
-                    anchor: .bottom
-                ) {
-                    ClusterMapPin(clusterItem: clusterItem) {
-                        if clusterItem.isCluster {
-                            selectedCluster = clusterItem
-                        } else {
-                            selectedStone = clusterItem.stones.first
+        if let mapRegion {
+            Map(position: .constant(.region(mapRegion))) {
+                ForEach(clusteredStones, id: \.id) { clusterItem in
+                    Annotation(
+                        clusterItem.isCluster ? "\(clusterItem.count) stones" : (clusterItem.stones.first?.name ?? "Stone"),
+                        coordinate: clusterItem.coordinate,
+                        anchor: .bottom
+                    ) {
+                        ClusterMapPin(clusterItem: clusterItem) {
+                            if clusterItem.isCluster {
+                                selectedCluster = clusterItem
+                            } else {
+                                selectedStone = clusterItem.stones.first
+                            }
                         }
                     }
                 }
             }
+            .mapStyle(.standard)
+            .onMapCameraChange { context in
+                let newZoom = calculateZoomLevel(from: context.region)
+
+                // Only update if zoom changed significantly (prevents micro-updates)
+                if abs(newZoom - currentZoomLevel) > 0.5 {
+                    currentZoomLevel = newZoom
+                }
+
+                self.mapRegion = context.region
+            }
+        } else {
+            LoadingView(message: "Loading Map...")
         }
-        .mapStyle(.standard)
-        .onMapCameraChange { context in
-            mapRegion = context.region
-        }
+    }
+
+    private func calculateZoomLevel(from region: MKCoordinateRegion) -> Double {
+        let span = max(region.span.latitudeDelta, region.span.longitudeDelta)
+        return max(0, 20 - log2(span * 111_000))
     }
 
     @ViewBuilder
     private var mapControls: some View {
         VStack(alignment: .trailing, spacing: 12) {
             if mapFilter != .all {
-                Button(action: {
-                    showingFilters = true
-                }) {
+                Button { showingFilters = true } label: {
                     HStack(spacing: 6) {
                         Image(systemName: mapFilter.icon)
                         Text(mapFilter.title)
@@ -140,7 +181,6 @@ struct MapView: View {
                         .background(.ultraThinMaterial)
                         .cornerRadius(22)
                 }
-
                 Button(action: zoomOut) {
                     Image(systemName: "minus")
                         .font(.title2)
@@ -152,61 +192,30 @@ struct MapView: View {
         }
     }
 
-    // MARK: - Computed Properties
-
-    private var allStones: [Stone] {
-        let userStones = stoneService.userStones.filter { $0.hasValidLocation }
-        let publicStones = stoneService.publicStones.filter { $0.hasValidLocation }
-
-        // Avoid duplication
-        var combined = userStones
-        for publicStone in publicStones {
-            if !combined.contains(where: { $0.id == publicStone.id }) {
-                combined.append(publicStone)
-            }
-        }
-
-        return combined
-    }
-
-    private var filteredStones: [Stone] {
-        allStones.filter { stone in
-            switch mapFilter {
-            case .all:
-                return true
-            case .myStones:
-                return stoneService.userStones.contains(where: { $0.id == stone.id })
-            case .publicStones:
-                return stone.isPublic && !stoneService.userStones.contains(where: { $0.id == stone.id })
-            }
-        }
-    }
-
-    /// Clustered stones based on current map region and zoom level
-    private var clusteredStones: [StoneClusterItem] {
-        clusteringSystem.generateClusters(from: filteredStones, in: mapRegion)
-    }
-
     // MARK: - Actions
 
-    private func setupMapView() {
-        logger.info("Setting up MapView")
+    private func setupMapView() async {
+        logger.info("Setting up MapView for filter \(mapFilter)")
 
-        // Load stones if not already loaded
-        Task {
-            await stoneService.fetchUserStones()
-            await stoneService.fetchPublicStones()
-
-            await MainActor.run {
-                adjustMapToShowStones()
-            }
+        switch mapFilter {
+        case .all:
+            _ = await stoneService.fetchPublicStones()
+            _ = await stoneService.fetchUserStones()
+        case .myStones:
+            _ = await stoneService.fetchUserStones()
+        case .publicStones:
+            _ = await stoneService.fetchPublicStones()
         }
 
-        // Request location permission and center on user if available
-        requestLocationPermission()
+        await MainActor.run {
+            guard mapRegion == nil else { return }
+            Task { await centerOnUserLocation(zoomSpan: initialLoadSpan) }
+        }
+
+        await requestLocationPermission()
     }
 
-    private func requestLocationPermission() {
+    private func requestLocationPermission() async {
         guard !hasRequestedLocation else { return }
         hasRequestedLocation = true
 
@@ -214,10 +223,9 @@ struct MapView: View {
             locationService.requestLocationPermission()
         }
 
-        if locationService.authorizationStatus == .authorizedWhenInUse ||
-            locationService.authorizationStatus == .authorizedAlways {
+        if [.authorizedWhenInUse, .authorizedAlways].contains(locationService.authorizationStatus) {
             isTrackingUser = true
-            centerOnUserLocation()
+            await centerOnUserLocation(zoomSpan: initialLoadSpan)
         }
     }
 
@@ -225,116 +233,79 @@ struct MapView: View {
         let stones = filteredStones
         guard !stones.isEmpty else { return }
 
-        // Calculate bounding box for all stones
-        let coordinates = stones.map { $0.coordinate }
-        let minLat = coordinates.map { $0.latitude }.min() ?? 0
-        let maxLat = coordinates.map { $0.latitude }.max() ?? 0
-        let minLon = coordinates.map { $0.longitude }.min() ?? 0
-        let maxLon = coordinates.map { $0.longitude }.max() ?? 0
+        let coords = stones.map { $0.coordinate }
+        let minLat = coords.map(\.latitude).min() ?? 0
+        let maxLat = coords.map(\.latitude).max() ?? 0
+        let minLon = coords.map(\.longitude).min() ?? 0
+        let maxLon = coords.map(\.longitude).max() ?? 0
 
         let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2)
+        let latDelta = max(0.01, (maxLat - minLat) * minPaddingFactor)
+        let lonDelta = max(0.01, (maxLon - minLon) * minPaddingFactor)
 
-        // 20% padding
-        let span = MKCoordinateSpan(latitudeDelta: max(0.01, (maxLat - minLat) * 1.2), longitudeDelta: max(0.01, (maxLon - minLon) * 1.2))
+        let targetRegion = MKCoordinateRegion(
+            center: center,
+            span: MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lonDelta)
+        )
 
-        withAnimation(.easeInOut(duration: 1.0)) {
-            mapRegion = MKCoordinateRegion(center: center, span: span)
-        }
+        let animation = mapRegion.map { dynamicAnimation(for: $0, target: targetRegion) } ?? .easeInOut(duration: 0.5)
+        withAnimation(animation) { mapRegion = targetRegion }
     }
 
-    private func centerOnUserLocation() {
-        Task {
-            if let location = await locationService.getCurrentLocation() {
-                await MainActor.run {
-                    withAnimation(.easeInOut(duration: 0.8)) {
-                        mapRegion.center = location.coordinate
-                        mapRegion.span = MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-                    }
-                }
+    private func centerOnUserLocation(zoomSpan: MKCoordinateSpan) async {
+        if let location = await locationService.getCurrentLocation() {
+            await MainActor.run {
+                let target = MKCoordinateRegion(center: location.coordinate, span: zoomSpan)
+                let animation = mapRegion.map { dynamicAnimation(for: $0, target: target) } ?? .easeInOut(duration: 0.5)
+                withAnimation(animation) { mapRegion = target }
+            }
+        } else {
+            await MainActor.run {
+                adjustMapToShowStones()
             }
         }
     }
 
     private func zoomIn() {
+        guard let mapRegion else { return }
         withAnimation(.easeInOut(duration: 0.3)) {
-            mapRegion.span = MKCoordinateSpan(
-                latitudeDelta: mapRegion.span.latitudeDelta * 0.5,
-                longitudeDelta: mapRegion.span.longitudeDelta * 0.5
+            // Calculate new span (smaller = zoomed in)
+            let newLat = max(minLatitudeDelta, mapRegion.span.latitudeDelta * zoomScaleFactor)
+            let newLon = max(minLongitudeDelta, mapRegion.span.longitudeDelta * zoomScaleFactor)
+
+            self.mapRegion?.span = MKCoordinateSpan(
+                latitudeDelta: newLat,
+                longitudeDelta: newLon
             )
         }
     }
 
     private func zoomOut() {
+        guard let mapRegion else { return }
         withAnimation(.easeInOut(duration: 0.3)) {
-            mapRegion.span = MKCoordinateSpan(
-                latitudeDelta: min(180, mapRegion.span.latitudeDelta * 2),
-                longitudeDelta: min(360, mapRegion.span.longitudeDelta * 2)
+            // Calculate new span (larger = zoomed out)
+            let newLat = min(maxLatitudeDelta, mapRegion.span.latitudeDelta / zoomScaleFactor)
+            let newLon = min(maxLongitudeDelta, mapRegion.span.longitudeDelta / zoomScaleFactor)
+
+            self.mapRegion?.span = MKCoordinateSpan(
+                latitudeDelta: newLat,
+                longitudeDelta: newLon
             )
         }
     }
-}
 
-// MARK: - Stone Map Pin
-
-struct StoneMapPin: View {
-    let stone: Stone
-    let onTap: () -> Void
-
-    private var pinColor: Color {
-        let isCurrentUser = stone.user.id == AuthService.shared.currentUser?.id
-        return .blue.opacity(isCurrentUser ? 1.0 : 0.75)
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Button(action: onTap) {
-                VStack(spacing: 4) {
-                    Text(stone.formattedWeight)
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(pinColor)
-                        .cornerRadius(8)
-
-                    Circle()
-                        .fill(pinColor)
-                        .frame(width: 24, height: 24)
-                        .overlay(
-                            Image(systemName: stone.liftingLevel.icon)
-                                .font(.caption)
-                                .foregroundColor(.white)
-                        )
-                        .overlay(
-                            Circle()
-                                .stroke(.white, lineWidth: 2)
-                        )
-                }
-            }
-            .buttonStyle(.plain)
-
-            Triangle()
-                .fill(pinColor)
-                .frame(width: 8, height: 6)
-                .offset(y: -1)
-        }
-        .scaleEffect(selectedStone?.id == stone.id ? 1.2 : 1.0)
-        .animation(.spring(response: 0.3), value: selectedStone?.id == stone.id)
-    }
-
-    @State private var selectedStone: Stone?
-}
-
-/// Custom triangle shape for map pin point
-struct Triangle: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.closeSubpath()
-        return path
+    /// Computes dynamic animation based on distance and zoom difference
+    private func dynamicAnimation(for current: MKCoordinateRegion, target: MKCoordinateRegion) -> Animation {
+        let latDiff = abs(current.center.latitude - target.center.latitude)
+        let lonDiff = abs(current.center.longitude - target.center.longitude)
+        let spanDiff = max(
+            abs(current.span.latitudeDelta - target.span.latitudeDelta),
+            abs(current.span.longitudeDelta - target.span.longitudeDelta)
+        )
+        let distanceFactor = latDiff + lonDiff + spanDiff
+        let duration = min(0.7, max(0.3, distanceFactor * 5))
+        let verticalFactor = min(1.2, max(0.8, latDiff * 10))
+        return .easeInOut(duration: duration * verticalFactor)
     }
 }
 

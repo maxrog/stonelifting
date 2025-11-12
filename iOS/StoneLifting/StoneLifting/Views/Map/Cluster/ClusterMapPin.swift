@@ -6,76 +6,85 @@
 //
 
 import SwiftUI
+import MapKit
 
-/// Custom map pin for displaying clusters of stones
+/// A map annotation view for either an individual stone or a cluster of stones
 struct ClusterMapPin: View {
     let clusterItem: StoneClusterItem
     let onTap: () -> Void
 
+    private var pinColor: Color {
+        switch clusterItem {
+        case .individual(let stone):
+            let isCurrentUser = stone.user.id == AuthService.shared.currentUser?.id
+            return .blue.opacity(isCurrentUser ? 1.0 : 0.75)
+        case .cluster:
+            return .green.opacity(0.75)
+        }
+    }
+
+    private var labelText: String {
+        switch clusterItem {
+        case .individual(let stone): return stone.formattedWeight
+        case .cluster(_, _, _, let count): return "\(count)"
+        }
+    }
+
     var body: some View {
-        Button(action: onTap) {
-            if clusterItem.isCluster {
-                clusterPinView
-            } else {
-                individualPinView
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private var clusterPinView: some View {
         VStack(spacing: 0) {
-            // Bubble
-            ZStack {
-                Circle()
-                    .fill(.blue)
-                    .frame(width: pinSize, height: pinSize)
-                    .overlay(
-                        Circle()
-                            .stroke(.white, lineWidth: 3)
-                    )
+            Button(action: onTap) {
+                VStack(spacing: 4) {
+                    // Label
+                    Text(labelText)
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(pinColor)
+                        .cornerRadius(8)
 
-                Text("\(clusterItem.count)")
-                    .font(.system(size: fontSize, weight: .bold))
-                    .foregroundColor(.white)
+                    // Pin circle
+                    Circle()
+                        .fill(pinColor)
+                        .frame(width: 24, height: 24)
+                        .overlay(
+                            Group {
+                                if case let .individual(stone) = clusterItem {
+                                    Image(systemName: stone.liftingLevel.icon)
+                                        .font(.caption)
+                                        .foregroundColor(.white)
+                                } else {
+                                    // Cluster indicator
+                                    Image(systemName: "square.3.layers.3d")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.white)
+                                }
+                            }
+                        )
+                        .overlay(Circle().stroke(.white, lineWidth: 2))
+                }
             }
+            .buttonStyle(.plain)
 
-            // Pin point
+            // Triangle pointer
             Triangle()
-                .fill(.blue)
-                .frame(width: 12, height: 8)
-                .offset(y: -2)
+                .fill(pinColor)
+                .frame(width: 8, height: 6)
+                .offset(y: -1)
         }
-        .scaleEffect(1.1) // Slightly larger for clusters
+        .transition(.scale.combined(with: .opacity))
     }
+}
 
-    @ViewBuilder
-    private var individualPinView: some View {
-        if let stone = clusterItem.stones.first {
-            StoneMapPin(stone: stone, onTap: onTap)
-        } else {
-            EmptyView()
-        }
-    }
-
-    // Dynamic sizing based on cluster count
-    private var pinSize: CGFloat {
-        let count = clusterItem.count
-        switch count {
-        case 2 ... 5: return 35
-        case 6 ... 10: return 42
-        case 11 ... 20: return 50
-        default: return 55
-        }
-    }
-
-    private var fontSize: CGFloat {
-        let count = clusterItem.count
-        switch count {
-        case 2 ... 9: return 12
-        case 10 ... 99: return 10
-        default: return 8
-        }
+/// Custom triangle shape for map pin point
+private struct Triangle: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.closeSubpath()
+        return path
     }
 }
