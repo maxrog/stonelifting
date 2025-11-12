@@ -49,7 +49,7 @@ struct RootView: View {
 
             // Attempt to refresh user data if token exists
             if authService.isAuthenticated {
-                await authService.refreshCurrentUser()
+                _ = await authService.refreshCurrentUser()
             }
 
             await MainActor.run {
