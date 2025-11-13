@@ -43,7 +43,10 @@ struct MapView: View {
                 }
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button {
-                        Task { await viewModel.centerOnUserLocation(zoomSpan: MKCoordinateSpan(latitudeDelta: 0.12, longitudeDelta: 0.12)) }
+                        Task {
+                            await viewModel.centerOnUserLocation(zoomSpan: MKCoordinateSpan(latitudeDelta: 0.12, longitudeDelta: 0.12))
+                            viewModel.showUserLocation = true
+                        }
                     } label: {
                         Image(systemName: "location.viewfinder")
                     }
@@ -72,6 +75,14 @@ struct MapView: View {
     private var mapContent: some View {
         if let mapRegion = viewModel.mapRegion {
             Map(position: .constant(.region(mapRegion))) {
+                // User location marker (only when location button pressed)
+                if viewModel.showUserLocation, let userLocation = viewModel.userLocation {
+                    Annotation("Your Location", coordinate: userLocation.coordinate, anchor: .center) {
+                        UserLocationIndicator()
+                    }
+                }
+
+                // Stone clusters
                 ForEach(viewModel.clusteredStones, id: \.id) { clusterItem in
                     Annotation(
                         clusterItem.isCluster ? "\(clusterItem.count) stones" : (clusterItem.stones.first?.name ?? "Stone"),
@@ -129,6 +140,35 @@ struct MapView: View {
                         .cornerRadius(22)
                 }
             }
+        }
+    }
+}
+
+// MARK: - User Location Indicator
+
+/// Animated user location indicator with pulsing effect
+struct UserLocationIndicator: View {
+    @State private var isPulsing = false
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color.blue.opacity(0.2))
+                .frame(width: 40, height: 40)
+                .scaleEffect(isPulsing ? 1.1 : 1.0)
+                .opacity(isPulsing ? 0.5 : 0.8)
+                .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isPulsing)
+
+            Circle()
+                .fill(Color.blue)
+                .frame(width: 16, height: 16)
+                .overlay(
+                    Circle()
+                        .stroke(Color.white, lineWidth: 3)
+                )
+        }
+        .onAppear {
+            isPulsing = true
         }
     }
 }

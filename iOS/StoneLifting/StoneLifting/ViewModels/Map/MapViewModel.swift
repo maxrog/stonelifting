@@ -15,7 +15,6 @@ import Observation
 /// Manages map state, stone clustering, and location tracking
 @Observable
 final class MapViewModel {
-
     // MARK: - Properties
 
     private let stoneService = StoneService.shared
@@ -42,6 +41,8 @@ final class MapViewModel {
     var currentZoomLevel: Double = 0
     var isTrackingUser = false
     var hasRequestedLocation = false
+    var userLocation: CLLocation?
+    var showUserLocation = false
 
     var isLoading: Bool { stoneService.isLoadingUserStones || stoneService.isLoadingPublicStones }
     var errorMessage: String? { stoneService.stoneError?.localizedDescription }
@@ -138,6 +139,7 @@ final class MapViewModel {
     func centerOnUserLocation(zoomSpan: MKCoordinateSpan) async {
         if let location = await locationService.getCurrentLocation() {
             await MainActor.run {
+                userLocation = location
                 let target = MKCoordinateRegion(center: location.coordinate, span: zoomSpan)
                 let animation = mapRegion.map { dynamicAnimation(for: $0, target: target) } ?? .easeInOut(duration: 0.5)
                 withAnimation(animation) { mapRegion = target }
