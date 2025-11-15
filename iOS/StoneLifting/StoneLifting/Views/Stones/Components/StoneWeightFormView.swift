@@ -15,6 +15,7 @@ struct StoneWeightFormView: View {
     @Binding var estimatedWeight: String
     @Binding var stoneType: StoneType
     @FocusState.Binding var focusedField: StoneFormField?
+    @State private var showingWeightEstimation = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -73,6 +74,74 @@ struct StoneWeightFormView: View {
 
                     Spacer()
                 }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Stone Type")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+
+                Menu {
+                    ForEach(StoneType.allCases, id: \.self) { type in
+                        Button(action: {
+                            stoneType = type
+                        }) {
+                            HStack {
+                                Text(type.displayName)
+                                if stoneType == type {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: stoneType.icon)
+                            .foregroundColor(.blue)
+                        Text(stoneType.displayName)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
+                }
+
+                Text(stoneType.description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Button(action: {
+                showingWeightEstimation = true
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "camera.viewfinder")
+                        .font(.body.weight(.semibold))
+                    Text("Estimate Weight")
+                        .font(.body.weight(.semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .foregroundColor(.white)
+                .background(
+                    LinearGradient(
+                        colors: [.blue, .cyan],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .cornerRadius(12)
+                .shadow(color: Color.blue.opacity(0.3), radius: 8, y: 4)
+            }
+        }
+        .sheet(isPresented: $showingWeightEstimation) {
+            CameraWeightView(stoneType: stoneType) { estimatedWeightValue in
+                estimatedWeight = String(format: "%.1f", estimatedWeightValue)
             }
         }
     }
