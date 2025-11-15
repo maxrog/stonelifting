@@ -15,7 +15,10 @@ final class Stone: Model, Content, @unchecked Sendable {
     
     @Field(key: "estimated_weight")
     var estimatedWeight: Double?
-    
+
+    @Field(key: "stone_type")
+    var stoneType: String?
+
     @Field(key: "description")
     var description: String?
     
@@ -55,6 +58,7 @@ final class Stone: Model, Content, @unchecked Sendable {
          name: String? = nil,
          weight: Double,
          estimatedWeight: Double? = nil,
+         stoneType: String? = nil,
          description: String? = nil,
          imageUrl: String? = nil,
          latitude: Double? = nil,
@@ -68,6 +72,7 @@ final class Stone: Model, Content, @unchecked Sendable {
         self.name = name
         self.weight = weight
         self.estimatedWeight = estimatedWeight
+        self.stoneType = stoneType
         self.description = description
         self.imageUrl = imageUrl
         self.latitude = latitude

@@ -8,6 +8,7 @@ struct CreateStone: AsyncMigration {
             .field("name", .string, .required)
             .field("weight", .double, .required)
             .field("estimated_weight", .double)
+            .field("stone_type", .string)
             .field("description", .string)
             .field("image_url", .string)
             .field("latitude", .double)

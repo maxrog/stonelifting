@@ -4,6 +4,7 @@ struct CreateStoneRequest: Content {
     let name: String?
     let weight: Double
     let estimatedWeight: Double?
+    let stoneType: String?
     let description: String?
     let imageUrl: String?
     let latitude: Double?
@@ -24,6 +25,9 @@ extension CreateStoneRequest: Validatable {
 
         // Estimated weight: positive if provided
         validations.add("estimatedWeight", as: Double?.self, is: .nil || .range(1...1000), required: false)
+
+        // Stone type: valid enum value if provided (granite, limestone, sandstone, basalt, marble)
+        validations.add("stoneType", as: String?.self, is: .nil || .in("granite", "limestone", "sandstone", "basalt", "marble"), required: false)
 
         // Description: max 1000 chars if provided
         validations.add("description", as: String?.self, is: .nil || .count(...1000), required: false)
@@ -53,6 +57,7 @@ struct StoneResponse: Content {
     let name: String?
     let weight: Double
     let estimatedWeight: Double?
+    let stoneType: String?
     let description: String?
     let imageUrl: String?
     let latitude: Double?
@@ -63,12 +68,13 @@ struct StoneResponse: Content {
     let carryDistance: Double?
     let createdAt: Date?
     let user: UserResponse
-    
+
     init(stone: Stone, user: User) {
         self.id = stone.id
         self.name = stone.name
         self.weight = stone.weight
         self.estimatedWeight = stone.estimatedWeight
+        self.stoneType = stone.stoneType
         self.description = stone.description
         self.imageUrl = stone.imageUrl
         self.latitude = stone.latitude

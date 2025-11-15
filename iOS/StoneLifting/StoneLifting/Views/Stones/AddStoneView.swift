@@ -25,6 +25,7 @@ struct AddStoneView: View {
     @State private var stoneName: String = ""
     @State private var weight: String = ""
     @State private var estimatedWeight: String = ""
+    @State private var stoneType: StoneType = .granite
     @State private var description: String = ""
     @State private var locationName: String = ""
     @State private var isPublic = true
@@ -66,6 +67,7 @@ struct AddStoneView: View {
                         StoneWeightFormView(
                             weight: $weight,
                             estimatedWeight: $estimatedWeight,
+                            stoneType: $stoneType,
                             focusedField: $focusedField
                         )
                         locationSection
@@ -409,6 +411,7 @@ struct AddStoneView: View {
                 name: stoneName.isEmpty ? nil : stoneName,
                 weight: Double(weight) ?? 0,
                 estimatedWeight: Double(estimatedWeight),
+                stoneType: stoneType.rawValue,
                 description: description.isEmpty ? nil : description,
                 imageUrl: nil, // Will be set by ViewModel after upload
                 latitude: includeLocation ? locationService.currentLocation?.coordinate.latitude : nil,

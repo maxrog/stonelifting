@@ -23,6 +23,7 @@ struct StoneController: RouteCollection {
             name: createStone.name,
             weight: createStone.weight,
             estimatedWeight: createStone.estimatedWeight,
+            stoneType: createStone.stoneType,
             description: createStone.description,
             imageUrl: createStone.imageUrl,
             latitude: createStone.latitude,
@@ -125,6 +126,7 @@ struct StoneController: RouteCollection {
         stone.name = updateStone.name
         stone.weight = updateStone.weight
         stone.estimatedWeight = updateStone.estimatedWeight
+        stone.stoneType = updateStone.stoneType
         stone.description = updateStone.description
         stone.imageUrl = updateStone.imageUrl
         stone.latitude = updateStone.latitude

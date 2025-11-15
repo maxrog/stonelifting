@@ -8,6 +8,58 @@
 import CoreLocation
 import Foundation
 
+// MARK: - Stone Type
+
+/// Types of stone with different densities for weight estimation
+enum StoneType: String, CaseIterable, Codable {
+    case granite
+    case limestone
+    case sandstone
+    case basalt
+    case marble
+
+    var displayName: String {
+        switch self {
+        case .granite: return "Granite"
+        case .limestone: return "Limestone"
+        case .sandstone: return "Sandstone"
+        case .basalt: return "Basalt"
+        case .marble: return "Marble"
+        }
+    }
+
+    /// Density in pounds per cubic foot
+    var density: Double {
+        switch self {
+        case .granite: return 165.0    // ~2650 kg/m³ - Most common
+        case .limestone: return 160.0  // ~2560 kg/m³
+        case .sandstone: return 145.0  // ~2320 kg/m³ - Lighter
+        case .basalt: return 184.0     // ~2950 kg/m³ - Volcanic, very dense
+        case .marble: return 170.0     // ~2720 kg/m³
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .granite: return "cube.fill"
+        case .limestone: return "cube.fill"
+        case .sandstone: return "cube.fill"
+        case .basalt: return "cube.fill"
+        case .marble: return "cube.fill"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .granite: return "Very common, hard rock"
+        case .limestone: return "Sedimentary, medium density"
+        case .sandstone: return "Lighter, porous rock"
+        case .basalt: return "Volcanic, very dense"
+        case .marble: return "Metamorphic, dense rock"
+        }
+    }
+}
+
 // MARK: - Stone Models
 
 /// Represents a stone lifting record
@@ -24,6 +76,9 @@ struct Stone: Codable, Identifiable {
 
     /// AI-estimated weight (optional, for comparison)
     var estimatedWeight: Double?
+
+    /// Type of stone (for density calculations)
+    var stoneType: String?
 
     /// User's description of the stone or lift
     var description: String?
@@ -68,6 +123,9 @@ struct CreateStoneRequest: Codable {
 
     /// AI-estimated weight for comparison
     let estimatedWeight: Double?
+
+    /// Type of stone for density calculations
+    let stoneType: String?
 
     /// Description of the stone or lift experience
     let description: String?

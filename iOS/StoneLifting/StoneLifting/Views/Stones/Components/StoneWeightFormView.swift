@@ -13,6 +13,7 @@ import SwiftUI
 struct StoneWeightFormView: View {
     @Binding var weight: String
     @Binding var estimatedWeight: String
+    @Binding var stoneType: StoneType
     @FocusState.Binding var focusedField: StoneFormField?
 
     var body: some View {

@@ -86,6 +86,7 @@ final class StoneFormViewModel {
             name: request.name,
             weight: request.weight,
             estimatedWeight: request.estimatedWeight,
+            stoneType: request.stoneType,
             description: request.description,
             imageUrl: imageURL,
             latitude: request.latitude,

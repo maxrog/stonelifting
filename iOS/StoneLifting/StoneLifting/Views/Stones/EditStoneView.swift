@@ -63,6 +63,7 @@ struct EditStoneView: View {
                         StoneWeightFormView(
                             weight: weightBinding,
                             estimatedWeight: estimatedWeightBinding,
+                            stoneType: stoneTypeBinding,
                             focusedField: $focusedField
                         )
 
@@ -304,6 +305,19 @@ struct EditStoneView: View {
         )
     }
 
+    private var stoneTypeBinding: Binding<StoneType> {
+        Binding(
+            get: {
+                if let typeString = stone.stoneType,
+                   let type = StoneType(rawValue: typeString) {
+                    return type
+                }
+                return .granite // Default
+            },
+            set: { stone.stoneType = $0.rawValue }
+        )
+    }
+
     private var carryDistanceBinding: Binding<String> {
         Binding(
             get: { stone.carryDistance != nil ? String(format: "%.1f", stone.carryDistance!) : "" },
@@ -431,6 +445,7 @@ struct EditStoneView: View {
                 name: stone.name,
                 weight: stone.weight,
                 estimatedWeight: stone.estimatedWeight,
+                stoneType: stone.stoneType,
                 description: stone.description,
                 imageUrl: stone.imageUrl,
                 latitude: stone.latitude,
