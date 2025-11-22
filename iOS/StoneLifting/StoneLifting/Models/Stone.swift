@@ -71,10 +71,10 @@ struct Stone: Codable, Identifiable {
     /// Name of the stone
     var name: String?
 
-    /// Actual weight of the stone in pounds/kilograms
-    var weight: Double
+    /// Confirmed weight of the stone in pounds/kilograms (optional if estimated weight provided)
+    var weight: Double?
 
-    /// AI-estimated weight (optional, for comparison)
+    /// AI-estimated weight (optional if confirmed weight provided)
     var estimatedWeight: Double?
 
     /// Type of stone (for density calculations)
@@ -118,10 +118,10 @@ struct CreateStoneRequest: Codable {
     /// Name of the stone
     let name: String?
 
-    /// Weight of the stone being logged
-    let weight: Double
+    /// Confirmed weight of the stone (optional if estimated weight provided)
+    let weight: Double?
 
-    /// AI-estimated weight for comparison
+    /// AI-estimated weight for comparison (optional if confirmed weight provided)
     let estimatedWeight: Double?
 
     /// Type of stone for density calculations
@@ -233,12 +233,18 @@ extension Stone {
 
     /// Returns a formatted weight string with units
     var formattedWeight: String {
-        String(format: "%.1f lbs", weight)
+        if let weight = weight {
+            return String(format: "%.1f lbs", weight)
+        } else if let estimatedWeight = estimatedWeight {
+            return String(format: "~%.1f lbs", estimatedWeight)
+        } else {
+            return "Unknown"
+        }
     }
 
-    /// Returns the difference between actual and estimated weight
+    /// Returns the difference between confirmed and estimated weight
     var estimationAccuracy: Double? {
-        guard let estimated = estimatedWeight else { return nil }
+        guard let weight = weight, let estimated = estimatedWeight else { return nil }
         return abs(weight - estimated)
     }
 
@@ -269,11 +275,11 @@ struct StoneStats {
     }
 
     var totalWeight: Double {
-        stones.reduce(0) { $0 + $1.weight }
+        stones.reduce(0) { $0 + ($1.weight ?? $1.estimatedWeight ?? 0) }
     }
 
     var heaviestStone: Double {
-        stones.max(by: { $0.weight < $1.weight })?.weight ?? 0
+        stones.compactMap { $0.weight ?? $0.estimatedWeight }.max() ?? 0
     }
 
     var averageWeight: Double {

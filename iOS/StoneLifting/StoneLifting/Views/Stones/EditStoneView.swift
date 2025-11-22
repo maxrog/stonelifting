@@ -293,8 +293,8 @@ struct EditStoneView: View {
 
     private var weightBinding: Binding<String> {
         Binding(
-            get: { String(format: "%.1f", stone.weight) },
-            set: { if let weight = Double($0) { stone.weight = weight } }
+            get: { stone.weight != nil ? String(format: "%.1f", stone.weight!) : "" },
+            set: { stone.weight = $0.isEmpty ? nil : Double($0) }
         )
     }
 
@@ -348,7 +348,14 @@ struct EditStoneView: View {
     // MARK: - Computed Properties
 
     private var isFormValid: Bool {
-        stone.weight > 0 && !(stone.name?.isEmpty ?? true)
+        // Require stone name
+        guard !(stone.name?.isEmpty ?? true) else { return false }
+
+        // Require at least one weight (confirmed or estimated)
+        let hasConfirmedWeight = stone.weight ?? 0 > 0
+        let hasEstimatedWeight = stone.estimatedWeight ?? 0 > 0
+
+        return hasConfirmedWeight || hasEstimatedWeight
     }
 
     private var hasChanges: Bool {

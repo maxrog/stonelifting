@@ -19,18 +19,30 @@ struct StoneWeightFormView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Weight")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack {
+                Text("Weight")
+                    .font(.headline)
+
+                Text("(at least one required)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Spacer()
+            }
 
             HStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Actual Weight")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                    HStack(spacing: 4) {
+                        Text("Confirmed")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    }
 
                     HStack {
-                        TextField("0", text: $weight)
+                        TextField("Optional", text: $weight)
                             .keyboardType(.decimalPad)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .focused($focusedField, equals: .weight)
@@ -41,9 +53,14 @@ struct StoneWeightFormView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Estimated Weight")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                    HStack(spacing: 4) {
+                        Text("Estimated")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Image(systemName: "questionmark.circle")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
 
                     HStack {
                         TextField("Optional", text: $estimatedWeight)

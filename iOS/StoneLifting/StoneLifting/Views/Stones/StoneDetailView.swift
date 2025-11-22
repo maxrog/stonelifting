@@ -210,19 +210,23 @@ struct StoneDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 16) {
-                StatCard(
-                    title: "Weight",
-                    value: stone.formattedWeight,
-                    icon: "scalemass.fill",
-                    color: .blue
-                )
+                // Show confirmed weight if available
+                if let weight = stone.weight {
+                    StatCard(
+                        title: "Confirmed",
+                        value: String(format: "%.1f lbs", weight),
+                        icon: "checkmark.seal.fill",
+                        color: .green
+                    )
+                }
 
+                // Show estimated weight if available
                 if let estimatedWeight = stone.estimatedWeight {
                     StatCard(
                         title: "Estimated",
                         value: String(format: "%.1f lbs", estimatedWeight),
-                        icon: "brain.head.profile",
-                        color: .purple
+                        icon: "questionmark.circle.fill",
+                        color: .orange
                     )
                 }
 
@@ -231,15 +235,15 @@ struct StoneDetailView: View {
                         title: "Logged",
                         value: createdAt.formatted(.dateTime.month().day()),
                         icon: "calendar",
-                        color: .green
+                        color: .blue
                     )
                 }
             }
 
             // Weight estimation accuracy
-            if let estimatedWeight = stone.estimatedWeight {
-                let difference = abs(stone.weight - estimatedWeight)
-                let percentage = (difference / stone.weight) * 100
+            if let weight = stone.weight, let estimatedWeight = stone.estimatedWeight {
+                let difference = abs(weight - estimatedWeight)
+                let percentage = (difference / weight) * 100
 
                 HStack {
                     Image(systemName: percentage < 10 ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")

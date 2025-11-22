@@ -53,7 +53,7 @@ final class StoneListViewModel {
         case .publicStones:
             return publicStones.count
         case .heavy:
-            return userStones.filter { $0.weight >= 100 }.count
+            return userStones.filter { ($0.weight ?? $0.estimatedWeight ?? 0) >= 100 }.count
         case .recent:
             return min(userStones.count, 10)
         }
@@ -73,7 +73,7 @@ final class StoneListViewModel {
         case .publicStones:
             stones = publicStones
         case .heavy:
-            stones = userStones.filter { $0.weight >= 100 }
+            stones = userStones.filter { ($0.weight ?? $0.estimatedWeight ?? 0) >= 100 }
         case .recent:
             stones = Array(userStones.prefix(10))
         }

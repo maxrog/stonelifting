@@ -328,10 +328,14 @@ struct AddStoneView: View {
     // MARK: - Computed Properties
 
     private var isFormValid: Bool {
-        !weight.isEmpty &&
-            !stoneName.isEmpty &&
-            Double(weight) != nil &&
-            Double(weight)! > 0
+        // Require stone name
+        guard !stoneName.isEmpty else { return false }
+
+        // Require at least one weight (confirmed or estimated)
+        let hasConfirmedWeight = !weight.isEmpty && Double(weight) ?? 0 > 0
+        let hasEstimatedWeight = !estimatedWeight.isEmpty && Double(estimatedWeight) ?? 0 > 0
+
+        return hasConfirmedWeight || hasEstimatedWeight
     }
 
     // MARK: - Actions
@@ -402,15 +406,16 @@ struct AddStoneView: View {
     }
 
     private func saveStone() {
-        logger.info("Saving stone with weight: \(weight)")
+        let weightInfo = weight.isEmpty ? "estimated: \(estimatedWeight)" : "confirmed: \(weight)"
+        logger.info("Saving stone with weight: \(weightInfo)")
 
         focusedField = nil
 
         Task {
             let request = CreateStoneRequest(
                 name: stoneName.isEmpty ? nil : stoneName,
-                weight: Double(weight) ?? 0,
-                estimatedWeight: Double(estimatedWeight),
+                weight: weight.isEmpty ? nil : Double(weight),
+                estimatedWeight: estimatedWeight.isEmpty ? nil : Double(estimatedWeight),
                 stoneType: stoneType.rawValue,
                 description: description.isEmpty ? nil : description,
                 imageUrl: nil, // Will be set by ViewModel after upload

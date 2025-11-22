@@ -175,7 +175,7 @@ struct CameraWeightView: View {
                 if !arManager.tapAnchors.isEmpty && !viewModel.isEditingMeasurements {
                     Button(action: {
                         // First undo in AR manager (removes anchor and line)
-                        let _ = arManager.undoLastTap()
+                        _ = arManager.undoLastTap()
                         // Then undo in view model (updates measurement state)
                         viewModel.undoLastTap()
                     }) {

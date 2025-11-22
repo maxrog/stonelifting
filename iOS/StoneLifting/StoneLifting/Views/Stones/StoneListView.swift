@@ -278,10 +278,23 @@ struct StoneRowView: View {
 
                         Spacer()
 
-                        Text(stone.formattedWeight)
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.blue)
+                        HStack(spacing: 4) {
+                            // Show icon for weight type
+                            if stone.weight != nil {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.caption)
+                                    .foregroundColor(.green)
+                            } else if stone.estimatedWeight != nil {
+                                Image(systemName: "questionmark.circle.fill")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+
+                            Text(stone.formattedWeight)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+                        }
                     }
 
                     if let description = stone.description, !description.isEmpty {
