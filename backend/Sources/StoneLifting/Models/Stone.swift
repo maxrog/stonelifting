@@ -9,10 +9,10 @@ final class Stone: Model, Content, @unchecked Sendable {
     
     @Field(key: "name")
     var name: String?
-    
+
     @Field(key: "weight")
-    var weight: Double
-    
+    var weight: Double?
+
     @Field(key: "estimated_weight")
     var estimatedWeight: Double?
 
@@ -56,7 +56,7 @@ final class Stone: Model, Content, @unchecked Sendable {
     
     init(id: UUID? = nil,
          name: String? = nil,
-         weight: Double,
+         weight: Double? = nil,
          estimatedWeight: Double? = nil,
          stoneType: String? = nil,
          description: String? = nil,

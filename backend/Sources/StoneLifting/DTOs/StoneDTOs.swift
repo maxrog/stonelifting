@@ -2,7 +2,7 @@ import Vapor
 
 struct CreateStoneRequest: Content {
     let name: String?
-    let weight: Double
+    let weight: Double?
     let estimatedWeight: Double?
     let stoneType: String?
     let description: String?
@@ -20,10 +20,10 @@ extension CreateStoneRequest: Validatable {
         // Name: optional but max 100 chars if provided
         validations.add("name", as: String?.self, is: .nil || .count(...100), required: false)
 
-        // Weight: positive, reasonable range (1kg to 1000kg)
-        validations.add("weight", as: Double.self, is: .range(1...1000))
+        // Weight: optional, positive, reasonable range (1kg to 1000kg) if provided
+        validations.add("weight", as: Double?.self, is: .nil || .range(1...1000), required: false)
 
-        // Estimated weight: positive if provided
+        // Estimated weight: optional, positive if provided
         validations.add("estimatedWeight", as: Double?.self, is: .nil || .range(1...1000), required: false)
 
         // Stone type: valid enum value if provided (granite, limestone, sandstone, basalt, marble)
@@ -55,7 +55,7 @@ extension CreateStoneRequest: Validatable {
 struct StoneResponse: Content {
     let id: UUID?
     let name: String?
-    let weight: Double
+    let weight: Double?
     let estimatedWeight: Double?
     let stoneType: String?
     let description: String?

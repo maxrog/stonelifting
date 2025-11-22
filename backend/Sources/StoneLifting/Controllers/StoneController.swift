@@ -19,6 +19,11 @@ struct StoneController: RouteCollection {
         try CreateStoneRequest.validate(content: req)
         let createStone = try req.content.decode(CreateStoneRequest.self)
 
+        // Require at least one weight type (confirmed or estimated)
+        guard createStone.weight != nil || createStone.estimatedWeight != nil else {
+            throw Abort(.badRequest, reason: "At least one weight (weight or estimatedWeight) is required")
+        }
+
         let stone = Stone(
             name: createStone.name,
             weight: createStone.weight,
@@ -111,6 +116,11 @@ struct StoneController: RouteCollection {
         let user = try req.auth.require(User.self)
         try CreateStoneRequest.validate(content: req)
         let updateStone = try req.content.decode(CreateStoneRequest.self)
+
+        // Require at least one weight type (confirmed or estimated)
+        guard updateStone.weight != nil || updateStone.estimatedWeight != nil else {
+            throw Abort(.badRequest, reason: "At least one weight (weight or estimatedWeight) is required")
+        }
 
         guard let stoneID = req.parameters.get("stoneID", as: UUID.self) else {
             throw Abort(.badRequest, reason: "Invalid stone ID")

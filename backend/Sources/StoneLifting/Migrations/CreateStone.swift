@@ -6,7 +6,7 @@ struct CreateStone: AsyncMigration {
         try await database.schema("stones")
             .id()
             .field("name", .string, .required)
-            .field("weight", .double, .required)
+            .field("weight", .double)
             .field("estimated_weight", .double)
             .field("stone_type", .string)
             .field("description", .string)
