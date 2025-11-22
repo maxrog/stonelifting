@@ -9,33 +9,17 @@ import SwiftUI
 
 /*
  TODO:
- 
- • Ability to log completions of other user's stones. Multiple logs (ticks) of same stone?
- - icon8 system sf icons
- or
- 􁊕 feature circle.dotted.and.circle in app, rotated so dotted is vertical and with wiggle animation (palette / hierarchical coloring with accent) - wiggle makes it seem like you're picking it up
- Design make less AI - ish pretty obvious
- Claude help document git repo etc
- AI sparkle thing for stone weight estimation
- App Name: Go On
- Subtitle: Pick it up
- Badges for half/full sterker
- CI/CD
- Localization
- Theming
- Accessibility
- Widgets
- Push
- Apple/Google Sign In
- Run profiler for optimization
- •  Cannot show Automatic Strong Passwords for app bundleID: com.marfodub.StoneLifting due to error: Cannot save passwords for this app. Make sure you have set up Associated Domains for your app and AutoFill Passwords is enabled in Settings
+ • Optional completion (don't select getting wind by default)
+ • Optional weight (might be unknown)
+ • Reorder add stone form
+ • Fix Associated Domains for AutoFill Passwords (bundleID: com.marfodub.StoneLifting)
 
- ### Recommended Backend Improvements
- 1. **Add Database Indexes** (see main README)
- 2. **Set up Sentry** for error tracking
- 3. **Add rate limiting** for production
- 4. **Custom domain** (Railway supports this)
+ DESIGN NOTES:
+ • Icon: SF Symbol circle.dotted.and.circle (rotated, wiggle animation)
+ • Make UI less AI-ish
+ • Consider sparkle effect for weight estimation feature
 
+ See ROADMAP.md for feature planning
  */
 
 @main
