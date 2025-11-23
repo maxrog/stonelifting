@@ -210,37 +210,37 @@ struct CameraWeightView: View {
             if viewModel.measuredLength != nil || viewModel.measuredWidth != nil || viewModel.measuredHeight != nil {
                 HStack {
                     if viewModel.isEditingMeasurements {
-                        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
-                            if let length = viewModel.measuredLength {
-                                editableDimensionGridRow(label: "L", value: length, color: .cyan, dimension: .length)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+                                if let length = viewModel.measuredLength {
+                                    editableDimensionGridRow(label: "L", value: length, color: .cyan, dimension: .length)
+                                }
+
+                                if let width = viewModel.measuredWidth {
+                                    editableDimensionGridRow(label: "W", value: width, color: .green, dimension: .width)
+                                }
+
+                                if let height = viewModel.measuredHeight {
+                                    editableDimensionGridRow(label: "H", value: height, color: .orange, dimension: .height)
+                                }
                             }
 
-                            if let width = viewModel.measuredWidth {
-                                editableDimensionGridRow(label: "W", value: width, color: .green, dimension: .width)
-                            }
-
-                            if let height = viewModel.measuredHeight {
-                                editableDimensionGridRow(label: "H", value: height, color: .orange, dimension: .height)
-                            }
-
-                            // Reset button
+                            // Reset button - outside Grid to prevent layout shift
                             if viewModel.hasAdjustedMeasurements {
-                                GridRow {
-                                    Button(action: {
-                                        viewModel.resetToOriginalMeasurements()
-                                    }) {
-                                        HStack(spacing: 3) {
-                                            Image(systemName: "arrow.counterclockwise")
-                                                .font(.caption2)
-                                            Text("Reset")
-                                                .font(.caption2)
-                                        }
-                                        .foregroundColor(.white.opacity(0.8))
-                                        .padding(.vertical, 4)
-                                        .padding(.horizontal, 8)
-                                        .background(Color.white.opacity(0.15))
-                                        .cornerRadius(6)
+                                Button(action: {
+                                    viewModel.resetToOriginalMeasurements()
+                                }) {
+                                    HStack(spacing: 3) {
+                                        Image(systemName: "arrow.counterclockwise")
+                                            .font(.caption2)
+                                        Text("Reset")
+                                            .font(.caption2)
                                     }
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .padding(.vertical, 4)
+                                    .padding(.horizontal, 8)
+                                    .background(Color.white.opacity(0.15))
+                                    .cornerRadius(6)
                                 }
                             }
                         }
@@ -321,6 +321,7 @@ struct CameraWeightView: View {
                !arManager.isPlaneDetected || arManager.hasStableDetection {
                 Button(action: {
                     onConfirm(estimate)
+                    dismiss()
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark")
@@ -426,9 +427,10 @@ struct CameraWeightView: View {
                 Image(systemName: "minus.circle.fill")
                     .font(.title3)
                     .foregroundColor(.white.opacity(0.8))
-                    .frame(width: 40, height: 40)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .fixedSize()
 
             // Column 4: Plus button
             Button(action: {
@@ -437,9 +439,10 @@ struct CameraWeightView: View {
                 Image(systemName: "plus.circle.fill")
                     .font(.title3)
                     .foregroundColor(.white.opacity(0.8))
-                    .frame(width: 40, height: 40)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .fixedSize()
         }
     }
 
