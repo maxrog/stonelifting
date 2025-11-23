@@ -38,6 +38,8 @@ struct AddStoneView: View {
     @State private var showingPhotoOptions = false
     @State private var showingPhotoPicker = false
     @State private var showingCamera = false
+    @State private var showingCropView = false
+    @State private var imageToCrop: UIImage?
 
     @FocusState private var focusedField: StoneFormField?
 
@@ -68,6 +70,7 @@ struct AddStoneView: View {
                             weight: $weight,
                             estimatedWeight: $estimatedWeight,
                             stoneType: $stoneType,
+                            photoData: $photoData,
                             focusedField: $focusedField
                         )
                         locationSection
@@ -115,6 +118,13 @@ struct AddStoneView: View {
             CameraPickerView { imageData in
                 self.photoData = imageData
                 self.showingCamera = false
+            }
+        }
+        .sheet(isPresented: $showingCropView) {
+            if let imageToCrop = imageToCrop {
+                ImageCropView(image: imageToCrop) { croppedData in
+                    self.photoData = croppedData
+                }
             }
         }
         .onChange(of: selectedPhoto) { _, newValue in
@@ -384,10 +394,11 @@ struct AddStoneView: View {
         item.loadTransferable(type: Data.self) { result in
             switch result {
             case let .success(data):
-                if let data = data {
+                if let data = data, let image = UIImage(data: data) {
                     DispatchQueue.main.async {
-                        self.photoData = data
-                        self.logger.info("Photo loaded successfully")
+                        self.imageToCrop = image
+                        self.showingCropView = true
+                        self.logger.info("Photo loaded successfully, showing crop view")
                     }
                 }
             case let .failure(error):

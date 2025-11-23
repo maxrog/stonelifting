@@ -14,6 +14,7 @@ struct StoneWeightFormView: View {
     @Binding var weight: String
     @Binding var estimatedWeight: String
     @Binding var stoneType: StoneType
+    @Binding var photoData: Data?
     @FocusState.Binding var focusedField: StoneFormField?
     @State private var showingWeightEstimation = false
 
@@ -157,7 +158,7 @@ struct StoneWeightFormView: View {
             }
         }
         .sheet(isPresented: $showingWeightEstimation) {
-            CameraWeightView(stoneType: stoneType) { estimatedWeightValue in
+            CameraWeightView(stoneType: stoneType, capturedPhoto: $photoData) { estimatedWeightValue in
                 estimatedWeight = String(format: "%.1f", estimatedWeightValue)
             }
         }

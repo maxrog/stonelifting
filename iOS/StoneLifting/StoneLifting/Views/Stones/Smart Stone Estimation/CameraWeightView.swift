@@ -20,12 +20,14 @@ import CoreMedia
 /// Camera-style button for real-time weight estimation
 struct WeightEstimationButton: View {
     let stoneType: StoneType
+    @Binding var capturedPhoto: Data?
     let onEstimate: (Double) -> Void
 
     @State private var showingCamera = false
 
-    init(stoneType: StoneType = .granite, onEstimate: @escaping (Double) -> Void) {
+    init(stoneType: StoneType = .granite, capturedPhoto: Binding<Data?>, onEstimate: @escaping (Double) -> Void) {
         self.stoneType = stoneType
+        self._capturedPhoto = capturedPhoto
         self.onEstimate = onEstimate
     }
 
@@ -50,7 +52,7 @@ struct WeightEstimationButton: View {
         }
         .buttonStyle(.plain)
         .fullScreenCover(isPresented: $showingCamera) {
-            CameraWeightView(stoneType: stoneType) { weight in
+            CameraWeightView(stoneType: stoneType, capturedPhoto: $capturedPhoto) { weight in
                 onEstimate(weight)
                 showingCamera = false
             }
@@ -60,22 +62,26 @@ struct WeightEstimationButton: View {
 
 // MARK: - Camera Weight View
 
-// TODO option for user to capture the photo as upload photo
-
-/// Real-time camera view for weight estimation with overlay guidance
+/// Real-time camera view for weight estimation with AR measurements and photo capture
 struct CameraWeightView: View {
+    private let logger = AppLogger()
+
     let stoneType: StoneType
     let onConfirm: (Double) -> Void
+    @Binding var capturedPhoto: Data?
 
     @State private var viewModel: CameraWeightViewModel
     @State private var arManager = ARPlaneDetectionManager()
     @State private var analysisTask: Task<Void, Never>?
     @State private var allowTappingFallback = false  // Fallback if plane detection struggles
     @State private var showTips = true  // Show tips initially, fade out after a few seconds
+    @State private var showingCaptureConfirmation = false
+    @State private var photoCapturedThisSession = false
     @Environment(\.dismiss) private var dismiss
 
-    init(stoneType: StoneType = .granite, onConfirm: @escaping (Double) -> Void) {
+    init(stoneType: StoneType = .granite, capturedPhoto: Binding<Data?>, onConfirm: @escaping (Double) -> Void) {
         self.stoneType = stoneType
+        self._capturedPhoto = capturedPhoto
         self.onConfirm = onConfirm
         _viewModel = State(initialValue: CameraWeightViewModel(stoneType: stoneType))
     }
@@ -107,6 +113,15 @@ struct CameraWeightView: View {
                 bottomOverlay
             }
             .ignoresSafeArea(edges: .bottom)
+
+            // Photo capture confirmation flash
+            if showingCaptureConfirmation {
+                Color.white
+                    .opacity(0.3)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
         }
         .onAppear {
             arManager.startSession()
@@ -151,6 +166,86 @@ struct CameraWeightView: View {
 
             // Reset viewModel state
             viewModel.reset()
+
+            // Reset photo capture indicator
+            photoCapturedThisSession = false
+        }
+    }
+
+    @ViewBuilder
+    private var measurementSummaryBox: some View {
+        HStack {
+            if viewModel.isEditingMeasurements {
+                VStack(alignment: .leading, spacing: 8) {
+                    Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
+                        if let length = viewModel.measuredLength {
+                            editableDimensionGridRow(label: "L", value: length, color: .cyan, dimension: .length)
+                        }
+
+                        if let width = viewModel.measuredWidth {
+                            editableDimensionGridRow(label: "W", value: width, color: .green, dimension: .width)
+                        }
+
+                        if let height = viewModel.measuredHeight {
+                            editableDimensionGridRow(label: "H", value: height, color: .orange, dimension: .height)
+                        }
+                    }
+
+                    if viewModel.hasAdjustedMeasurements {
+                        Button(action: {
+                            viewModel.resetToOriginalMeasurements()
+                        }) {
+                            HStack(spacing: 3) {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.caption2)
+                                Text("Reset")
+                                    .font(.caption2)
+                            }
+                            .foregroundColor(.white.opacity(0.8))
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(6)
+                        }
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial)
+                .cornerRadius(10)
+            } else {
+                VStack(alignment: .leading, spacing: 6) {
+                    if let length = viewModel.measuredLength {
+                        dimensionLabel(label: "L", value: length, color: .cyan)
+                    }
+
+                    if let width = viewModel.measuredWidth {
+                        dimensionLabel(label: "W", value: width, color: .green)
+                    }
+
+                    if let height = viewModel.measuredHeight {
+                        dimensionLabel(label: "H", value: height, color: .orange)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial)
+                .cornerRadius(10)
+            }
+
+            // Edit/Done button (only show when all measurements complete)
+            if !viewModel.isMeasurementMode {
+                Button(action: {
+                    viewModel.isEditingMeasurements.toggle()
+                }) {
+                    Image(systemName: viewModel.isEditingMeasurements ? "checkmark.circle.fill" : "pencil.circle")
+                        .font(.title3)
+                        .foregroundColor(.blue)
+                        .padding(8)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                }
+            }
         }
     }
 
@@ -205,86 +300,6 @@ struct CameraWeightView: View {
             .padding(.vertical, 10)
             .background(.ultraThinMaterial)
             .cornerRadius(16)
-
-            // Measurement summary box
-            if viewModel.measuredLength != nil || viewModel.measuredWidth != nil || viewModel.measuredHeight != nil {
-                HStack {
-                    if viewModel.isEditingMeasurements {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
-                                if let length = viewModel.measuredLength {
-                                    editableDimensionGridRow(label: "L", value: length, color: .cyan, dimension: .length)
-                                }
-
-                                if let width = viewModel.measuredWidth {
-                                    editableDimensionGridRow(label: "W", value: width, color: .green, dimension: .width)
-                                }
-
-                                if let height = viewModel.measuredHeight {
-                                    editableDimensionGridRow(label: "H", value: height, color: .orange, dimension: .height)
-                                }
-                            }
-
-                            // Reset button - outside Grid to prevent layout shift
-                            if viewModel.hasAdjustedMeasurements {
-                                Button(action: {
-                                    viewModel.resetToOriginalMeasurements()
-                                }) {
-                                    HStack(spacing: 3) {
-                                        Image(systemName: "arrow.counterclockwise")
-                                            .font(.caption2)
-                                        Text("Reset")
-                                            .font(.caption2)
-                                    }
-                                    .foregroundColor(.white.opacity(0.8))
-                                    .padding(.vertical, 4)
-                                    .padding(.horizontal, 8)
-                                    .background(Color.white.opacity(0.15))
-                                    .cornerRadius(6)
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(10)
-                    } else {
-                        VStack(alignment: .leading, spacing: 6) {
-                            if let length = viewModel.measuredLength {
-                                dimensionLabel(label: "L", value: length, color: .cyan)
-                            }
-
-                            if let width = viewModel.measuredWidth {
-                                dimensionLabel(label: "W", value: width, color: .green)
-                            }
-
-                            if let height = viewModel.measuredHeight {
-                                dimensionLabel(label: "H", value: height, color: .orange)
-                            }
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(10)
-                    }
-
-                    // Edit/Done button (only show when all measurements complete)
-                    if !viewModel.isMeasurementMode {
-                        Button(action: {
-                            viewModel.isEditingMeasurements.toggle()
-                        }) {
-                            Image(systemName: viewModel.isEditingMeasurements ? "checkmark.circle.fill" : "pencil.circle")
-                                .font(.title3)
-                                .foregroundColor(.blue)
-                                .padding(8)
-                                .background(.ultraThinMaterial)
-                                .clipShape(Circle())
-                        }
-                    }
-
-                    Spacer()
-                }
-            }
         }
         .background(
             LinearGradient(
@@ -357,6 +372,43 @@ struct CameraWeightView: View {
                 .opacity(showTips ? 1.0 : 0.0)
                 .animation(.easeOut(duration: 0.5), value: showTips)
             }
+
+            // Bottom controls row
+            HStack(alignment: .bottom, spacing: 0) {
+                // Measurement box on left (if present)
+                if viewModel.measuredLength != nil || viewModel.measuredWidth != nil || viewModel.measuredHeight != nil {
+                    measurementSummaryBox
+                        .padding(.leading, 16)
+                }
+
+                // Camera button - centered in remaining space
+                Spacer()
+                Button(action: {
+                    capturePhoto()
+                }) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.black.opacity(0.6))
+                            .frame(width: 70, height: 70)
+
+                        Circle()
+                            .stroke(Color.white, lineWidth: 4)
+                            .frame(width: 70, height: 70)
+
+                        if photoCapturedThisSession {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.title)
+                                .foregroundColor(.green)
+                        } else {
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 56, height: 56)
+                        }
+                    }
+                }
+                Spacer()
+            }
+            .padding(.trailing, 16)
         }
         .padding(.bottom, 24)
         .background(
@@ -462,19 +514,75 @@ struct CameraWeightView: View {
         }
     }
 
+    /// Capture current AR frame as photo
+    private func capturePhoto() {
+        Task {
+            guard let frame = await arManager.getCurrentFrame() else {
+                logger.error("Failed to get AR frame for photo capture")
+                return
+            }
+
+            let pixelBuffer = frame.capturedImage
+            let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+            let context = CIContext()
+
+            guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
+                logger.error("Failed to create CGImage from AR frame")
+                return
+            }
+
+            let uiImage = UIImage(cgImage: cgImage, scale: 1.0, orientation: .right)
+
+            // Optimize and compress
+            let maxSize: CGFloat = 1920
+            let size = uiImage.size
+            let ratio = min(maxSize / size.width, maxSize / size.height)
+
+            let optimizedImage: UIImage
+            if ratio < 1.0 {
+                let newSize = CGSize(width: size.width * ratio, height: size.height * ratio)
+                let renderer = UIGraphicsImageRenderer(size: newSize)
+                optimizedImage = renderer.image { _ in
+                    uiImage.draw(in: CGRect(origin: .zero, size: newSize))
+                }
+            } else {
+                optimizedImage = uiImage
+            }
+
+            if let photoData = optimizedImage.jpegData(compressionQuality: 0.8) {
+                await MainActor.run {
+                    self.capturedPhoto = photoData  // Save immediately to parent
+                    self.photoCapturedThisSession = true
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        self.showingCaptureConfirmation = true
+                    }
+                }
+                logger.info("Photo captured successfully - Size: \(photoData.count) bytes")
+
+                // Hide confirmation after brief delay
+                try? await Task.sleep(nanoseconds: 300_000_000)  // 0.3 seconds
+                await MainActor.run {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        self.showingCaptureConfirmation = false
+                    }
+                }
+            }
+        }
+    }
+
     /// Handle tap gesture for edge measurement using RealityKit
     private func handleTap(at location: CGPoint, in size: CGSize) {
-        AppLogger().debug("Tap detected at \(location) in view size \(size)")
+        logger.debug("Tap detected at \(location) in view size \(size)")
 
         // Limit to 6 taps for 3 dimensions (2 points per dimension)
         guard arManager.tapAnchors.count < 6 else {
-            AppLogger().debug("Already have 6 tap anchors (3 dimensions measured), ignoring tap")
+            logger.debug("Already have 6 tap anchors (3 dimensions measured), ignoring tap")
             return
         }
 
         // Perform raycast using RealityKit
         guard let result = arManager.performTapRaycast(at: location) else {
-            AppLogger().debug("Raycast failed for tap at \(location)")
+            logger.debug("Raycast failed for tap at \(location)")
             return
         }
 
@@ -1133,7 +1241,6 @@ struct ARCameraView: UIViewRepresentable {
 // MARK: - Preview
 
 #Preview {
-    WeightEstimationButton(stoneType: .granite) { weight in
-        print("Estimated weight: \(weight)")
-    }
+    @Previewable @State var photoData: Data?
+    WeightEstimationButton(stoneType: .granite, capturedPhoto: $photoData) { _ in }
 }

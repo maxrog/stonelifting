@@ -22,6 +22,7 @@ struct CameraPickerView: UIViewControllerRepresentable {
         picker.sourceType = .camera
         picker.cameraCaptureMode = .photo
         picker.cameraDevice = .rear
+        picker.allowsEditing = true
         picker.delegate = context.coordinator
 
         // TODO: This needed?
@@ -56,7 +57,10 @@ struct CameraPickerView: UIViewControllerRepresentable {
         ) {
             logger.info("Camera image captured")
 
-            if let image = info[.originalImage] as? UIImage {
+            // Prefer edited image if available (user cropped), otherwise use original
+            let image = (info[.editedImage] as? UIImage) ?? (info[.originalImage] as? UIImage)
+
+            if let image = image {
                 let optimizedImage = optimizeImage(image)
                 if let imageData = optimizedImage.jpegData(compressionQuality: 0.8) {
                     logger.info("Image optimized and converted to data - Size: \(imageData.count) bytes")

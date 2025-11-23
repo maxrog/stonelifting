@@ -26,6 +26,8 @@ struct EditStoneView: View {
     @State private var showingPhotoOptions = false
     @State private var showingPhotoPicker = false
     @State private var showingCamera = false
+    @State private var showingCropView = false
+    @State private var imageToCrop: UIImage?
     @State private var hasPhotoChanged = false
 
     @FocusState private var focusedField: StoneFormField?
@@ -64,6 +66,7 @@ struct EditStoneView: View {
                             weight: weightBinding,
                             estimatedWeight: estimatedWeightBinding,
                             stoneType: stoneTypeBinding,
+                            photoData: $photoData,
                             focusedField: $focusedField
                         )
 
@@ -120,6 +123,14 @@ struct EditStoneView: View {
                 self.photoData = imageData
                 self.hasPhotoChanged = true
                 self.showingCamera = false
+            }
+        }
+        .sheet(isPresented: $showingCropView) {
+            if let imageToCrop = imageToCrop {
+                ImageCropView(image: imageToCrop) { croppedData in
+                    self.photoData = croppedData
+                    self.hasPhotoChanged = true
+                }
             }
         }
         .onChange(of: selectedPhoto) { _, newValue in
@@ -402,11 +413,11 @@ struct EditStoneView: View {
         item.loadTransferable(type: Data.self) { result in
             switch result {
             case let .success(data):
-                if let data = data {
+                if let data = data, let image = UIImage(data: data) {
                     DispatchQueue.main.async {
-                        self.photoData = data
-                        self.hasPhotoChanged = true
-                        self.logger.info("Photo loaded successfully for edit")
+                        self.imageToCrop = image
+                        self.showingCropView = true
+                        self.logger.info("Photo loaded successfully for edit, showing crop view")
                     }
                 }
             case let .failure(error):
