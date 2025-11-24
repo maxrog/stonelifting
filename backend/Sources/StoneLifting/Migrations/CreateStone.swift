@@ -16,7 +16,6 @@ struct CreateStone: AsyncMigration {
             .field("location_name", .string)
             .field("is_public", .bool, .required)
             .field("lifting_level", .string, .required)
-            .field("carry_distance", .double)
             .field("user_id", .uuid, .required, .references("users", "id"))
             .field("created_at", .datetime)
             .field("updated_at", .datetime)

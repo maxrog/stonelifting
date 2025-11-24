@@ -36,7 +36,6 @@ struct StoneController: RouteCollection {
             locationName: createStone.locationName,
             isPublic: createStone.isPublic,
             liftingLevel: createStone.liftingLevel,
-            carryDistance: createStone.carryDistance,
             userID: try user.requireID()
         )
         
@@ -144,8 +143,7 @@ struct StoneController: RouteCollection {
         stone.locationName = updateStone.locationName
         stone.isPublic = updateStone.isPublic
         stone.liftingLevel = updateStone.liftingLevel
-        stone.carryDistance = updateStone.carryDistance
-        
+
         try await stone.save(on: req.db)
         
         return StoneResponse(stone: stone, user: user)

@@ -12,7 +12,6 @@ struct CreateStoneRequest: Content {
     let locationName: String?
     let isPublic: Bool
     let liftingLevel: String
-    let carryDistance: Double?
 }
 
 extension CreateStoneRequest: Validatable {
@@ -46,9 +45,6 @@ extension CreateStoneRequest: Validatable {
 
         // Lifting level: max 50 chars (should be enum in future)
         validations.add("liftingLevel", as: String.self, is: .count(...50))
-
-        // Carry distance: positive if provided
-        validations.add("carryDistance", as: Double?.self, is: .nil || .range(0...10000), required: false)
     }
 }
 
@@ -65,7 +61,6 @@ struct StoneResponse: Content {
     let locationName: String?
     let isPublic: Bool
     let liftingLevel: String
-    let carryDistance: Double?
     let createdAt: Date?
     let user: UserResponse
 
@@ -82,7 +77,6 @@ struct StoneResponse: Content {
         self.locationName = stone.locationName
         self.isPublic = stone.isPublic
         self.liftingLevel = stone.liftingLevel
-        self.carryDistance = stone.carryDistance
         self.createdAt = stone.createdAt
         self.user = UserResponse(user: user)
     }
