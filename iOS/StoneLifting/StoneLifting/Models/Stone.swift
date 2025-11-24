@@ -101,9 +101,6 @@ struct Stone: Codable, Identifiable {
     /// Level of lifting completion achieved
     var liftingLevel: LiftingLevel
 
-    /// Distance carried in feet (optional)
-    var carryDistance: Double?
-
     /// When this stone record was created
     let createdAt: Date?
 
@@ -147,9 +144,6 @@ struct CreateStoneRequest: Codable {
 
     /// Level of lifting completion achieved
     let liftingLevel: String
-
-    /// Distance carried in feet (optional)
-    let carryDistance: Double?
 }
 
 // MARK: - Lifting Level
@@ -248,19 +242,9 @@ extension Stone {
         return abs(weight - estimated)
     }
 
-    /// Returns formatted carry distance
-    var formattedCarryDistance: String? {
-        guard let distance = carryDistance, distance > 0 else { return nil }
-        return String(format: "%.0f ft", distance)
-    }
-
     /// Returns full achievement description
     var achievementDescription: String {
-        var description = liftingLevel.displayName
-        if let distance = formattedCarryDistance {
-            description += " • Carried \(distance)"
-        }
-        return description
+        liftingLevel.displayName
     }
 }
 

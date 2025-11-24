@@ -58,7 +58,6 @@ struct EditStoneView: View {
                             stoneName: nameBinding,
                             description: descriptionBinding,
                             liftingLevel: $stone.liftingLevel,
-                            carryDistance: carryDistanceBinding,
                             focusedField: $focusedField
                         )
 
@@ -329,13 +328,6 @@ struct EditStoneView: View {
         )
     }
 
-    private var carryDistanceBinding: Binding<String> {
-        Binding(
-            get: { stone.carryDistance != nil ? String(format: "%.1f", stone.carryDistance!) : "" },
-            set: { stone.carryDistance = $0.isEmpty ? nil : Double($0) }
-        )
-    }
-
     private var locationNameBinding: Binding<String> {
         Binding(
             get: { stone.locationName ?? "" },
@@ -470,8 +462,7 @@ struct EditStoneView: View {
                 longitude: stone.longitude,
                 locationName: stone.locationName,
                 isPublic: stone.isPublic,
-                liftingLevel: stone.liftingLevel.rawValue,
-                carryDistance: stone.carryDistance
+                liftingLevel: stone.liftingLevel.rawValue
             )
 
             let updatedStone = await viewModel.saveStone(
@@ -503,7 +494,6 @@ struct EditStoneView: View {
         locationName: "Central Park",
         isPublic: true,
         liftingLevel: .chest,
-        carryDistance: 25,
         createdAt: Date(),
         user: User(
             id: UUID(),

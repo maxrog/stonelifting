@@ -93,8 +93,7 @@ final class StoneFormViewModel {
             longitude: request.longitude,
             locationName: request.locationName,
             isPublic: request.isPublic,
-            liftingLevel: request.liftingLevel,
-            carryDistance: request.carryDistance
+            liftingLevel: request.liftingLevel
         )
 
         // Create or update stone

@@ -30,7 +30,6 @@ struct AddStoneView: View {
     @State private var locationName: String = ""
     @State private var isPublic = true
     @State private var liftingLevel: LiftingLevel = .wind
-    @State private var carryDistance: String = ""
     @State private var includeLocation = true
 
     @State private var selectedPhoto: PhotosPickerItem?
@@ -62,7 +61,6 @@ struct AddStoneView: View {
                             stoneName: $stoneName,
                             description: $description,
                             liftingLevel: $liftingLevel,
-                            carryDistance: $carryDistance,
                             focusedField: $focusedField
                         )
 
@@ -73,6 +71,7 @@ struct AddStoneView: View {
                             photoData: $photoData,
                             focusedField: $focusedField
                         )
+
                         locationSection
                         visibilitySection
                     }
@@ -434,8 +433,7 @@ struct AddStoneView: View {
                 longitude: includeLocation ? locationService.currentLocation?.coordinate.longitude : nil,
                 locationName: locationName.isEmpty ? nil : locationName,
                 isPublic: isPublic,
-                liftingLevel: liftingLevel.rawValue,
-                carryDistance: carryDistance.isEmpty ? nil : Double(carryDistance)
+                liftingLevel: liftingLevel.rawValue
             )
 
             let stone = await viewModel.saveStone(request: request, photoData: photoData)
@@ -456,7 +454,6 @@ enum StoneFormField {
     case estimatedWeight
     case description
     case locationName
-    case carryDistance
 }
 
 // MARK: - Preview

@@ -120,26 +120,6 @@ struct StoneDetailsFormView: View {
                     }
                 }
             }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Carry Distance (Optional)")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-
-                HStack {
-                    TextField("0", text: $carryDistance)
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .focused($focusedField, equals: .carryDistance)
-
-                    Text("feet")
-                        .foregroundColor(.secondary)
-                }
-
-                Text("How far did you carry the stone?")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
         }
     }
 }

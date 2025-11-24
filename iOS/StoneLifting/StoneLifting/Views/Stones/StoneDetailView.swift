@@ -164,12 +164,6 @@ struct StoneDetailView: View {
                             Text(stone.liftingLevel.displayName)
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
-
-                            if let carryDistance = stone.formattedCarryDistance {
-                                Text("Carried \(carryDistance)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
                         }
                     }
 
@@ -463,7 +457,6 @@ struct StatCard: View {
         locationName: "Central Park",
         isPublic: true,
         liftingLevel: .chest,
-        carryDistance: 50,
         createdAt: Date(),
         user: User(
             id: UUID(),

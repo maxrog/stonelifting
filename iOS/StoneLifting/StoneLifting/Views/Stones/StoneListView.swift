@@ -330,23 +330,6 @@ struct StoneRowView: View {
                                     .foregroundColor(.secondary)
                             }
 
-                            // Carry distance if available
-                            if let carryDistance = stone.formattedCarryDistance {
-                                Text("•")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-
-                                HStack(spacing: 2) {
-                                    Image(systemName: "figure.walk")
-                                        .font(.caption2)
-                                        .foregroundColor(.purple)
-
-                                    Text(carryDistance)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-
                             Image(systemName: stone.isPublic ? "globe" : "lock.fill")
                                 .font(.caption)
                                 .foregroundColor(stone.isPublic ? .green : .orange)
