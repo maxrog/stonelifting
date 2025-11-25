@@ -29,7 +29,7 @@ struct AddStoneView: View {
     @State private var description: String = ""
     @State private var locationName: String = ""
     @State private var isPublic = true
-    @State private var liftingLevel: LiftingLevel = .wind
+    @State private var liftingLevel: LiftingLevel = .notLifted
     @State private var includeLocation = true
 
     @State private var selectedPhoto: PhotosPickerItem?

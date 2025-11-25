@@ -150,11 +150,12 @@ struct CreateStoneRequest: Codable {
 
 /// Stone lifting completion levels
 enum LiftingLevel: String, Codable, CaseIterable {
-    case wind, lap, chest, shoulder, overhead
+    case notLifted, wind, lap, chest, shoulder, overhead
 
     /// Display name for the lifting level
     var displayName: String {
         switch self {
+        case .notLifted: return "Gravity wins"
         case .wind: return "Getting Wind"
         case .lap: return "Stone to Lap"
         case .chest: return "Stone to Chest"
@@ -166,6 +167,7 @@ enum LiftingLevel: String, Codable, CaseIterable {
     /// Short description of the achievement
     var description: String {
         switch self {
+        case .notLifted: return "Stone has not been lifted"
         case .wind: return "Lifted stone just off the ground"
         case .lap: return "Lifted stone to lap/thigh level"
         case .chest: return "Lifted stone to chest level"
@@ -177,6 +179,7 @@ enum LiftingLevel: String, Codable, CaseIterable {
     /// Icon representing the lifting level
     var icon: String {
         switch self {
+        case .notLifted: return "circle.dotted"
         case .wind: return "arrow.up.circle"
         case .lap: return "figure.seated.side"
         case .chest: return "figure.arms.open"
@@ -188,6 +191,7 @@ enum LiftingLevel: String, Codable, CaseIterable {
     /// Color associated with the lifting level
     var color: String {
         switch self {
+        case .notLifted: return "gray"
         case .wind: return "orange"
         case .lap: return "yellow"
         case .chest: return "blue"
@@ -196,9 +200,10 @@ enum LiftingLevel: String, Codable, CaseIterable {
         }
     }
 
-    /// Achievement level (1-4, higher is better)
+    /// Achievement level (0-4, higher is better)
     var level: Int {
         switch self {
+        case .notLifted: return 0
         case .wind: return 1
         case .lap: return 2
         case .chest: return 3
