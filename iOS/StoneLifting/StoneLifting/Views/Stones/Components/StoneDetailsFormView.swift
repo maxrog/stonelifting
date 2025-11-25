@@ -14,7 +14,6 @@ struct StoneDetailsFormView: View {
     @Binding var stoneName: String
     @Binding var description: String
     @Binding var liftingLevel: LiftingLevel
-    @Binding var carryDistance: String
     @FocusState.Binding var focusedField: StoneFormField?
 
     // TODO: this could be better DRY
@@ -39,86 +38,68 @@ struct StoneDetailsFormView: View {
 
     @ViewBuilder
     private var nameSection: some View {
-        VStack(spacing: 16) {
-            Text("Stone Name")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 6) {
+            TextField("Stone name (e.g., Big Boulder, River Rock)", text: $stoneName)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .focused($focusedField, equals: .name)
+                .onSubmit {
+                    focusedField = .weight
+                }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Name")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-
-                TextField("e.g., Big Boulder, River Rock, Atlas Stone", text: $stoneName)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .focused($focusedField, equals: .name)
-                    .onSubmit {
-                        focusedField = .weight
-                    }
-
-                Text("Give your stone a memorable name")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+            Text("Give your stone a memorable name")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
     }
 
     @ViewBuilder
     private var detailsSection: some View {
         VStack(spacing: 16) {
-            Text("Details")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
             VStack(alignment: .leading, spacing: 6) {
-                Text("Description (Optional)")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-
-                TextField("Tell us about this stone...", text: $description, axis: .vertical)
+                TextField("Description (optional)", text: $description, axis: .vertical)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .focused($focusedField, equals: .description)
                     .lineLimit(3 ... 6)
             }
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Lifting Level")
                     .font(.subheadline)
                     .fontWeight(.medium)
 
-                VStack(spacing: 8) {
+                Menu {
                     ForEach(LiftingLevel.allCases, id: \.self) { level in
                         Button(action: {
                             liftingLevel = level
                         }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: liftingLevel == level ? "checkmark.circle.fill" : "circle")
-                                    .foregroundColor(liftingLevel == level ? .blue : .gray)
-                                    .font(.title3)
-
+                            HStack {
                                 Image(systemName: level.icon)
-                                    .foregroundColor(colorForLevel(level))
-                                    .font(.title3)
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(level.displayName)
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-
-                                    Text(level.description)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                                Text(level.displayName)
+                                if liftingLevel == level {
+                                    Image(systemName: "checkmark")
                                 }
-
-                                Spacer()
                             }
-                            .padding(12)
-                            .background(liftingLevel == level ? Color.blue.opacity(0.1) : Color(.systemGray6))
-                            .cornerRadius(8)
                         }
-                        .buttonStyle(.plain)
                     }
+                } label: {
+                    HStack {
+                        Image(systemName: liftingLevel.icon)
+                            .foregroundColor(colorForLevel(liftingLevel))
+                        Text(liftingLevel.displayName)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
                 }
+
+                Text(liftingLevel.description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         }
     }

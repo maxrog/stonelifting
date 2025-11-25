@@ -75,6 +75,35 @@ struct StoneWeightFormView: View {
                 }
             }
 
+            // Estimate weight button
+            Button(action: {
+                showingWeightEstimation = true
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "camera.viewfinder")
+                        .font(.body.weight(.semibold))
+                    Text("Estimate Weight")
+                        .font(.body.weight(.semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .foregroundColor(.white)
+                .background(
+                    LinearGradient(
+                        colors: [.blue, .cyan],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .cornerRadius(12)
+                .shadow(color: Color.blue.opacity(0.3), radius: 8, y: 4)
+            }
+
+            Text("At least one weight required")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
             // Weight difference indicator
             if let actualWeight = Double(weight),
                let estimatedWeight = Double(estimatedWeight),
@@ -98,7 +127,6 @@ struct StoneWeightFormView: View {
                 Text("Stone Type")
                     .font(.subheadline)
                     .fontWeight(.medium)
-                    .foregroundColor(.secondary)
 
                 Menu {
                     ForEach(StoneType.allCases, id: \.self) { type in
@@ -132,29 +160,6 @@ struct StoneWeightFormView: View {
                 Text(stoneType.description)
                     .font(.caption)
                     .foregroundColor(.secondary)
-            }
-
-            Button(action: {
-                showingWeightEstimation = true
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "camera.viewfinder")
-                        .font(.body.weight(.semibold))
-                    Text("Estimate Weight")
-                        .font(.body.weight(.semibold))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .foregroundColor(.white)
-                .background(
-                    LinearGradient(
-                        colors: [.blue, .cyan],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .cornerRadius(12)
-                .shadow(color: Color.blue.opacity(0.3), radius: 8, y: 4)
             }
         }
         .sheet(isPresented: $showingWeightEstimation) {

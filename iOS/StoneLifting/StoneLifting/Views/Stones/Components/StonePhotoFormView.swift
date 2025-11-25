@@ -16,33 +16,32 @@ struct StonePhotoFormView: View {
     @Binding var showingPhotoOptions: Bool
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Stone Photo")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
+        VStack(spacing: 0) {
             if let photoData = photoData, let uiImage = UIImage(data: photoData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(height: 200)
-                    .clipped()
-                    .cornerRadius(12)
-                    .overlay(
-                        VStack {
+                GeometryReader { geometry in
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                }
+                .aspectRatio(1, contentMode: .fit)
+                .cornerRadius(12)
+                .overlay(
+                    VStack {
+                        Spacer()
+                        HStack {
                             Spacer()
-                            HStack {
-                                Spacer()
-                                Button("Change") {
-                                    showingPhotoOptions = true
-                                }
-                                .padding(8)
-                                .background(.ultraThinMaterial)
-                                .cornerRadius(8)
-                                .padding()
+                            Button("Change") {
+                                showingPhotoOptions = true
                             }
+                            .padding(8)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(8)
+                            .padding()
                         }
-                    )
+                    }
+                )
             } else {
                 Button(action: {
                     showingPhotoOptions = true
