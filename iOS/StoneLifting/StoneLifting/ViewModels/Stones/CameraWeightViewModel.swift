@@ -100,7 +100,10 @@ final class CameraWeightViewModel {
     // Distance tracking for stability
     private var lastDistance: Float?
     private var stableEstimateCount: Int = 0
-    private let minStableFrames = 5 // Need 5 stable frames before updating
+    private let minStableFrames = 3
+
+    // Track if we've shown a fallback estimate (when raycast unavailable)
+    private var hasFallbackEstimate = false
 
     // Store last analysis for training
     private var lastAnalysisFeatures: StoneWeightMLModel.TrainingExample.StoneFeatures?
@@ -142,16 +145,6 @@ final class CameraWeightViewModel {
             return nil
         }
 
-        guard let hit = hitResult else {
-            await MainActor.run {
-                isStoneDetected = false
-                feedbackMessage = "Point camera at stone"
-                detectedBoundingBox = nil
-                currentDistance = nil
-            }
-            return nil
-        }
-
         // Need all 3 dimensions to calculate weight
         guard let length = measuredLength,
               let width = measuredWidth,
@@ -159,6 +152,23 @@ final class CameraWeightViewModel {
             return nil
         }
 
+        // If we have all measurements but no hit result, calculate with default distance
+        guard let hit = hitResult else {
+            // Only show fallback estimate once, then wait for real raycast
+            if !hasFallbackEstimate {
+                hasFallbackEstimate = true
+                return await performRealtimeAnalysisWithoutHit(
+                    length: length,
+                    width: width,
+                    height: height,
+                    estimatedDistance: 1.0
+                )
+            }
+            // After showing fallback once, just maintain it until raycast succeeds
+            return nil
+        }
+
+        // Raycast succeeded - allow it to refine the estimate
         return await performRealtimeAnalysis(
             hitResult: hit,
             length: length,
@@ -312,6 +322,7 @@ All measurements complete:
         originalLength = nil
         originalWidth = nil
         originalHeight = nil
+        hasFallbackEstimate = false
         feedbackMessage = FeedbackMessage.scanning
         logger.info("Measurement reset")
     }
@@ -442,6 +453,7 @@ All measurements complete:
         recentEstimates.removeAll()
         lastDistance = nil
         stableEstimateCount = 0
+        hasFallbackEstimate = false
 
         dimension1Point1 = nil
         dimension1Point2 = nil
@@ -461,6 +473,57 @@ All measurements complete:
     }
 
     // MARK: - Private Methods
+
+    /// Perform analysis with measured dimensions when raycast isn't available
+    /// - Parameters:
+    ///   - length: Measured length in inches
+    ///   - width: Measured width in inches
+    ///   - height: Measured height in inches
+    ///   - estimatedDistance: Estimated distance for confidence calculation (default 1.0m)
+    /// - Returns: Weight analysis result with estimate and moderate confidence
+    private func performRealtimeAnalysisWithoutHit(
+        length: Double,
+        width: Double,
+        height: Double,
+        estimatedDistance: Float = 1.0
+    ) async -> WeightAnalysisResult? {
+        // Calculate volume and weight from measured dimensions
+        let volume = length * width * height
+        let dimensions = StoneDimensions(
+            length: length,
+            width: width,
+            height: height,
+            volume: volume
+        )
+
+        let weight = calculateWeightFromDimensions(dimensions)
+        // Lower confidence since we don't have accurate distance
+        let confidence = 0.65
+
+        logger.debug("""
+Weight calculated from measurements (no raycast):
+Dimensions - L: \(String(format: "%.1f", length))" W: \(String(format: "%.1f", width))" H: \(String(format: "%.1f", height))"
+Weight: \(String(format: "%.1f", weight)) lbs (confidence: \(String(format: "%.2f", confidence)))
+""")
+
+        // Update UI immediately since we don't need stability for pure geometric calculation
+        await MainActor.run {
+            self.currentEstimate = weight
+            self.confidenceLevel = confidence
+            self.currentDistance = estimatedDistance
+            self.detectedBoundingBox = CGRect(x: 0.45, y: 0.45, width: 0.1, height: 0.1)
+            self.isStoneDetected = true
+            self.feedbackMessage = "Initial estimate - Point at center to refine"
+        }
+
+        return WeightAnalysisResult(
+            estimatedWeight: weight,
+            confidence: confidence,
+            dimensions: dimensions,
+            distance: estimatedDistance,
+            hitPosition: nil
+        )
+    }
 
     /// Perform real-time analysis using ARKit hit test results with measured dimensions
     /// - Parameters:
