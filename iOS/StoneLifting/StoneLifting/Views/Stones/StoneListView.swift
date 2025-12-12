@@ -375,7 +375,7 @@ enum StoneFilter: CaseIterable {
         switch self {
         case .myStones: return "My Stones"
         case .publicStones: return "Public"
-        case .heavy: return "Heavy (100+ lbs)"
+        case .heavy: return "Heavy (220+ lbs)"
         case .recent: return "Recent"
         }
     }
@@ -402,7 +402,7 @@ enum StoneFilter: CaseIterable {
         switch self {
         case .myStones: return "Start your stone lifting journey by adding your first stone!"
         case .publicStones: return "No public stones available in this area yet."
-        case .heavy: return "You haven't lifted any stones over 100 lbs yet. Keep pushing!"
+        case .heavy: return "You haven't lifted any stones over 220 lbs yet. Keep pushing!"
         case .recent: return "No recent stone lifting activity."
         }
     }

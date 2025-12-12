@@ -259,6 +259,35 @@ struct StoneDetailView: View {
                 .background(Color(.systemGray6))
                 .cornerRadius(8)
             }
+
+            let achievementTier = stone.achievementTier
+            if achievementTier != .none {
+                HStack {
+                    Image(systemName: achievementTier.icon)
+                        .font(.title2)
+                        .foregroundColor(colorForAchievement(achievementTier))
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Achievement Unlocked")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(colorForAchievement(achievementTier))
+
+                        Text(achievementTier.displayName)
+                            .font(.headline)
+                            .fontWeight(.bold)
+
+                        Text("Lifted \(stone.formattedWeight) to chest level")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+                }
+                .padding(12)
+                .background(colorForAchievement(achievementTier).opacity(0.1))
+                .cornerRadius(8)
+            }
         }
         .padding(20)
         .background(Color(.systemBackground))
@@ -382,6 +411,16 @@ struct StoneDetailView: View {
         case "yellow": return .yellow
         case "blue": return .blue
         case "green": return .green
+        default: return .gray
+        }
+    }
+
+    private func colorForAchievement(_ tier: AchievementTier) -> Color {
+        switch tier.color {
+        case "bronze": return .orange
+        case "silver": return .gray
+        case "gold": return .yellow
+        case "purple": return .purple
         default: return .gray
         }
     }

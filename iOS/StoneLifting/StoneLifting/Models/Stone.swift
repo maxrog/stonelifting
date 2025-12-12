@@ -213,6 +213,112 @@ enum LiftingLevel: String, Codable, CaseIterable {
     }
 }
 
+// MARK: - Achievement Tier
+
+/// Icelandic stone lifting achievement tiers based on weight lifted to chest level
+enum AchievementTier: String, Codable, CaseIterable {
+    case none
+    case weakling      // Amlodi (23 kg / 51 lb)
+    case halfCarrier   // Halfdrættingur (54 kg / 119 lb)
+    case halfStrength  // Halfsterkur (100 kg / 220 lb)
+    case fullStrength  // Fullsterkur (154 kg / 340 lb)
+
+    /// Display name for the achievement tier
+    var displayName: String {
+        switch self {
+        case .none: return "No Achievement"
+        case .weakling: return "Amlodi (Weakling)"
+        case .halfCarrier: return "Halfdrættingur (Half-Carrier)"
+        case .halfStrength: return "Halfsterkur (Half Strength)"
+        case .fullStrength: return "Fullsterkur (Full Strength)"
+        }
+    }
+
+    /// English translation of the achievement tier
+    var translation: String {
+        switch self {
+        case .none: return ""
+        case .weakling: return "Weakling"
+        case .halfCarrier: return "Half-Carrier"
+        case .halfStrength: return "Half Strength"
+        case .fullStrength: return "Full Strength"
+        }
+    }
+
+    /// Weight requirement in pounds (to chest level)
+    var weightRequirementLbs: Double {
+        switch self {
+        case .none: return 0
+        case .weakling: return 51      // 23 kg
+        case .halfCarrier: return 119  // 54 kg
+        case .halfStrength: return 220     // 100 kg
+        case .fullStrength: return 340     // 154 kg
+        }
+    }
+
+    /// Weight requirement in kilograms (to chest level)
+    var weightRequirementKg: Double {
+        switch self {
+        case .none: return 0
+        case .weakling: return 23
+        case .halfCarrier: return 54
+        case .halfStrength: return 100
+        case .fullStrength: return 154
+        }
+    }
+
+    /// Icon representing the achievement tier
+    var icon: String {
+        switch self {
+        case .none: return "circle"
+        case .weakling: return "medal"
+        case .halfCarrier: return "medal.fill"
+        case .halfStrength: return "trophy"
+        case .fullStrength: return "trophy.fill"
+        }
+    }
+
+    /// Color associated with the achievement tier
+    var color: String {
+        switch self {
+        case .none: return "gray"
+        case .weakling: return "bronze"
+        case .halfCarrier: return "silver"
+        case .halfStrength: return "gold"
+        case .fullStrength: return "purple"
+        }
+    }
+
+    /// Achievement level (0-4, higher is better)
+    var level: Int {
+        switch self {
+        case .none: return 0
+        case .weakling: return 1
+        case .halfCarrier: return 2
+        case .halfStrength: return 3
+        case .fullStrength: return 4
+        }
+    }
+
+    /// Returns achievement tier for a given weight (in pounds) and lifting level
+    static func tierForWeight(_ weightLbs: Double, liftingLevel: LiftingLevel) -> AchievementTier {
+        // Achievement only awarded if lifted to at least chest level
+        guard liftingLevel.level >= 3 else { return .none }
+
+        if weightLbs >= 340 {
+            return .fullStrength
+        } else if weightLbs >= 220 {
+            return .halfStrength
+        } else if weightLbs >= 119 {
+            return .halfCarrier
+        } else if weightLbs >= 51 {
+            return .weakling
+        } else {
+            return .none
+        }
+    }
+}
+
 // MARK: - Stone Computed Properties
 
 extension Stone {
@@ -250,6 +356,19 @@ extension Stone {
     /// Returns full achievement description
     var achievementDescription: String {
         liftingLevel.displayName
+    }
+
+    /// Returns the achievement tier earned for this stone
+    var achievementTier: AchievementTier {
+        guard let confirmedWeight = weight else { return .none }
+        return AchievementTier.tierForWeight(confirmedWeight, liftingLevel: liftingLevel)
+    }
+
+    /// Returns formatted achievement info
+    var achievementInfo: String {
+        let tier = achievementTier
+        guard tier != .none else { return "No achievement yet" }
+        return "\(tier.displayName) - \(formattedWeight)"
     }
 }
 
