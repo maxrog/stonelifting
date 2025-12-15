@@ -135,9 +135,11 @@ final class MapViewModel {
     }
 
     /// Center map on user's current location
-    /// - Parameter zoomSpan: The span to use for zooming
-    func centerOnUserLocation(zoomSpan: MKCoordinateSpan) async {
-        if let location = await locationService.getCurrentLocation() {
+    /// - Parameters:
+    ///   - zoomSpan: The span to use for zooming
+    ///   - userInitiated: Whether this was triggered by user action (shows alert on failure)
+    func centerOnUserLocation(zoomSpan: MKCoordinateSpan, userInitiated: Bool = false) async {
+        if let location = await locationService.getCurrentLocation(showAlertOnFailure: userInitiated) {
             await MainActor.run {
                 userLocation = location
                 let target = MKCoordinateRegion(center: location.coordinate, span: zoomSpan)

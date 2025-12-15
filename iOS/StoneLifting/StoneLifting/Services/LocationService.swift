@@ -27,6 +27,7 @@ final class LocationService: NSObject {
     private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
     private(set) var isLocationEnabled = false
     private(set) var locationError: LocationError?
+    var showSettingsAlert = false
 
     // MARK: - Initialization
 
@@ -59,7 +60,8 @@ final class LocationService: NSObject {
             locationManager.requestWhenInUseAuthorization()
         case .denied, .restricted:
             logger.warning("Location permission denied - directing user to settings")
-            // TODO: show alert directing user to settings
+            locationError = .notAuthorized
+            showSettingsAlert = true
         case .authorizedWhenInUse, .authorizedAlways:
             logger.info("Location permission already granted")
             startLocationUpdates()
@@ -88,18 +90,28 @@ final class LocationService: NSObject {
     /// Gets current location asynchronously with timeout protection
     /// Uses actor-based continuation management to prevent leaks and race conditions
     /// - Returns: Current CLLocation or nil if unavailable/timeout
-    func getCurrentLocation() async -> CLLocation? {
+    func getCurrentLocation(showAlertOnFailure: Bool = false) async -> CLLocation? {
         logger.info("Getting current location")
 
         guard authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways else {
             logger.warning("Cannot get location - not authorized")
             locationError = .notAuthorized
+            if showAlertOnFailure {
+                await MainActor.run {
+                    showSettingsAlert = true
+                }
+            }
             return nil
         }
 
         guard isLocationEnabled else {
             logger.warning("Cannot get location - services disabled")
             locationError = .servicesDisabled
+            if showAlertOnFailure {
+                await MainActor.run {
+                    showSettingsAlert = true
+                }
+            }
             return nil
         }
 
@@ -254,10 +266,16 @@ extension LocationService: CLLocationManagerDelegate {
             stopLocationUpdates()
             locationError = .notAuthorized
             isLocationEnabled = false
-            case .notDetermined:
+            // Clear cached location when permissions are revoked
+            currentLocation = nil
+            logger.info("Cleared cached location due to denied/restricted authorization")
+        case .notDetermined:
             isLocationEnabled = false
+            // Clear cached location when status is reset
+            currentLocation = nil
         @unknown default:
             isLocationEnabled = false
+            currentLocation = nil
             logger.error("Unknown authorization status: \(status.rawValue)")
         }
     }

@@ -18,7 +18,7 @@ struct EditStoneView: View {
 
     @State private var viewModel: StoneFormViewModel
 
-    private let locationService = LocationService.shared
+    @Bindable private var locationService = LocationService.shared
     private let logger = AppLogger()
 
     @State private var selectedPhoto: PhotosPickerItem?
@@ -29,6 +29,7 @@ struct EditStoneView: View {
     @State private var showingCropView = false
     @State private var imageToCrop: UIImage?
     @State private var hasPhotoChanged = false
+    @State private var includeLocation = false
 
     @FocusState private var focusedField: StoneFormField?
 
@@ -43,6 +44,8 @@ struct EditStoneView: View {
         } else {
             _viewModel = State(initialValue: StoneFormViewModel())
         }
+        // Initialize includeLocation based on whether stone has location
+        _includeLocation = State(initialValue: stone.wrappedValue.hasValidLocation)
     }
 
     // MARK: - Body
@@ -142,6 +145,16 @@ struct EditStoneView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
+        .alert("Location Access Needed", isPresented: $locationService.showSettingsAlert) {
+            Button("Open Settings") {
+                if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsUrl)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Location access is required to update stone GPS coordinates. Please enable location services in Settings.")
+        }
     }
 
     // MARK: - View Components
@@ -155,20 +168,25 @@ struct EditStoneView: View {
 
                 Spacer()
 
-                Toggle("Include Location", isOn: Binding(
-                    get: { stone.hasValidLocation },
-                    set: { includeLocation in
-                        if !includeLocation {
+                Toggle("Include Location", isOn: $includeLocation)
+                    .labelsHidden()
+                    .onChange(of: includeLocation) { _, newValue in
+                        if !newValue {
+                            // User toggled OFF - clear location
                             stone.latitude = nil
                             stone.longitude = nil
                             stone.locationName = nil
+                        } else if newValue && !stone.hasValidLocation {
+                            // User toggled ON but no location
+                            // Only auto-fetch if they have permissions, otherwise show button
+                            if [.authorizedWhenInUse, .authorizedAlways].contains(locationService.authorizationStatus) {
+                                requestLocation(userInitiated: false)
+                            }
                         }
                     }
-                ))
-                .labelsHidden()
             }
 
-            if stone.hasValidLocation || stone.latitude != nil || stone.longitude != nil {
+            if includeLocation {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Location Name (Optional)")
                         .font(.subheadline)
@@ -376,9 +394,21 @@ struct EditStoneView: View {
             loadImageFromURL(imageUrl)
         }
 
-        // Request location permission if needed for location updates
-        if locationService.authorizationStatus == .notDetermined {
+        // Handle location permissions
+        switch locationService.authorizationStatus {
+        case .notDetermined:
+            // Request permission for first time (system dialog)
             locationService.requestLocationPermission()
+        case .denied, .restricted:
+            // Don't show alert - user can tap "Get Location" button if desired
+            logger.info("Location permissions denied - user can enable via buttons if desired")
+        case .authorizedWhenInUse, .authorizedAlways:
+            // If location is enabled and stone has no location, auto-fetch silently
+            if includeLocation && !stone.hasValidLocation {
+                requestLocation(userInitiated: false)
+            }
+        @unknown default:
+            break
         }
     }
 
@@ -418,11 +448,11 @@ struct EditStoneView: View {
         }
     }
 
-    private func requestLocation() {
-        logger.info("Requesting location update for stone edit")
+    private func requestLocation(userInitiated: Bool = true) {
+        logger.info("Requesting location update for stone edit (user initiated: \(userInitiated))")
 
         Task {
-            let location = await locationService.getCurrentLocation()
+            let location = await locationService.getCurrentLocation(showAlertOnFailure: userInitiated)
             if let location = location {
                 await MainActor.run {
                     stone.latitude = location.coordinate.latitude

@@ -66,10 +66,10 @@ final class StoneFormViewModel {
         stoneError = nil
 
         // Handle photo upload if needed
-        let imageURL = await uploadPhotoIfNeeded(photoData: photoData, hasPhotoChanged: hasPhotoChanged)
+        let uploadedImageURL = await uploadPhotoIfNeeded(photoData: photoData, hasPhotoChanged: hasPhotoChanged)
 
         // Check if photo upload failed when photo was provided
-        if photoData != nil, hasPhotoChanged, imageURL == nil {
+        if photoData != nil, hasPhotoChanged, uploadedImageURL == nil {
             logger.error("Failed to upload image for stone")
             errorMessage = "Failed to upload image. Please try again or continue without a photo."
             showingError = true
@@ -77,8 +77,19 @@ final class StoneFormViewModel {
             return nil
         }
 
-        if imageURL != nil {
-            logger.info("Image uploaded successfully, URL: \(imageURL ?? "")")
+        if uploadedImageURL != nil {
+            logger.info("Image uploaded successfully, URL: \(uploadedImageURL ?? "")")
+        }
+
+        // Determine final image URL:
+        // - If photo changed and uploaded: use new URL
+        // - If photo didn't change: preserve original URL
+        // - If photo was removed: use nil
+        let finalImageURL: String?
+        if hasPhotoChanged {
+            finalImageURL = uploadedImageURL // New upload or removed (nil)
+        } else {
+            finalImageURL = request.imageUrl // Preserve original
         }
 
         // Create final request with image URL
@@ -88,7 +99,7 @@ final class StoneFormViewModel {
             estimatedWeight: request.estimatedWeight,
             stoneType: request.stoneType,
             description: request.description,
-            imageUrl: imageURL,
+            imageUrl: finalImageURL,
             latitude: request.latitude,
             longitude: request.longitude,
             locationName: request.locationName,

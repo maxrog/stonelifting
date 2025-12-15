@@ -19,7 +19,7 @@ struct AddStoneView: View {
 
     @State private var viewModel = StoneFormViewModel()
 
-    private let locationService = LocationService.shared
+    @Bindable private var locationService = LocationService.shared
     private let logger = AppLogger()
 
     @State private var stoneName: String = ""
@@ -153,6 +153,16 @@ struct AddStoneView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
+        .alert("Location Access Needed", isPresented: $locationService.showSettingsAlert) {
+            Button("Open Settings") {
+                if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsUrl)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Location access is required to add stones with GPS coordinates. Please enable location services in Settings.")
+        }
     }
 
     // MARK: - View Components
@@ -248,7 +258,7 @@ struct AddStoneView: View {
                         Spacer()
 
                         Button("Update") {
-                            requestLocation()
+                            requestLocation(userInitiated: true)
                         }
                         .font(.caption)
                     }
@@ -264,7 +274,7 @@ struct AddStoneView: View {
                         Spacer()
 
                         Button("Get Location") {
-                            requestLocation()
+                            requestLocation(userInitiated: true)
                         }
                         .font(.caption)
                     }
@@ -352,15 +362,18 @@ struct AddStoneView: View {
     private func setupView() {
         logger.info("Setting up AddStoneView")
 
-        // Request location permission if needed
-        if locationService.authorizationStatus == .notDetermined {
+        // Handle location permissions
+        switch locationService.authorizationStatus {
+        case .notDetermined:
+            // Request permission for first time (system dialog)
             locationService.requestLocationPermission()
-        }
-
-        // Get current location if authorized
-        if locationService.authorizationStatus == .authorizedWhenInUse ||
-            locationService.authorizationStatus == .authorizedAlways {
-            requestLocation()
+        case .denied, .restricted:
+            logger.info("Location permissions denied - user can enable via 'Get Location' button if desired")
+        case .authorizedWhenInUse, .authorizedAlways:
+            // Get current location if authorized
+            requestLocation(userInitiated: false)
+        @unknown default:
+            break
         }
     }
 
@@ -407,11 +420,12 @@ struct AddStoneView: View {
     }
 
     /// Request current location
-    private func requestLocation() {
-        logger.info("Requesting current location")
+    /// - Parameter userInitiated: Whether this was triggered by user tapping a button (shows alert on failure)
+    private func requestLocation(userInitiated: Bool = false) {
+        logger.info("Requesting current location (user initiated: \(userInitiated))")
 
         Task {
-            _ = await locationService.getCurrentLocation()
+            _ = await locationService.getCurrentLocation(showAlertOnFailure: userInitiated)
         }
     }
 

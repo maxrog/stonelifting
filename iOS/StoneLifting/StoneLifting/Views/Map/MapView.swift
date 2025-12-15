@@ -16,6 +16,7 @@ struct MapView: View {
     // MARK: - Properties
 
     @State private var viewModel = MapViewModel()
+    @Bindable private var locationService = LocationService.shared
     private let logger = AppLogger()
 
     // MARK: - Body
@@ -44,7 +45,7 @@ struct MapView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button {
                         Task {
-                            await viewModel.centerOnUserLocation(zoomSpan: MKCoordinateSpan(latitudeDelta: 0.12, longitudeDelta: 0.12))
+                            await viewModel.centerOnUserLocation(zoomSpan: MKCoordinateSpan(latitudeDelta: 0.12, longitudeDelta: 0.12), userInitiated: true)
                             viewModel.showUserLocation = true
                         }
                     } label: {
@@ -65,6 +66,16 @@ struct MapView: View {
                 ClusterDetailSheet(clusterItem: cluster) { selectedStone in
                     viewModel.selectedStone = selectedStone
                 }
+            }
+            .alert("Location Access Needed", isPresented: $locationService.showSettingsAlert) {
+                Button("Open Settings") {
+                    if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(settingsUrl)
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Location access is needed to show your position on the map. Please enable location services in Settings.")
             }
         }
     }
