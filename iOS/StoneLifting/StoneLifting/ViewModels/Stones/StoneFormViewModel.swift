@@ -65,7 +65,6 @@ final class StoneFormViewModel {
         showingError = false
         stoneError = nil
 
-        // Handle photo upload if needed
         let uploadedImageURL = await uploadPhotoIfNeeded(photoData: photoData, hasPhotoChanged: hasPhotoChanged)
 
         // Check if photo upload failed when photo was provided
@@ -87,12 +86,11 @@ final class StoneFormViewModel {
         // - If photo was removed: use nil
         let finalImageURL: String?
         if hasPhotoChanged {
-            finalImageURL = uploadedImageURL // New upload or removed (nil)
+            finalImageURL = uploadedImageURL
         } else {
-            finalImageURL = request.imageUrl // Preserve original
+            finalImageURL = request.imageUrl
         }
 
-        // Create final request with image URL
         let finalRequest = CreateStoneRequest(
             name: request.name,
             weight: request.weight,
