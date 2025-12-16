@@ -68,6 +68,12 @@ struct RegisterView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
+        .onAppear {
+            // Auto-focus on username field when view appears
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                focusedField = .username
+            }
+        }
     }
 
     // MARK: - View Components
@@ -113,6 +119,8 @@ struct RegisterView: View {
                             .onChange(of: username) { _, newValue in
                                 checkUsernameAvailability(newValue)
                             }
+                            .accessibilityLabel("Username")
+                            .accessibilityHint("Enter a unique username for your account")
 
                         if isCheckingUsername {
                             ProgressView()
@@ -151,6 +159,8 @@ struct RegisterView: View {
                             .onChange(of: email) { _, newValue in
                                 checkEmailAvailability(newValue)
                             }
+                            .accessibilityLabel("Email")
+                            .accessibilityHint("Enter your email address")
 
                         if isCheckingEmail {
                             ProgressView()
@@ -195,13 +205,14 @@ struct RegisterView: View {
                         Image(systemName: showPassword ? "eye.slash" : "eye")
                             .foregroundColor(.secondary)
                     }
+                    .accessibilityLabel(showPassword ? "Hide password" : "Show password")
                 }
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
 
                 if !password.isEmpty {
-                    ValidationFeedbackView(result: viewModel.validatePassword(password))
+                    PasswordStrengthView(password: password)
                 }
             }
 
@@ -229,6 +240,7 @@ struct RegisterView: View {
                         Image(systemName: showConfirmPassword ? "eye.slash" : "eye")
                             .foregroundColor(.secondary)
                     }
+                    .accessibilityLabel(showConfirmPassword ? "Hide password confirmation" : "Show password confirmation")
                 }
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .textInputAutocapitalization(.never)
@@ -263,6 +275,8 @@ struct RegisterView: View {
                 .cornerRadius(12)
             }
             .disabled(!isFormValid || viewModel.isLoading)
+            .accessibilityLabel("Create Account")
+            .accessibilityHint(isFormValid ? "Double tap to create your account" : "Complete all fields with valid information to enable")
 
             Text("By creating an account, you agree to our Terms of Service and Privacy Policy")
                 .font(.caption)
@@ -406,7 +420,13 @@ struct RegisterView: View {
 
         // Perform registration
         Task {
-            await viewModel.register(username: username, email: email, password: password)
+            let success = await viewModel.register(username: username, email: email, password: password)
+
+            if success {
+                // Haptic feedback on success
+                let generator = UINotificationFeedbackGenerator()
+                generator.notificationOccurred(.success)
+            }
         }
     }
 }
@@ -473,6 +493,122 @@ struct ValidationFeedbackView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: result.isValid)
         .animation(.easeInOut(duration: 0.2), value: availabilityResult)
+    }
+}
+
+// MARK: - Password Strength View
+
+/// Displays password strength with visual bar and requirements checklist
+struct PasswordStrengthView: View {
+    let password: String
+
+    private var strength: PasswordStrength {
+        calculateStrength(password)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Strength bar
+            HStack(spacing: 4) {
+                ForEach(0..<4, id: \.self) { index in
+                    Rectangle()
+                        .fill(index < strength.bars ? strength.color : Color.gray.opacity(0.3))
+                        .frame(height: 4)
+                        .cornerRadius(2)
+                }
+            }
+
+            // Strength label
+            HStack(spacing: 6) {
+                Text(strength.label)
+                    .font(.caption)
+                    .foregroundColor(strength.color)
+                    .fontWeight(.medium)
+            }
+
+            // Requirements checklist
+            VStack(alignment: .leading, spacing: 4) {
+                RequirementRow(met: password.count >= 8, text: "At least 8 characters")
+                RequirementRow(met: password.rangeOfCharacter(from: .letters) != nil, text: "Contains a letter")
+                RequirementRow(met: password.rangeOfCharacter(from: .decimalDigits) != nil, text: "Contains a number")
+            }
+            .padding(.top, 4)
+        }
+        .animation(.easeInOut(duration: 0.2), value: strength)
+    }
+
+    private func calculateStrength(_ password: String) -> PasswordStrength {
+        var score = 0
+
+        // Length check
+        if password.count >= 8 { score += 1 }
+        if password.count >= 12 { score += 1 }
+
+        // Character variety
+        if password.rangeOfCharacter(from: .letters) != nil { score += 1 }
+        if password.rangeOfCharacter(from: .decimalDigits) != nil { score += 1 }
+        if password.rangeOfCharacter(from: .uppercaseLetters) != nil { score += 1 }
+        if password.rangeOfCharacter(from: CharacterSet(charactersIn: "!@#$%^&*()_+-=[]{}|;:,.<>?")) != nil {
+            score += 1
+        }
+
+        // Map score to strength
+        switch score {
+        case 0...2: return .weak
+        case 3...4: return .fair
+        case 5: return .good
+        default: return .strong
+        }
+    }
+}
+
+/// Individual requirement row
+private struct RequirementRow: View {
+    let met: Bool
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: met ? "checkmark.circle.fill" : "circle")
+                .font(.caption)
+                .foregroundColor(met ? .green : .gray)
+
+            Text(text)
+                .font(.caption)
+                .foregroundColor(met ? .primary : .secondary)
+        }
+    }
+}
+
+/// Password strength levels
+private enum PasswordStrength {
+    case weak, fair, good, strong
+
+    var label: String {
+        switch self {
+        case .weak: return "Weak"
+        case .fair: return "Fair"
+        case .good: return "Good"
+        case .strong: return "Strong"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .weak: return .red
+        case .fair: return .orange
+        case .good: return .blue
+        case .strong: return .green
+        }
+    }
+
+    var bars: Int {
+        switch self {
+        case .weak: return 1
+        case .fair: return 2
+        case .good: return 3
+        case .strong: return 4
+        }
     }
 }
 
