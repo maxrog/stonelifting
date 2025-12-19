@@ -12,8 +12,7 @@
 - [ ] Log completions of other users' stones
 
 ### Weight Estimation Improvements
-- [ ] Stone type selection (granite, limestone, etc.)
-- [ ] Accuracy tracking (predicted vs actual)
+- [ ] Stone type AI detection (use branded colors)
 - [ ] Confidence intervals
 - [ ] Reference object calibration
 
@@ -48,7 +47,6 @@
 ---
 
 ### Social & Gamification
-- [ ] Badges (half/full sterker)
 - [ ] User profiles
 - [ ] Leaderboards
 
@@ -68,6 +66,7 @@
 - [ ] CI/CD pipeline
 - [ ] Localization
 - [ ] Theming support
+- [ ] Settings (lb vs kg etc)
 - [ ] Accessibility
 - [ ] Performance profiling
 - [ ] Unit/UI tests
