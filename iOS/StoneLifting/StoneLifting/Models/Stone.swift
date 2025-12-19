@@ -183,8 +183,8 @@ enum LiftingLevel: String, Codable, CaseIterable {
         case .wind: return "arrow.up.circle"
         case .lap: return "figure.seated.side"
         case .chest: return "figure.arms.open"
-        case .shoulder: return "figure.strengthtraining.functional"
-        case .overhead: return "figure.strengthtraining.functional"
+        case .shoulder: return "figure.wave"
+        case .overhead: return "figure.mixed.cardio"
         }
     }
 
