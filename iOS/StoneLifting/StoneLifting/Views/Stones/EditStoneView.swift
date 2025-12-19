@@ -11,6 +11,7 @@ import SwiftUI
 // MARK: - Edit Stone View
 
 /// Stone editing view that allows users to modify existing stone records
+// swiftlint:disable type_body_length
 struct EditStoneView: View {
     // MARK: - Properties
 
@@ -30,6 +31,10 @@ struct EditStoneView: View {
     @State private var imageToCrop: UIImage?
     @State private var hasPhotoChanged = false
     @State private var includeLocation = false
+    @State private var manualLatitude: String = ""
+    @State private var manualLongitude: String = ""
+    @State private var showingMapPicker = false
+    @State private var showingManualEntry = false
 
     @FocusState private var focusedField: StoneFormField?
 
@@ -155,6 +160,28 @@ struct EditStoneView: View {
         } message: {
             Text("Location access is required to update stone GPS coordinates. Please enable location services in Settings.")
         }
+        .sheet(isPresented: $showingManualEntry) {
+            ManualCoordinateEntryView(latitude: $manualLatitude, longitude: $manualLongitude)
+                .onDisappear {
+                    // Update stone with manual coordinates when sheet closes
+                    if !manualLatitude.isEmpty && !manualLongitude.isEmpty,
+                       let lat = Double(manualLatitude), let lon = Double(manualLongitude) {
+                        stone.latitude = lat
+                        stone.longitude = lon
+                    }
+                }
+        }
+        .sheet(isPresented: $showingMapPicker) {
+            MapLocationPickerView(latitude: $manualLatitude, longitude: $manualLongitude)
+                .onDisappear {
+                    // Update stone with manual coordinates when sheet closes
+                    if !manualLatitude.isEmpty && !manualLongitude.isEmpty,
+                       let lat = Double(manualLatitude), let lon = Double(manualLongitude) {
+                        stone.latitude = lat
+                        stone.longitude = lon
+                    }
+                }
+        }
     }
 
     // MARK: - View Components
@@ -201,37 +228,94 @@ struct EditStoneView: View {
                 }
 
                 if let latitude = stone.latitude, let longitude = stone.longitude {
-                    HStack {
-                        Image(systemName: "location.fill")
-                            .foregroundColor(.blue)
+                    VStack(spacing: 8) {
+                        HStack {
+                            Image(systemName: "location.fill")
+                                .foregroundColor(.blue)
 
-                        Text("Current: \(latitude, specifier: "%.4f"), \(longitude, specifier: "%.4f")")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            Text("Current: \(latitude, specifier: "%.4f"), \(longitude, specifier: "%.4f")")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
 
-                        Spacer()
-
-                        Button("Update Location") {
-                            requestLocation()
+                            Spacer()
                         }
-                        .font(.caption)
+
+                        // Update location options
+                        Menu {
+                            Button(action: {
+                                requestLocation(userInitiated: true)
+                            }) {
+                                Label("Use Current GPS", systemImage: "location.fill")
+                            }
+
+                            Button(action: {
+                                // Pre-fill with current coordinates
+                                manualLatitude = String(format: "%.6f", latitude)
+                                manualLongitude = String(format: "%.6f", longitude)
+                                showingMapPicker = true
+                            }) {
+                                Label("Pick on Map", systemImage: "map")
+                            }
+
+                            Button(action: {
+                                // Pre-fill with current coordinates
+                                manualLatitude = String(format: "%.6f", latitude)
+                                manualLongitude = String(format: "%.6f", longitude)
+                                showingManualEntry = true
+                            }) {
+                                Label("Enter Coordinates", systemImage: "number")
+                            }
+                        } label: {
+                            Text("Update Location")
+                                .font(.caption)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.blue.opacity(0.1))
+                                .foregroundColor(.blue)
+                                .cornerRadius(6)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                     }
                 } else {
-                    // No current location - offer to add one
-                    HStack {
-                        Image(systemName: "location")
-                            .foregroundColor(.orange)
-
-                        Text("Tap to add current location")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        Spacer()
-
-                        Button("Get Location") {
-                            requestLocation()
+                    // No current location - offer three options
+                    VStack(spacing: 12) {
+                        Button(action: {
+                            requestLocation(userInitiated: true)
+                        }) {
+                            Label("Use Current GPS Location", systemImage: "location.fill")
+                                .font(.subheadline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.blue.opacity(0.1))
+                                .foregroundColor(.blue)
+                                .cornerRadius(8)
                         }
-                        .font(.caption)
+
+                        HStack(spacing: 12) {
+                            Button(action: {
+                                showingMapPicker = true
+                            }) {
+                                Label("Pick on Map", systemImage: "map")
+                                    .font(.subheadline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(Color.green.opacity(0.1))
+                                    .foregroundColor(.green)
+                                    .cornerRadius(8)
+                            }
+
+                            Button(action: {
+                                showingManualEntry = true
+                            }) {
+                                Label("Enter Coords", systemImage: "number")
+                                    .font(.subheadline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(Color.orange.opacity(0.1))
+                                    .foregroundColor(.orange)
+                                    .cornerRadius(8)
+                            }
+                        }
                     }
                 }
             }
@@ -473,12 +557,6 @@ struct EditStoneView: View {
 
         // Dismiss keyboard
         focusedField = nil
-
-        // Update location if user requested it
-        if let currentLocation = locationService.currentLocation {
-            stone.latitude = currentLocation.coordinate.latitude
-            stone.longitude = currentLocation.coordinate.longitude
-        }
 
         Task {
             let request = CreateStoneRequest(

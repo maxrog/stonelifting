@@ -14,6 +14,7 @@ import SwiftUI
 
 /// Stone creation view with camera, weight input, and location capture
 /// Allows users to log new stone lifting records
+// swiftlint:disable type_body_length
 struct AddStoneView: View {
     // MARK: - Properties
 
@@ -31,6 +32,10 @@ struct AddStoneView: View {
     @State private var isPublic = true
     @State private var liftingLevel: LiftingLevel = .notLifted
     @State private var includeLocation = true
+    @State private var manualLatitude: String = ""
+    @State private var manualLongitude: String = ""
+    @State private var showingMapPicker = false
+    @State private var showingManualEntry = false
 
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var photoData: Data?
@@ -163,6 +168,12 @@ struct AddStoneView: View {
         } message: {
             Text("Location access is required to add stones with GPS coordinates. Please enable location services in Settings.")
         }
+        .sheet(isPresented: $showingManualEntry) {
+            ManualCoordinateEntryView(latitude: $manualLatitude, longitude: $manualLongitude)
+        }
+        .sheet(isPresented: $showingMapPicker) {
+            MapLocationPickerView(latitude: $manualLatitude, longitude: $manualLongitude)
+        }
     }
 
     // MARK: - View Components
@@ -246,14 +257,20 @@ struct AddStoneView: View {
                         .focused($focusedField, equals: .locationName)
                 }
 
+                // Show current location status
                 if let location = locationService.currentLocation {
                     HStack {
                         Image(systemName: "location.fill")
                             .foregroundColor(.green)
 
-                        Text("GPS coordinates captured")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("GPS Location")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                            Text("\(location.coordinate.latitude, specifier: "%.4f"), \(location.coordinate.longitude, specifier: "%.4f")")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
 
                         Spacer()
 
@@ -262,21 +279,67 @@ struct AddStoneView: View {
                         }
                         .font(.caption)
                     }
-                } else {
+                } else if !manualLatitude.isEmpty && !manualLongitude.isEmpty,
+                          let lat = Double(manualLatitude), let lon = Double(manualLongitude) {
                     HStack {
-                        Image(systemName: "location")
-                            .foregroundColor(.orange)
+                        Image(systemName: "mappin.circle.fill")
+                            .foregroundColor(.blue)
 
-                        Text("Tap to capture current location")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Manual Location")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                            Text("\(lat, specifier: "%.4f"), \(lon, specifier: "%.4f")")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
 
                         Spacer()
 
-                        Button("Get Location") {
-                            requestLocation(userInitiated: true)
+                        Button("Edit") {
+                            showingManualEntry = true
                         }
                         .font(.caption)
+                    }
+                } else {
+                    VStack(spacing: 12) {
+                        Button(action: {
+                            requestLocation(userInitiated: true)
+                        }) {
+                            Label("Use Current GPS Location", systemImage: "location.fill")
+                                .font(.subheadline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.blue.opacity(0.1))
+                                .foregroundColor(.blue)
+                                .cornerRadius(8)
+                        }
+
+                        HStack(spacing: 12) {
+                            Button(action: {
+                                showingMapPicker = true
+                            }) {
+                                Label("Pick on Map", systemImage: "map")
+                                    .font(.subheadline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(Color.green.opacity(0.1))
+                                    .foregroundColor(.green)
+                                    .cornerRadius(8)
+                            }
+
+                            Button(action: {
+                                showingManualEntry = true
+                            }) {
+                                Label("Enter Coords", systemImage: "number")
+                                    .font(.subheadline)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(Color.orange.opacity(0.1))
+                                    .foregroundColor(.orange)
+                                    .cornerRadius(8)
+                            }
+                        }
                     }
                 }
             }
@@ -362,6 +425,10 @@ struct AddStoneView: View {
     private func setupView() {
         logger.info("Setting up AddStoneView")
 
+        // Clear any cached location from previous views
+        // This ensures the user sees all three location input options
+        locationService.clearCachedLocation()
+
         // Handle location permissions
         switch locationService.authorizationStatus {
         case .notDetermined:
@@ -370,8 +437,7 @@ struct AddStoneView: View {
         case .denied, .restricted:
             logger.info("Location permissions denied - user can enable via 'Get Location' button if desired")
         case .authorizedWhenInUse, .authorizedAlways:
-            // Get current location if authorized
-            requestLocation(userInitiated: false)
+            logger.info("Location permissions granted - user can choose input method")
         @unknown default:
             break
         }
@@ -436,6 +502,23 @@ struct AddStoneView: View {
         focusedField = nil
 
         Task {
+            var finalLatitude: Double?
+            var finalLongitude: Double?
+
+            if includeLocation {
+                if !manualLatitude.isEmpty && !manualLongitude.isEmpty,
+                   let manualLat = Double(manualLatitude),
+                   let manualLon = Double(manualLongitude) {
+                    finalLatitude = manualLat
+                    finalLongitude = manualLon
+                    logger.info("Using manual coordinates: \(manualLat), \(manualLon)")
+                } else if let gpsLocation = locationService.currentLocation {
+                    finalLatitude = gpsLocation.coordinate.latitude
+                    finalLongitude = gpsLocation.coordinate.longitude
+                    logger.info("Using GPS coordinates")
+                }
+            }
+
             let request = CreateStoneRequest(
                 name: stoneName.isEmpty ? nil : stoneName,
                 weight: weight.isEmpty ? nil : Double(weight),
@@ -443,8 +526,8 @@ struct AddStoneView: View {
                 stoneType: stoneType.rawValue,
                 description: description.isEmpty ? nil : description,
                 imageUrl: nil, // Will be set by ViewModel after upload
-                latitude: includeLocation ? locationService.currentLocation?.coordinate.latitude : nil,
-                longitude: includeLocation ? locationService.currentLocation?.coordinate.longitude : nil,
+                latitude: finalLatitude,
+                longitude: finalLongitude,
                 locationName: locationName.isEmpty ? nil : locationName,
                 isPublic: isPublic,
                 liftingLevel: liftingLevel.rawValue

@@ -204,6 +204,11 @@ final class LocationService: NSObject {
         logger.debug("Clearing location error")
         locationError = nil
     }
+
+    func clearCachedLocation() {
+        logger.debug("Clearing cached location")
+        currentLocation = nil
+    }
 }
 
 // MARK: - CLLocationManagerDelegate
