@@ -71,7 +71,7 @@ struct Stone: Codable, Identifiable {
     /// Name of the stone
     var name: String?
 
-    /// Confirmed weight of the stone in pounds/kilograms (optional if estimated weight provided)
+    /// Confirmed weight of the stone in pounds (optional if estimated weight provided)
     var weight: Double?
 
     /// AI-estimated weight (optional if confirmed weight provided)

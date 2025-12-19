@@ -19,10 +19,10 @@ extension CreateStoneRequest: Validatable {
         // Name: optional but max 100 chars if provided
         validations.add("name", as: String?.self, is: .nil || .count(...100), required: false)
 
-        // Weight: optional, positive, reasonable range (1kg to 1000kg) if provided
+        // Weight: optional, positive, reasonable range (1-1000 lbs) if provided
         validations.add("weight", as: Double?.self, is: .nil || .range(1...1000), required: false)
 
-        // Estimated weight: optional, positive if provided
+        // Estimated weight: optional, positive (1-1000 lbs) if provided
         validations.add("estimatedWeight", as: Double?.self, is: .nil || .range(1...1000), required: false)
 
         // Stone type: valid enum value if provided (granite, limestone, sandstone, basalt, marble)

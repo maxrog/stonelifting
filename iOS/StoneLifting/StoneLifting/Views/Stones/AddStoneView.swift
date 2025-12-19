@@ -417,7 +417,18 @@ struct AddStoneView: View {
         let hasConfirmedWeight = !weight.isEmpty && Double(weight) ?? 0 > 0
         let hasEstimatedWeight = !estimatedWeight.isEmpty && Double(estimatedWeight) ?? 0 > 0
 
-        return hasConfirmedWeight || hasEstimatedWeight
+        guard hasConfirmedWeight || hasEstimatedWeight else { return false }
+
+        // Validate weight ranges (1-1000 lbs to match backend validation)
+        if let weightValue = Double(weight), !weight.isEmpty {
+            guard weightValue >= 1 && weightValue <= 1000 else { return false }
+        }
+
+        if let estimatedWeightValue = Double(estimatedWeight), !estimatedWeight.isEmpty {
+            guard estimatedWeightValue >= 1 && estimatedWeightValue <= 1000 else { return false }
+        }
+
+        return true
     }
 
     // MARK: - Actions

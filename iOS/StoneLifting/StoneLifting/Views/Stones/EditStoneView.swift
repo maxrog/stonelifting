@@ -460,7 +460,18 @@ struct EditStoneView: View {
         let hasConfirmedWeight = stone.weight ?? 0 > 0
         let hasEstimatedWeight = stone.estimatedWeight ?? 0 > 0
 
-        return hasConfirmedWeight || hasEstimatedWeight
+        guard hasConfirmedWeight || hasEstimatedWeight else { return false }
+
+        // Validate weight ranges (1-1000 lbs to match backend validation)
+        if let weight = stone.weight {
+            guard weight >= 1 && weight <= 1000 else { return false }
+        }
+
+        if let estimatedWeight = stone.estimatedWeight {
+            guard estimatedWeight >= 1 && estimatedWeight <= 1000 else { return false }
+        }
+
+        return true
     }
 
     private var hasChanges: Bool {
