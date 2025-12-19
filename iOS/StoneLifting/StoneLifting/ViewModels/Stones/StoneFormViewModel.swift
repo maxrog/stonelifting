@@ -25,8 +25,6 @@ final class StoneFormViewModel {
 
     // UI State
     var isLoading = false
-    var errorMessage: String?
-    var showingError = false
     var stoneError: StoneError?
 
     // MARK: - Initialization
@@ -61,8 +59,6 @@ final class StoneFormViewModel {
         logger.info("Starting stone save operation (isEditing: \(isEditing))")
 
         isLoading = true
-        errorMessage = nil
-        showingError = false
         stoneError = nil
 
         let uploadedImageURL = await uploadPhotoIfNeeded(photoData: photoData, hasPhotoChanged: hasPhotoChanged)
@@ -70,8 +66,7 @@ final class StoneFormViewModel {
         // Check if photo upload failed when photo was provided
         if photoData != nil, hasPhotoChanged, uploadedImageURL == nil {
             logger.error("Failed to upload image for stone")
-            errorMessage = "Failed to upload image. Please try again or continue without a photo."
-            showingError = true
+            stoneError = .imageUploadFailed
             isLoading = false
             return nil
         }
@@ -115,7 +110,6 @@ final class StoneFormViewModel {
                 logger.info("Stone updated successfully with ID: \(stoneId)")
             } else {
                 logger.error("Failed to update stone with ID: \(stoneId)")
-                errorMessage = "Failed to update stone. Please try again."
             }
         } else {
             // Creating new stone
@@ -128,10 +122,10 @@ final class StoneFormViewModel {
             }
         }
 
-        // Set error if operation failed
-        if stone == nil, let error = stoneService.stoneError {
-            logger.error("Stone service error: \(error.localizedDescription)")
-            stoneError = error
+        // Set error if operation failed - stoneError has detailed backend error messages
+        if stone == nil {
+            stoneError = stoneService.stoneError
+            logger.error("Stone service error: \(stoneError?.localizedDescription ?? "Unknown error")")
         }
 
         isLoading = false
@@ -174,8 +168,6 @@ final class StoneFormViewModel {
     /// Clear error state
     func clearError() {
         logger.info("Clearing error state")
-        errorMessage = nil
-        showingError = false
         stoneError = nil
         stoneService.clearError()
     }

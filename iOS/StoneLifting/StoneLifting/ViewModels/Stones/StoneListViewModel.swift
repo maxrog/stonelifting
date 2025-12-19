@@ -23,7 +23,7 @@ final class StoneListViewModel {
     var userStones: [Stone] { stoneService.userStones }
     var publicStones: [Stone] { stoneService.publicStones }
     var isLoading: Bool { stoneService.isLoadingUserStones || stoneService.isLoadingPublicStones }
-    var errorMessage: String? { stoneService.stoneError?.localizedDescription }
+    var stoneError: StoneError? { stoneService.stoneError }
 
     // MARK: - Actions
 

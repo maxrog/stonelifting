@@ -143,12 +143,28 @@ struct EditStoneView: View {
         .onChange(of: selectedPhoto) { _, newValue in
             loadSelectedPhoto(newValue)
         }
-        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-            Button("OK") {
-                viewModel.clearError()
+        .alert("Error", isPresented: .constant(viewModel.stoneError != nil)) {
+            if let error = viewModel.stoneError, error.isImageUploadError {
+                Button("Retry") {
+                    viewModel.clearError()
+                    updateStone()
+                }
+                Button("Continue Without Photo") {
+                    photoData = nil
+                    hasPhotoChanged = true
+                    viewModel.clearError()
+                    updateStone()
+                }
+                Button("Cancel", role: .cancel) {
+                    viewModel.clearError()
+                }
+            } else {
+                Button("OK") {
+                    viewModel.clearError()
+                }
             }
         } message: {
-            Text(viewModel.errorMessage ?? "")
+            Text(viewModel.stoneError?.localizedDescription ?? "")
         }
         .alert("Location Access Needed", isPresented: $locationService.showSettingsAlert) {
             Button("Open Settings") {
@@ -560,7 +576,7 @@ struct EditStoneView: View {
 
     private func updateStone() {
         guard stone.id != nil else {
-            viewModel.errorMessage = "Unable to update stone - missing ID"
+            viewModel.stoneError = .unknownError("Unable to update stone - missing ID")
             return
         }
 

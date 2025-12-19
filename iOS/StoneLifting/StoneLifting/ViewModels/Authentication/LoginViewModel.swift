@@ -20,7 +20,7 @@ final class LoginViewModel {
 
     // UI State
     var isLoading = false
-    var errorMessage: String?
+    var authError: AuthError?
 
     // MARK: - Actions
 
@@ -28,20 +28,21 @@ final class LoginViewModel {
     @MainActor
     func login(username: String, password: String) async -> Bool {
         isLoading = true
-        errorMessage = nil
+        authError = nil
 
         let success = await authService.login(username: username, password: password)
 
-        if !success, let error = authService.authError {
-            errorMessage = error.localizedDescription
+        if !success {
+            authError = authService.authError
         }
 
         isLoading = false
         return success
     }
 
-    /// Clear any error message
+    /// Clear any error
     func clearError() {
-        errorMessage = nil
+        authError = nil
+        authService.clearError()
     }
 }

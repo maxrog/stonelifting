@@ -20,7 +20,7 @@ final class RegisterViewModel {
 
     // UI State
     var isLoading = false
-    var errorMessage: String?
+    var authError: AuthError?
 
     // MARK: - Actions
 
@@ -28,21 +28,22 @@ final class RegisterViewModel {
     @MainActor
     func register(username: String, email: String, password: String) async -> Bool {
         isLoading = true
-        errorMessage = nil
+        authError = nil
 
         let success = await authService.register(username: username, email: email, password: password)
 
-        if !success, let error = authService.authError {
-            errorMessage = error.localizedDescription
+        if !success {
+            authError = authService.authError
         }
 
         isLoading = false
         return success
     }
 
-    /// Clear any error message
+    /// Clear any error
     func clearError() {
-        errorMessage = nil
+        authError = nil
+        authService.clearError()
     }
 
     // MARK: - Validation (delegates to AuthService)

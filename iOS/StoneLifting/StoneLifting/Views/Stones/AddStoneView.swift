@@ -135,29 +135,27 @@ struct AddStoneView: View {
         .onChange(of: selectedPhoto) { _, newValue in
             loadSelectedPhoto(newValue)
         }
-        .alert("Stone Creation Error", isPresented: .constant(viewModel.stoneError != nil)) {
-            Button("OK") {
-                viewModel.clearError()
+        .alert("Error", isPresented: .constant(viewModel.stoneError != nil)) {
+            if let error = viewModel.stoneError, error.isImageUploadError {
+                Button("Retry") {
+                    viewModel.clearError()
+                    saveStone()
+                }
+                Button("Continue Without Photo") {
+                    photoData = nil
+                    viewModel.clearError()
+                    saveStone()
+                }
+                Button("Cancel", role: .cancel) {
+                    viewModel.clearError()
+                }
+            } else {
+                Button("OK") {
+                    viewModel.clearError()
+                }
             }
         } message: {
             Text(viewModel.stoneError?.localizedDescription ?? "")
-        }
-        .alert("Image Upload Failed", isPresented: $viewModel.showingError) {
-            Button("Retry") {
-                viewModel.showingError = false
-                saveStone()
-            }
-            Button("Continue Without Photo") {
-                viewModel.showingError = false
-                // Clear photo data and retry
-                photoData = nil
-                saveStone()
-            }
-            Button("Cancel", role: .cancel) {
-                viewModel.clearError()
-            }
-        } message: {
-            Text(viewModel.errorMessage ?? "")
         }
         .alert("Location Access Needed", isPresented: $locationService.showSettingsAlert) {
             Button("Open Settings") {

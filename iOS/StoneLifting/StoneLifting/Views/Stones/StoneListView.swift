@@ -61,12 +61,12 @@ struct StoneListView: View {
             .sheet(item: $selectedStone) { stone in
                 StoneDetailView(stone: stone)
             }
-            .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+            .alert("Error", isPresented: .constant(viewModel.stoneError != nil)) {
                 Button("OK") {
                     viewModel.clearError()
                 }
             } message: {
-                Text(viewModel.errorMessage ?? "")
+                Text(viewModel.stoneError?.localizedDescription ?? "")
             }
         }
     }

@@ -293,6 +293,7 @@ enum StoneError: Error, LocalizedError {
     case stoneNotFound
     case networkError
     case invalidData
+    case imageUploadFailed
     case unknownError(String)
 
     var errorDescription: String? {
@@ -305,8 +306,18 @@ enum StoneError: Error, LocalizedError {
             return "Network error. Please check your connection"
         case .invalidData:
             return "Invalid stone data"
+        case .imageUploadFailed:
+            return "Failed to upload image. Please try again or continue without a photo."
         case let .unknownError(message):
             return message
         }
+    }
+
+    /// Whether this error allows retrying with image upload options
+    var isImageUploadError: Bool {
+        if case .imageUploadFailed = self {
+            return true
+        }
+        return false
     }
 }

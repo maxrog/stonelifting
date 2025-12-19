@@ -45,7 +45,7 @@ final class MapViewModel {
     var showUserLocation = false
 
     var isLoading: Bool { stoneService.isLoadingUserStones || stoneService.isLoadingPublicStones }
-    var errorMessage: String? { stoneService.stoneError?.localizedDescription }
+    var stoneError: StoneError? { stoneService.stoneError }
 
     // MARK: - Computed Properties
 

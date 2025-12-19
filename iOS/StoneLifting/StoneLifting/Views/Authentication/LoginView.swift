@@ -51,12 +51,12 @@ struct LoginView: View {
         .onSubmit {
             handleSubmit()
         }
-        .alert("Login Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+        .alert("Login Error", isPresented: .constant(viewModel.authError != nil)) {
             Button("OK") {
                 viewModel.clearError()
             }
         } message: {
-            Text(viewModel.errorMessage ?? "")
+            Text(viewModel.authError?.localizedDescription ?? "")
         }
     }
 

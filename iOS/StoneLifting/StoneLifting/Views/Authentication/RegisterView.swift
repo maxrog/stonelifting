@@ -61,12 +61,12 @@ struct RegisterView: View {
         .onSubmit {
             handleSubmit()
         }
-        .alert("Registration Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+        .alert("Registration Error", isPresented: .constant(viewModel.authError != nil)) {
             Button("OK") {
                 viewModel.clearError()
             }
         } message: {
-            Text(viewModel.errorMessage ?? "")
+            Text(viewModel.authError?.localizedDescription ?? "")
         }
         .onAppear {
             // Auto-focus on username field when view appears
