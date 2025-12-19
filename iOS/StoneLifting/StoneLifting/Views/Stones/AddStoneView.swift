@@ -8,7 +8,8 @@
 import PhotosUI
 import SwiftUI
 
-// TOOD: offline saving
+// TODO: offline saving
+// TODO: not very clear what fields are required (save button just goes disabled)
 
 // MARK: - Add Stone View
 
