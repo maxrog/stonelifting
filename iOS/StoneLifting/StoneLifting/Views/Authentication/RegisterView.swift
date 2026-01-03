@@ -126,6 +126,10 @@ struct RegisterView: View {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .blue))
                                 .scaleEffect(0.8)
+                        } else if !username.isEmpty && viewModel.validateUsername(username).isValid && usernameAvailable == true {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.body)
                         }
                     }
                     .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -166,6 +170,10 @@ struct RegisterView: View {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .blue))
                                 .scaleEffect(0.8)
+                        } else if !email.isEmpty && viewModel.validateEmail(email).isValid && emailAvailable == true {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.body)
                         }
                     }
                     .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -458,18 +466,20 @@ struct ValidationFeedbackView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // Validation feedback
-            HStack(spacing: 6) {
-                Image(systemName: result.isValid ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    .foregroundColor(result.isValid ? .green : .red)
-                    .font(.caption)
+            // only show errors
+            if !result.isValid {
+                HStack(spacing: 6) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.red)
+                        .font(.caption)
 
-                Text(result.isValid ? "Valid format" : result.errorMessage ?? "Invalid")
-                    .font(.caption)
-                    .foregroundColor(result.isValid ? .green : .red)
+                    Text(result.errorMessage ?? "Invalid")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
             }
 
-            // Availability feedback
+            // only show errors or checking status
             if result.isValid && !itemType.isEmpty {
                 HStack(spacing: 6) {
                     if isChecking {
@@ -479,14 +489,14 @@ struct ValidationFeedbackView: View {
                         Text("Checking availability...")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                    } else if let available = availabilityResult {
-                        Image(systemName: available ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .foregroundColor(available ? .green : .red)
+                    } else if let available = availabilityResult, !available {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.red)
                             .font(.caption)
 
-                        Text(available ? "\(itemType) is available" : "\(itemType) is already taken")
+                        Text("\(itemType) is already taken")
                             .font(.caption)
-                            .foregroundColor(available ? .green : .red)
+                            .foregroundColor(.red)
                     }
                 }
             }
