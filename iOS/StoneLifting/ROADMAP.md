@@ -71,6 +71,14 @@
 - [ ] Performance profiling
 - [ ] Unit/UI tests
 
+### Code Quality & Technical Debt
+- [ ] Address DRY violations (StoneListView:242, StoneDetailView:407, StoneDetailsFormView:19)
+- [ ] Finalize image compression settings for production (ImageUploadService:100,120,124)
+- [ ] Implement offline stone saving (AddStoneView)
+- [ ] Improve form validation UX feedback (AddStoneView:12 - clarify required fields)
+- [ ] Add user avatar placeholder (StoneDetailView:362)
+- [ ] Refactor loading view (RootView:64 - use splash screen / extract views)
+
 ### Extensions
 - [ ] Widgets
 - [ ] Push notifications
