@@ -78,8 +78,6 @@ enum AppConfig {
 // MARK: User Defaults
 
 enum UserDefaultsKeys {
-    static let jwtToken = "com.marfodub.StoneLifting.jwtToken"
-
     static let hasCompletedOnboarding = "com.marfodub.StoneLifting.has_completed_onboarding"
 
     static let preferredWeightUnit = "com.marfodub.StoneLifting.preferred_weight_unit"
