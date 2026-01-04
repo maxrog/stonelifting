@@ -7,12 +7,14 @@
 
 import Foundation
 import UIKit
+import Observation
 
 // MARK: - Image Upload Service
 
 /// Service for handling image uploads to the backend
+@Observable
 @MainActor
-final class ImageUploadService: ObservableObject {
+final class ImageUploadService {
     // MARK: - Properties
 
     static let shared = ImageUploadService()
@@ -20,9 +22,9 @@ final class ImageUploadService: ObservableObject {
     private let apiService = APIService.shared
     private let logger = AppLogger()
 
-    @Published var isUploading = false
-    @Published var uploadProgress: Double = 0.0
-    @Published var uploadError: Error?
+    private(set) var isUploading = false
+    private(set) var uploadProgress: Double = 0.0
+    private(set) var uploadError: Error?
 
     // MARK: - Initialization
 
@@ -60,19 +62,15 @@ final class ImageUploadService: ObservableObject {
                 responseType: ImageUploadResponse.self
             )
 
-            await MainActor.run {
-                self.isUploading = false
-                self.uploadProgress = 1.0
-            }
+            isUploading = false
+            uploadProgress = 1.0
 
             logger.info("Image uploaded successfully: \(response.imageUrl)")
             return response.imageUrl
 
         } catch {
-            await MainActor.run {
-                self.isUploading = false
-                self.uploadError = error
-            }
+            isUploading = false
+            uploadError = error
 
             logger.error("Image upload failed", error: error)
             return nil
