@@ -40,7 +40,7 @@ final class APIService {
     }
 
     private func loadStoredToken() {
-        authToken = UserDefaults.standard.string(forKey: UserDefaultsKeys.jwtToken)
+        authToken = KeychainHelper.shared.getString(forKey: KeychainKeys.jwtToken)
     }
 
     // MARK: - Token Management
@@ -48,16 +48,16 @@ final class APIService {
     /// Store JWT token for future requests
     /// - Parameter token: JWT token from login response
     func setAuthToken(_ token: String) {
-        logger.info("Setting auth token: \(token)")
+        logger.info("Setting auth token")
         authToken = token
-        UserDefaults.standard.set(token, forKey: UserDefaultsKeys.jwtToken)
+        KeychainHelper.shared.save(token, forKey: KeychainKeys.jwtToken)
     }
 
     /// Clear stored JWT token (for logout)
     func clearAuthToken() {
         logger.info("Clearing auth token")
         authToken = nil
-        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.jwtToken)
+        KeychainHelper.shared.delete(forKey: KeychainKeys.jwtToken)
     }
 
     var isAuthenticated: Bool {
