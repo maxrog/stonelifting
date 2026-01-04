@@ -159,54 +159,6 @@ final class LocationService: NSObject {
     }
 
     // MARK: - Utility Methods
-    // TODO are these used?
-
-    /// Get human-readable address from coordinates
-    /// - Parameters:
-    ///   - latitude: Latitude coordinate
-    ///   - longitude: Longitude coordinate
-    /// - Returns: Formatted address string
-    func getAddressFromCoordinates(latitude: Double, longitude: Double) async -> String? {
-        logger.debug("Getting address for coordinates: \(latitude), \(longitude)")
-
-        let location = CLLocation(latitude: latitude, longitude: longitude)
-        let geocoder = CLGeocoder()
-
-        do {
-            let placemarks = try await geocoder.reverseGeocodeLocation(location)
-
-            if let placemark = placemarks.first {
-                let address = formatAddress(from: placemark)
-                logger.debug("Address found: \(address)")
-                return address
-            }
-        } catch {
-            logger.error("Failed to get address from coordinates", error: error)
-        }
-
-        return nil
-    }
-
-    /// Format address from placemark
-    /// - Parameter placemark: CLPlacemark object
-    /// - Returns: Formatted address string
-    private func formatAddress(from placemark: CLPlacemark) -> String {
-        var components: [String] = []
-
-        if let name = placemark.name {
-            components.append(name)
-        }
-
-        if let locality = placemark.locality {
-            components.append(locality)
-        }
-
-        if let administrativeArea = placemark.administrativeArea {
-            components.append(administrativeArea)
-        }
-
-        return components.joined(separator: ", ")
-    }
 
     /// Clear current location error
     func clearError() {
