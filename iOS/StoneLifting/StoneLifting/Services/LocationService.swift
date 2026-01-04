@@ -122,29 +122,38 @@ final class LocationService: NSObject {
             return current
         }
 
-        // Use continuation to wait for location update with actor-based safety
-        return await withCheckedContinuation { continuation in
-            Task {
-                await continuationManager.setContinuation(continuation)
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                Task {
+                    await continuationManager.setContinuation(continuation)
 
-                await MainActor.run { [weak self] in
-                    self?.locationManager.requestLocation()
-                }
+                    await MainActor.run { [weak self] in
+                        self?.locationManager.requestLocation()
+                    }
 
-                // Timeout after 10 seconds with automatic cleanup
-                Task { [weak self] in
-                    try? await Task.sleep(nanoseconds: 10_000_000_000)
+                    // Timeout after 10 seconds with automatic cleanup
+                    Task { [weak self] in
+                        do {
+                            try await Task.sleep(nanoseconds: 10_000_000_000)
+                        } catch is CancellationError {
+                            return
+                        }
 
-                    guard let self else { return }
+                        guard let self else { return }
 
-                    // Safely resume with cached location if available
-                    let cachedLocation = await MainActor.run { self.currentLocation }
-                    await self.continuationManager.resumeIfNeeded(with: cachedLocation)
+                        // Safely resume with cached location if available
+                        let cachedLocation = await MainActor.run { self.currentLocation }
+                        await self.continuationManager.resumeIfNeeded(with: cachedLocation)
 
-                    await MainActor.run {
-                        self.logger.warning("Location request timed out")
+                        await MainActor.run {
+                            self.logger.warning("Location request timed out")
+                        }
                     }
                 }
+            }
+        } onCancel: {
+            Task {
+                await continuationManager.resumeIfNeeded(with: nil)
             }
         }
     }
@@ -223,7 +232,7 @@ extension LocationService: CLLocationManagerDelegate {
         // Clear any previous errors
         locationError = nil
 
-        // Safely resume continuation using actor
+        // Safely resume continuation if one is pending
         Task {
             await continuationManager.resumeIfNeeded(with: location)
         }
