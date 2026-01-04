@@ -349,7 +349,7 @@ final class StoneWeightMLModel {
     }
 
     /// Create MLFeatureProvider from features
-    private func createFeatureProvider(_ features: TrainingExample.StoneFeatures) -> MLFeatureProvider {
+    private func createFeatureProvider(_ features: TrainingExample.StoneFeatures) throws -> MLFeatureProvider {
         // TODO This is a placeholder - actual implementation would depend on your CoreML model schema
         // You'd create an MLDictionaryFeatureProvider with all the features
         let featureDict: [String: Any] = [
@@ -367,6 +367,6 @@ final class StoneWeightMLModel {
             "lightingCondition": features.lightingCondition
         ]
 
-        return try! MLDictionaryFeatureProvider(dictionary: featureDict)
+        return try MLDictionaryFeatureProvider(dictionary: featureDict)
     }
 }
