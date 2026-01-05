@@ -3,6 +3,10 @@
 ## Overview
 StoneLifting is a production iOS application for tracking stone lifting activities. This document defines code quality standards, architectural patterns, and best practices for the project.
 
+**Related Documentation:**
+- **Feature Roadmap**: See `iOS/StoneLifting/ROADMAP.md` for planned features and development automation tools
+- **Development Commands**: Custom slash commands are in `.claude/commands/` directory
+
 ---
 
 ## Architecture Patterns
