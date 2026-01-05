@@ -57,10 +57,12 @@
 ### Authentication & Backend
 - [ ] Password Reset
 - [ ] Apple/Google/Phone Sign In
+- [ ] Fix Associated Domains for AutoFill Passwords (bundleID: com.marfodub.StoneLifting)
 - [ ] Database indexes
 - [ ] Sentry error tracking
 - [ ] Rate limiting
 - [ ] Custom domain
+- [ ] Switch DATABASE_PUBLIC_URL to RAILWAY_PRIVATE_DOMAIN to avoid egress fees (Currently using DATABASE_PUBLIC_URL -> RAILWAY_TCP_PROXY_DOMAIN)
 
 ### App Quality
 - [ ] CI/CD pipeline
@@ -70,6 +72,12 @@
 - [ ] Accessibility
 - [ ] Performance profiling
 - [ ] Unit/UI tests
+
+### UI/UX Design
+- [ ] Rework add stone form (currently feels cluttered)
+- [ ] Update app icon: SF Symbol circle.dotted.and.circle (rotated, wiggle animation) - icons 8
+- [ ] Make UI less AI-ish (reduce generic AI patterns)
+- [ ] Consider sparkle effect for weight estimation feature
 
 ### Code Quality & Technical Debt
 - [ ] Address DRY violations (StoneListView:242, StoneDetailView:407, StoneDetailsFormView:19)
