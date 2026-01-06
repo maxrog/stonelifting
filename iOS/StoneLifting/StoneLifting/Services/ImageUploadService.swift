@@ -95,8 +95,11 @@ final class ImageUploadService {
                     return
                 }
 
-                // TODO: check if reasonable for deployment
-                let maxDimension: CGFloat = 1200
+                // Max 1400px: Good detail for stone photos without excessive file size
+                // Quality 0.7: Balances visual quality with bandwidth usage
+                // Max 1.5MB: Reasonable for modern networks, stays under Cloudinary free tier
+                // Expected file size: 500KB-1.2MB typical (supports ~15K uploads/month free)
+                let maxDimension: CGFloat = 1400
                 let originalSize = image.size
                 let aspectRatio = originalSize.width / originalSize.height
 
@@ -107,7 +110,7 @@ final class ImageUploadService {
                     targetSize = CGSize(width: maxDimension * aspectRatio, height: maxDimension)
                 }
 
-                // resize if the image is larger than target
+                // Resize if the image is larger than target
                 let finalImage: UIImage
                 if originalSize.width > maxDimension || originalSize.height > maxDimension {
                     finalImage = self.resizeImage(image, to: targetSize)
@@ -115,14 +118,15 @@ final class ImageUploadService {
                     finalImage = image
                 }
 
-                // TODO: check if reasonable for deployment
-                var compressionQuality: CGFloat = 0.6
+                // Start with 0.7 quality (balanced quality/size ratio)
+                var compressionQuality: CGFloat = 0.7
                 var compressedData = finalImage.jpegData(compressionQuality: compressionQuality)
 
-                // TODO: check if reasonable for deployment
-                // Reduce quality if file is still too large (> 1MB)
-                while let data = compressedData, data.count > 1_000_000 && compressionQuality > 0.3 {
-                    compressionQuality -= 0.1
+                // Progressively reduce quality if file exceeds 1.5MB
+                // Stop at 0.5 quality minimum to maintain acceptable visual quality
+                let maxFileSize = 1_500_000 // 1.5MB
+                while let data = compressedData, data.count > maxFileSize && compressionQuality > 0.5 {
+                    compressionQuality -= 0.05
                     compressedData = finalImage.jpegData(compressionQuality: compressionQuality)
                 }
 
