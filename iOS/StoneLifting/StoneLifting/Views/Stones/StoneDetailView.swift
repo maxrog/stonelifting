@@ -97,7 +97,7 @@ struct StoneDetailView: View {
     @ViewBuilder
     private var stoneImageSection: some View {
         if let imageUrl = stone.imageUrl, !imageUrl.isEmpty {
-            AsyncImage(url: URL(string: imageUrl)) { image in
+            RemoteImage(url: URL(string: imageUrl)) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)

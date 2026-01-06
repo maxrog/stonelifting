@@ -253,9 +253,8 @@ struct StoneRowView: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
-                // Stone image or placeholder
                 if let imageUrl = stone.imageUrl, !imageUrl.isEmpty {
-                    AsyncImage(url: URL(string: imageUrl)) { image in
+                    RemoteImage(url: URL(string: imageUrl)) { image in
                         image
                             .resizable()
                             .aspectRatio(contentMode: .fill)
