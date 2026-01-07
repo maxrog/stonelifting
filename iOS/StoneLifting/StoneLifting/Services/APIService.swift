@@ -166,6 +166,7 @@ private extension APIService {
 
         var request = URLRequest(url: url)
         request.httpMethod = method
+        request.timeoutInterval = 30.0
         request.setValue(APIConfig.Headers.applicationJSON, forHTTPHeaderField: APIConfig.Headers.contentType)
 
         if requiresAuth {
