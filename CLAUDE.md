@@ -74,11 +74,85 @@ Use MARK comments to organize files:
 - Keep inline comments minimal - code should be self-documenting
 
 ### SwiftUI Patterns
-- Extract complex views into `@ViewBuilder` computed properties
+
+#### View Structure
+All views should follow this organization:
+```swift
+struct MyView: View {
+    // MARK: - Properties
+    @State private var viewModel = MyViewModel()
+    @Environment(\.dismiss) private var dismiss
+
+    // MARK: - Body
+    var body: some View {
+        content
+    }
+
+    // MARK: - View Components
+    @ViewBuilder
+    private var content: some View {
+        // ...
+    }
+
+    // MARK: - Actions
+    private func handleAction() {
+        // ...
+    }
+}
+```
+
+#### View Extraction Guidelines
+Extract views when:
+- View file exceeds 200 lines
+- Code block is repeated 2+ times
+- Section has clear single responsibility
+- Component could be reused elsewhere
+
+**Example:**
+```swift
+// Extract large sections
+struct StoneDetailView: View {
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                StoneDetailHeader(stone: stone)
+                StoneDetailInfo(stone: stone)
+                StoneDetailStats(stone: stone)
+            }
+        }
+    }
+}
+```
+
+#### ViewBuilder Best Practices
+- Use `@ViewBuilder` for complex composed views
+- Use `@ViewBuilder` for conditional logic
 - Use descriptive names for view components (`headerSection`, not `header`)
 - Keep view body simple and readable
+
+#### State Management in Views
+- `@State` for view-local UI state ONLY (searchText, isShowing, focusedField)
+- `@State` for ViewModel instances (`@State private var viewModel = MyViewModel()`)
+- NO business logic in views - belongs in ViewModels
 - Use `.constant()` for preview-only bindings
 - Leverage `#Preview` macro for previews
+
+**Example:**
+```swift
+// Good: UI state only in view
+struct MyView: View {
+    @State private var viewModel = MyViewModel()
+    @State private var searchText = ""  // UI state
+    @FocusState private var focusedField: Field?
+
+    var body: some View {
+        TextField("Search", text: $searchText)
+            .task {
+                await viewModel.search(searchText)  // Logic in VM
+            }
+    }
+}
+```
 
 ---
 
@@ -110,6 +184,66 @@ func fetchData(completion: @escaping (Result<Data, Error>) -> Void)
 - Use `Task { }` for async work from sync context
 - Implement timeouts for network/location requests
 - Store task references if cancellation is needed
+
+### Swift 6 Concurrency Safety
+
+#### Actor Isolation
+- Use `actor` for shared mutable state accessed from multiple contexts
+- Use `@MainActor` for all UI-updating code and services
+- Global mutable state must be actor-isolated or main-actor-isolated
+
+**Example:**
+```swift
+// Good: Actor for shared cache
+actor ImageCache {
+    private var cache: [String: UIImage] = [:]
+
+    func get(_ key: String) -> UIImage? {
+        cache[key]
+    }
+}
+
+// Good: MainActor for UI services
+@Observable
+@MainActor
+final class ThemeService {
+    static let shared = ThemeService()
+    var currentTheme: Theme = .light
+}
+```
+
+#### Sendable Conformance
+- Types crossing concurrency boundaries should conform to `Sendable`
+- Task closures require Sendable captures in Swift 6
+- Use `@MainActor` or `[weak self]` in Task blocks
+
+**Example:**
+```swift
+// Good: MainActor makes Task safe
+@MainActor
+class ViewModel {
+    func load() {
+        Task {  // Safe - MainActor isolation
+            await fetchData()
+        }
+    }
+}
+
+// Good: Weak capture for non-MainActor
+class MyClass {
+    func load() {
+        Task { [weak self] in
+            await self?.fetchData()
+        }
+    }
+}
+```
+
+#### Data Race Prevention
+- All services should be either `actor` or `@MainActor`
+- Never access mutable state from multiple contexts without protection
+- Use `isolated` parameters when passing actor instances
+- Run `/concurrency-review` regularly to catch data race risks
 
 ---
 
@@ -294,6 +428,24 @@ func testAsyncOperation() async throws {
 
 ## Code Review Checklist
 
+### Automated Code Reviews
+
+Use slash commands for comprehensive reviews:
+- `/review-staged` - Pre-commit code review against CLAUDE.md standards
+- `/concurrency-review` - Swift 6 concurrency safety audit
+- `/swiftui-refactor` - View structure and performance analysis
+- `/perf-profile` - Performance bottleneck identification
+- `/security-scan` - Security vulnerability scanning
+- `/accessibility-audit` - Accessibility compliance check
+
+### Review Frequency
+- Run `/review-staged` before every commit
+- Run `/concurrency-review` monthly or after major concurrency changes
+- Run `/swiftui-refactor` when views exceed 200 lines
+- Run `/perf-profile` before each release
+- Run `/security-scan` before production deployments
+- Run `/accessibility-audit` quarterly
+
 ### Before Committing
 - [ ] Code follows Swift naming conventions
 - [ ] No force unwraps unless explicitly safe
@@ -373,6 +525,55 @@ generator.notificationOccurred(.success) // or .error, .warning
 - Move network calls to background
 - Use Task for async operations
 - Profile with Instruments before release
+
+### Performance Monitoring
+- Use `/perf-profile` command for comprehensive performance analysis
+- Track metrics: app launch time, screen load time, memory usage
+- Profile with Instruments before each release
+- Set performance budgets:
+  - App launch: <2 seconds
+  - Screen transitions: <300ms
+  - List scrolling: 60 FPS
+  - Image load: <100ms
+  - API requests: <500ms
+  - Memory usage: <200MB typical
+
+### Performance Testing
+Create performance tests for critical paths:
+```swift
+func testImageUploadPerformance() async throws {
+    measure {
+        Task {
+            _ = await ImageUploadService.shared.uploadImage(testData)
+        }
+    }
+    // Target: <100ms for compression + encoding
+}
+
+func testStoneListLoadPerformance() async throws {
+    measure {
+        await viewModel.fetchStones()
+    }
+    // Target: <500ms for typical load
+}
+```
+
+### Parallel Operations
+Use `async let` or `TaskGroup` for concurrent operations:
+```swift
+// Good: Parallel requests (2x faster)
+func refreshAllStones() async {
+    async let userFetch = stoneService.fetchUserStones()
+    async let publicFetch = stoneService.fetchPublicStones()
+    _ = await (userFetch, publicFetch)
+}
+
+// Avoid: Sequential requests (slower)
+func refreshAllStones() async {
+    await stoneService.fetchUserStones()
+    await stoneService.fetchPublicStones()  // Waits for first to complete
+}
+```
 
 ---
 
@@ -456,6 +657,72 @@ Examples:
 
 ---
 
+## Release Management
+
+### Versioning
+- Use semantic versioning: `MAJOR.MINOR.PATCH`
+- Increment MAJOR for breaking changes
+- Increment MINOR for new features
+- Increment PATCH for bug fixes
+
+### Changelog Maintenance
+- Keep `CHANGELOG.md` updated with all changes
+- Use `/appstore-changelog` command to generate user-facing release notes
+- Separate developer changelog from App Store release notes
+
+**Developer Changelog Format:**
+```markdown
+## [1.2.0] - 2026-01-15
+
+### Added
+- AR-based stone weight estimation with LiDAR support
+- Map clustering for nearby stones
+- Parallel network requests for faster loading
+
+### Fixed
+- Base64 encoding blocking main thread in ImageUploadService
+- Location timeout not being respected in LocationService
+
+### Performance
+- Image upload responsiveness improved by 20%
+- Stone list refresh 2x faster with parallel fetching
+- Request timeouts added to prevent hanging
+```
+
+**App Store Release Notes Format:**
+```
+What's New in Version 1.2:
+
+Point your camera at a stone and get an instant weight estimate!
+
+NEW FEATURES
+• Smart weight estimation using AR
+• See groups of nearby stones on the map
+
+IMPROVEMENTS
+• 2x faster loading
+• Smoother photo uploads
+• Better location accuracy
+```
+
+### Pre-Release Checklist
+Before submitting to App Store:
+- [ ] Version number incremented in Xcode
+- [ ] Build number incremented
+- [ ] `CHANGELOG.md` updated
+- [ ] Release notes written (use `/appstore-changelog`)
+- [ ] All tests passing
+- [ ] No critical TODOs in code
+- [ ] Screenshots updated if UI changed
+- [ ] Privacy policy updated if needed
+- [ ] Tested on multiple device sizes (SE, regular, Pro Max)
+- [ ] Tested on oldest supported iOS version
+- [ ] Performance profiled with Instruments
+- [ ] Memory leaks checked
+- [ ] Thread Sanitizer run
+
+---
+
 ## Tools & Automation
 
 ### SwiftLint
@@ -518,9 +785,19 @@ xcodebuild test -scheme StoneLifting -enableCodeCoverage YES
 
 ---
 
-**Last Updated:** 2026-01-03
+**Last Updated:** 2026-01-07
 **Project:** StoneLifting iOS App
 **Language:** Swift 6.0
 **Platform:** iOS 18.0+
 **Framework:** SwiftUI
 **Xcode:** 16+
+
+**Slash Commands Available:**
+- `/review-staged` - Pre-commit code review
+- `/concurrency-review` - Swift 6 concurrency safety audit
+- `/swiftui-refactor` - View structure analysis
+- `/perf-profile` - Performance profiling
+- `/security-scan` - Security vulnerability scan
+- `/accessibility-audit` - Accessibility compliance
+- `/test-gen` - Test generation
+- `/appstore-changelog` - Release notes generator
