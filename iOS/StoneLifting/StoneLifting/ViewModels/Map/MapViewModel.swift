@@ -88,8 +88,11 @@ final class MapViewModel {
 
         switch mapFilter {
         case .all:
-            _ = await stoneService.fetchPublicStones()
-            _ = await stoneService.fetchUserStones()
+            // Use async let to fetch both in parallel
+            async let publicFetch = stoneService.fetchPublicStones()
+            async let userFetch = stoneService.fetchUserStones()
+            // Wait for both to complete
+            _ = await (publicFetch, userFetch)
         case .myStones:
             _ = await stoneService.fetchUserStones()
         case .publicStones:

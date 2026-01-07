@@ -39,8 +39,11 @@ final class StoneListViewModel {
 
     /// Refresh all stones
     func refreshAllStones() async {
-        _ = await stoneService.fetchUserStones()
-        _ = await stoneService.fetchPublicStones()
+        // Use async let to fetch both in parallel
+        async let userFetch = stoneService.fetchUserStones()
+        async let publicFetch = stoneService.fetchPublicStones()
+        // Wait for both to complete
+        _ = await (userFetch, publicFetch)
     }
 
     /// Get stone count for a specific filter
