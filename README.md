@@ -11,7 +11,21 @@ A community app for stone lifting enthusiasts to track their progress and discov
 
 ## Development Workflow
 
-This project includes custom Claude Code slash commands for automated code quality and analysis:
+This project includes **8 custom Claude Code slash commands** for automated code quality and analysis:
+
+### Quick Reference
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `/review-staged` | Pre-commit code review | Before every commit |
+| `/security-scan` | Security vulnerability scan | Before production deploys |
+| `/test-gen` | Generate unit tests | When writing new code |
+| `/perf-profile` | Performance profiling | Before releases |
+| `/accessibility-audit` | Accessibility compliance | Quarterly audits |
+| `/concurrency-review` | Swift 6 concurrency safety | Monthly or after concurrency changes |
+| `/swiftui-refactor` | View structure analysis | When views exceed 200 lines |
+| `/appstore-changelog` | Release notes generator | Before App Store submissions |
+
+### Detailed Documentation
 
 ### `/review-staged` - Pre-Commit Code Review
 Reviews all staged changes against CLAUDE.md standards before committing.
@@ -105,9 +119,129 @@ Audits the iOS app for accessibility compliance and WCAG standards.
 - High contrast mode
 - Form accessibility and error announcements
 
+### `/concurrency-review` - Swift Concurrency Expert
+Reviews and audits Swift concurrency patterns for Swift 6 readiness and data race safety.
+
+**Usage:**
+```bash
+/concurrency-review
+```
+
+**Analyzes:**
+- Actor isolation patterns (@MainActor, actor classes)
+- Sendable conformance for types crossing concurrency boundaries
+- Task captures and [weak self] usage
+- Data race risks in shared mutable state
+- Continuation safety and leak prevention
+- Task lifecycle management and cancellation
+- Thread-safe service patterns
+
+**Prepares for:**
+- Swift 6 strict concurrency checking
+- Thread Sanitizer validation
+- Production stability
+
+### `/swiftui-refactor` - SwiftUI View Analyzer
+Analyzes SwiftUI views for structure, performance, and maintainability improvements.
+
+**Usage:**
+```bash
+/swiftui-refactor
+```
+
+**Identifies:**
+- Views exceeding 200 lines (extraction candidates)
+- Code duplication opportunities
+- Business logic in views (should be in ViewModels)
+- Missing @ViewBuilder usage
+- Complex body computations
+- View extraction opportunities
+- State management patterns
+
+**Provides:**
+- Refactoring recommendations with code examples
+- Performance optimization suggestions
+- Complexity metrics and health scores
+
+### `/appstore-changelog` - Release Notes Generator
+Generates user-facing App Store release notes from git commit history.
+
+**Usage:**
+```bash
+/appstore-changelog
+```
+
+**Generates:**
+- App Store release notes (user-friendly language)
+- TestFlight beta notes (more technical context)
+- Developer CHANGELOG.md entries
+- Commit categorization (features, fixes, improvements)
+
+**Features:**
+- Translates technical commits to user benefits
+- 4000 character App Store limit handling
+- Semantic versioning guidance
+- Pre-release checklist
+
+**Example:**
+```
+What's New in Version 1.2:
+
+Point your camera at a stone for instant weight estimation!
+
+NEW FEATURES
+• Smart weight estimation using AR
+• See groups of nearby stones on the map
+
+IMPROVEMENTS
+• 2x faster loading
+• Smoother photo uploads
+```
+
+---
+
+### Recommended Workflow
+
+**Daily Development:**
+```bash
+# 1. Write code
+# 2. Generate tests
+/test-gen MyNewService
+
+# 3. Review before committing
+git add .
+/review-staged
+
+# 4. Commit if approved
+git commit -m "feat: add new feature"
+```
+
+**Before Pull Requests:**
+```bash
+/perf-profile          # Check performance
+/concurrency-review    # Verify thread safety
+/swiftui-refactor      # Check view structure
+```
+
+**Before Releases:**
+```bash
+/perf-profile          # Final performance check
+/security-scan         # Security audit
+/accessibility-audit   # Accessibility compliance
+/appstore-changelog    # Generate release notes
+```
+
+**Monthly Maintenance:**
+```bash
+/concurrency-review    # Swift 6 readiness
+/security-scan         # Security posture
+```
+
 ---
 
 See [iOS/StoneLifting/ROADMAP.md](iOS/StoneLifting/ROADMAP.md) for future automation tools and feature roadmap.
+
+See [CLAUDE.md](CLAUDE.md) for comprehensive development standards and best practices.
 
 ---
 
