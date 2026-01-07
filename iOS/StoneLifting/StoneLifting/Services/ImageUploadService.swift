@@ -43,11 +43,9 @@ final class ImageUploadService {
         logger.info("Starting image upload, size: \(imageData.count) bytes")
 
         do {
-            // Compress image if needed
-            let compressedData = await compressImageData(imageData)
+            let (compressedData, base64Image) = await compressAndEncodeImage(imageData)
 
-            // Convert to base64 for JSON transport
-            let base64Image = compressedData.base64EncodedString()
+            logger.debug("Image compressed to \(compressedData.count) bytes, base64 encoded")
 
             let request = ImageUploadRequest(
                 imageData: base64Image,
@@ -84,14 +82,15 @@ final class ImageUploadService {
 
     // MARK: - Private Methods
 
-    /// Compress image data for upload
+    /// Compress image data and encode to base64 for upload
     /// - Parameter imageData: Original image data
-    /// - Returns: Compressed image data
-    private func compressImageData(_ imageData: Data) async -> Data {
+    /// - Returns: Tuple of (compressed data, base64 encoded string)
+    private func compressAndEncodeImage(_ imageData: Data) async -> (Data, String) {
         return await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 guard let image = UIImage(data: imageData) else {
-                    continuation.resume(returning: imageData)
+                    let base64 = imageData.base64EncodedString()
+                    continuation.resume(returning: (imageData, base64))
                     return
                 }
 
@@ -130,7 +129,10 @@ final class ImageUploadService {
                     compressedData = finalImage.jpegData(compressionQuality: compressionQuality)
                 }
 
-                continuation.resume(returning: compressedData ?? imageData)
+                let finalData = compressedData ?? imageData
+                let base64Encoded = finalData.base64EncodedString()
+
+                continuation.resume(returning: (finalData, base64Encoded))
             }
         }
     }
