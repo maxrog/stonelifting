@@ -20,13 +20,17 @@ struct StoneWeightFormView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            HStack {
+            HStack(spacing: 8) {
                 Text("Weight")
                     .font(.headline)
 
-                Text("(at least one required)")
+                Text("Required")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.orange.opacity(0.15))
+                    .cornerRadius(4)
 
                 Spacer()
             }
@@ -51,6 +55,14 @@ struct StoneWeightFormView: View {
                         Text("lbs")
                             .foregroundColor(.secondary)
                     }
+
+                    if !weight.isEmpty, let weightValue = Double(weight) {
+                        if weightValue < 1 || weightValue > 1000 {
+                            Text("Must be 1-1000 lbs")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -71,6 +83,14 @@ struct StoneWeightFormView: View {
 
                         Text("lbs")
                             .foregroundColor(.secondary)
+                    }
+
+                    if !estimatedWeight.isEmpty, let estimatedValue = Double(estimatedWeight) {
+                        if estimatedValue < 1 || estimatedValue > 1000 {
+                            Text("Must be 1-1000 lbs")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
                     }
                 }
             }

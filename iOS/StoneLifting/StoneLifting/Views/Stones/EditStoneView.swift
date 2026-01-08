@@ -62,12 +62,16 @@ struct EditStoneView: View {
                     VStack(spacing: 24) {
                         StonePhotoFormView(photoData: $photoData, showingPhotoOptions: $showingPhotoOptions)
 
+                        sectionDivider
+
                         StoneDetailsFormView(
                             stoneName: nameBinding,
                             description: descriptionBinding,
                             liftingLevel: $stone.liftingLevel,
                             focusedField: $focusedField
                         )
+
+                        sectionDivider
 
                         StoneWeightFormView(
                             weight: weightBinding,
@@ -77,7 +81,12 @@ struct EditStoneView: View {
                             focusedField: $focusedField
                         )
 
+                        sectionDivider
+
                         locationSection
+
+                        sectionDivider
+
                         visibilitySection
                     }
                     .padding(.horizontal, 20)
@@ -201,6 +210,14 @@ struct EditStoneView: View {
     }
 
     // MARK: - View Components
+
+    @ViewBuilder
+    private var sectionDivider: some View {
+        Rectangle()
+            .fill(Color(.systemGray4))
+            .frame(height: 1)
+            .padding(.vertical, 8)
+    }
 
     @ViewBuilder
     private var locationSection: some View {

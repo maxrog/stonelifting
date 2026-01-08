@@ -9,8 +9,6 @@ import PhotosUI
 import SwiftUI
 
 // TODO: offline saving
-// TODO: not very clear what fields are required (save button just goes disabled)
-
 // MARK: - Add Stone View
 
 /// Stone creation view with camera, weight input, and location capture
@@ -63,12 +61,16 @@ struct AddStoneView: View {
                             showingPhotoOptions: $showingPhotoOptions
                         )
 
+                        sectionDivider
+
                         StoneDetailsFormView(
                             stoneName: $stoneName,
                             description: $description,
                             liftingLevel: $liftingLevel,
                             focusedField: $focusedField
                         )
+
+                        sectionDivider
 
                         StoneWeightFormView(
                             weight: $weight,
@@ -78,8 +80,16 @@ struct AddStoneView: View {
                             focusedField: $focusedField
                         )
 
+                        sectionDivider
+
                         locationSection
+
+                        sectionDivider
+
                         visibilitySection
+                        if !isFormValid {
+                            formValidationMessage
+                        }
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
@@ -99,6 +109,7 @@ struct AddStoneView: View {
                             saveStone()
                         }
                         .disabled(!isFormValid || viewModel.isLoading)
+                        .fontWeight(isFormValid ? .semibold : .regular)
                     }
                 }
                 .onAppear {
@@ -404,6 +415,85 @@ struct AddStoneView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+
+    @ViewBuilder
+    private var sectionDivider: some View {
+        Rectangle()
+            .fill(Color(.systemGray4))
+            .frame(height: 1)
+            .padding(.vertical, 8)
+    }
+    @ViewBuilder
+    private var formValidationMessage: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "info.circle.fill")
+                    .foregroundColor(.orange)
+                Text("Complete these required fields:")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.orange)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                if stoneName.isEmpty {
+                    HStack(spacing: 6) {
+                        Image(systemName: "circle")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text("Stone name")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                let hasConfirmedWeight = !weight.isEmpty && Double(weight) ?? 0 > 0
+                let hasEstimatedWeight = !estimatedWeight.isEmpty && Double(estimatedWeight) ?? 0 > 0
+
+                if !hasConfirmedWeight && !hasEstimatedWeight {
+                    HStack(spacing: 6) {
+                        Image(systemName: "circle")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text("At least one weight (confirmed or estimated)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                // Check for invalid weight ranges
+                if let weightValue = Double(weight), !weight.isEmpty {
+                    if weightValue < 1 || weightValue > 1000 {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                            Text("Confirmed weight must be between 1-1000 lbs")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        }
+                    }
+                }
+
+                if let estimatedWeightValue = Double(estimatedWeight), !estimatedWeight.isEmpty {
+                    if estimatedWeightValue < 1 || estimatedWeightValue > 1000 {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                            Text("Estimated weight must be between 1-1000 lbs")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(12)
     }
 
     // MARK: - Computed Properties

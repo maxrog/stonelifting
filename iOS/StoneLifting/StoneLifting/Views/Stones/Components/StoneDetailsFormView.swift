@@ -28,7 +28,21 @@ struct StoneDetailsFormView: View {
     @ViewBuilder
     private var nameSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            TextField("Stone name (e.g., Big Boulder, River Rock)", text: $stoneName)
+            HStack(spacing: 8) {
+                Text("Stone Name")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                Text("Required")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.orange.opacity(0.15))
+                    .cornerRadius(4)
+            }
+
+            TextField("e.g., Big Boulder, River Rock", text: $stoneName)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .focused($focusedField, equals: .name)
                 .onSubmit {
