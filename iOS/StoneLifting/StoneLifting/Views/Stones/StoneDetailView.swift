@@ -359,16 +359,7 @@ struct StoneDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 12) {
-                // TODO: User avatar placeholder
-                Circle()
-                    .fill(Color.blue.gradient)
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                        Text(stone.user.username.prefix(1).uppercased())
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                    )
+                UserAvatarView(username: stone.user.username)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(stone.user.username)
