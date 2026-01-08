@@ -16,17 +16,6 @@ struct StoneDetailsFormView: View {
     @Binding var liftingLevel: LiftingLevel
     @FocusState.Binding var focusedField: StoneFormField?
 
-    // TODO: this could be better DRY
-    private func colorForLevel(_ level: LiftingLevel) -> Color {
-        switch level.color {
-        case "orange": return .orange
-        case "yellow": return .yellow
-        case "blue": return .blue
-        case "green": return .green
-        default: return .gray
-        }
-    }
-
     var body: some View {
         VStack(spacing: 24) {
             nameSection
@@ -84,7 +73,7 @@ struct StoneDetailsFormView: View {
                 } label: {
                     HStack {
                         Image(systemName: liftingLevel.icon)
-                            .foregroundColor(colorForLevel(liftingLevel))
+                            .foregroundColor(liftingLevel.displayColor)
                         Text(liftingLevel.displayName)
                             .foregroundColor(.primary)
                         Spacer()

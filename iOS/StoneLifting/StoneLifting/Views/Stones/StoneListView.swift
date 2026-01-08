@@ -239,17 +239,6 @@ struct StoneRowView: View {
     let stone: Stone
     let onTap: () -> Void
 
-    // TODO: DRY
-    private func colorForLevel(_ level: LiftingLevel) -> Color {
-        switch level.color {
-        case "orange": return .orange
-        case "yellow": return .yellow
-        case "blue": return .blue
-        case "green": return .green
-        default: return .gray
-        }
-    }
-
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
@@ -322,7 +311,7 @@ struct StoneRowView: View {
                             HStack(spacing: 3) {
                                 Image(systemName: stone.liftingLevel.icon)
                                     .font(.caption)
-                                    .foregroundColor(colorForLevel(stone.liftingLevel))
+                                    .foregroundColor(stone.liftingLevel.displayColor)
 
                                 Text(stone.liftingLevel.displayName)
                                     .font(.caption)

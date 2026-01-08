@@ -157,7 +157,7 @@ struct StoneDetailView: View {
                 VStack(alignment: .trailing, spacing: 8) {
                     HStack(spacing: 8) {
                         Image(systemName: stone.liftingLevel.icon)
-                            .foregroundColor(colorForLevel(stone.liftingLevel))
+                            .foregroundColor(stone.liftingLevel.displayColor)
                             .font(.title2)
 
                         VStack(alignment: .trailing, spacing: 2) {
@@ -170,7 +170,7 @@ struct StoneDetailView: View {
                     HStack(spacing: 2) {
                         ForEach(1 ... 4, id: \.self) { level in
                             Circle()
-                                .fill(level <= stone.liftingLevel.level ? colorForLevel(stone.liftingLevel) : Color.gray.opacity(0.3))
+                                .fill(level <= stone.liftingLevel.level ? stone.liftingLevel.displayColor : Color.gray.opacity(0.3))
                                 .frame(width: 8, height: 8)
                         }
                     }

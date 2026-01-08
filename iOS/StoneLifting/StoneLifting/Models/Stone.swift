@@ -213,6 +213,23 @@ enum LiftingLevel: String, Codable, CaseIterable {
     }
 }
 
+// MARK: - LiftingLevel SwiftUI Extension
+
+import SwiftUI
+
+extension LiftingLevel {
+    var displayColor: Color {
+        switch color {
+        case "orange": return .orange
+        case "yellow": return .yellow
+        case "blue": return .blue
+        case "green": return .green
+        case "gray": return .gray
+        default: return .gray
+        }
+    }
+}
+
 // MARK: - Achievement Tier
 
 /// Icelandic stone lifting achievement tiers based on weight lifted to chest level
