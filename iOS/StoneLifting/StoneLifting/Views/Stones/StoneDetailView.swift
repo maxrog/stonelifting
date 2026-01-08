@@ -404,17 +404,6 @@ struct StoneDetailView: View {
 
     // MARK: - Helper Methods
 
-    // TODO: DRY
-    private func colorForLevel(_ level: LiftingLevel) -> Color {
-        switch level.color {
-        case "orange": return .orange
-        case "yellow": return .yellow
-        case "blue": return .blue
-        case "green": return .green
-        default: return .gray
-        }
-    }
-
     private func colorForAchievement(_ tier: AchievementTier) -> Color {
         switch tier.color {
         case "bronze": return .orange
