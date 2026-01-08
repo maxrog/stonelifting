@@ -299,15 +299,15 @@ enum StoneError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notAuthenticated:
-            return "Please log in to manage stones"
+            return "You need to be logged in to manage stones. Please sign in to continue."
         case .stoneNotFound:
-            return "Stone not found"
+            return "We couldn't find that stone. It may have been deleted or is no longer available."
         case .networkError:
-            return "Network error. Please check your connection"
+            return "We're having trouble connecting to the internet. Please check your connection and try again."
         case .invalidData:
-            return "Invalid stone data"
+            return "Something went wrong with your stone information. Please check all fields and try again."
         case .imageUploadFailed:
-            return "Failed to upload image. Please try again or continue without a photo."
+            return "We couldn't upload your photo. You can try again or save your stone without a photo for now."
         case let .unknownError(message):
             return message
         }

@@ -449,15 +449,15 @@ enum AuthError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notAuthenticated:
-            return "Please log in to continue"
+            return "You need to be logged in to do that. Please sign in to continue."
         case .invalidCredentials:
-            return "Invalid username or password"
+            return "The username or password you entered is incorrect. Please double-check and try again."
         case .sessionExpired:
-            return "Your session has expired. Please log in again"
+            return "Your session has expired for security reasons. Please sign in again to continue."
         case .registrationFailed:
-            return "Registration failed. Username or email may already be taken"
+            return "We couldn't create your account. That username or email might already be in use. Try a different one."
         case .networkError:
-            return "Network error. Please check your connection and try again"
+            return "We're having trouble connecting to the internet. Please check your connection and try again."
         case let .unknownError(message):
             return message
         }

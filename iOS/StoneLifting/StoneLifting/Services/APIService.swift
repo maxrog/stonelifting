@@ -267,27 +267,27 @@ enum APIError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Invalid API URL"
+            return "Something went wrong on our end. Please try again or contact support if this continues."
         case .notAuthenticated:
-            return "Authentication required"
+            return "You need to be logged in to do that. Please sign in to continue."
         case let .encodingFailed(error):
-            return "Failed to encode request: \(error.localizedDescription)"
+            return "We couldn't process your request. Please try again. (\(error.localizedDescription))"
         case let .decodingFailed(error):
-            return "Failed to decode response: \(error.localizedDescription)"
+            return "We received an unexpected response from the server. Please try again. (\(error.localizedDescription))"
         case let .networkError(error):
-            return "Network error: \(error.localizedDescription)"
+            return "We're having trouble connecting to the internet. Please check your connection and try again. (\(error.localizedDescription))"
         case .invalidResponse:
-            return "Invalid server response"
+            return "We received an unexpected response from the server. Please try again later."
         case .badRequest:
-            return "Bad request"
+            return "Something's not quite right with your request. Please check your information and try again."
         case .unauthorized:
-            return "Unauthorized - please log in again"
+            return "Your session has expired. Please sign in again to continue."
         case .notFound:
-            return "Resource not found"
+            return "We couldn't find what you're looking for. It may have been moved or deleted."
         case .serverError:
-            return "Server error - please try again later"
+            return "Our servers are experiencing issues. Please try again in a few moments."
         case let .unknown(code):
-            return "Unknown error (HTTP \(code))"
+            return "Something unexpected happened (error \(code)). Please try again or contact support if this continues."
         }
     }
 }

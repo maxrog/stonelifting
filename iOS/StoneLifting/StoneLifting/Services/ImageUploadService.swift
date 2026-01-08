@@ -174,13 +174,13 @@ enum ImageUploadError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidImageData:
-            return "Invalid image data"
+            return "We couldn't process that image. Please try taking or selecting a different photo."
         case let .networkError(error):
-            return "Network error: \(error.localizedDescription)"
+            return "We're having trouble uploading your photo. Please check your connection and try again. (\(error.localizedDescription))"
         case let .serverError(message):
-            return "Server error: \(message)"
+            return "We couldn't upload your photo right now. Please try again in a moment. (\(message))"
         case .fileTooLarge:
-            return "Image file is too large"
+            return "That photo is too large to upload. Try taking a new photo or selecting a smaller one."
         }
     }
 }
