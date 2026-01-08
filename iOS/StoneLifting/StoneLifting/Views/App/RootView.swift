@@ -24,7 +24,11 @@ struct RootView: View {
         Group {
             if isLoading {
                 // Loading screen while checking authentication
-                RootLoadingView()
+                LoadingView(
+                    message: "StoneLifting",
+                    style: .splash,
+                    icon: "figure.strengthtraining.traditional"
+                )
             } else if authService.isAuthenticated {
                 // User is logged in - show main app
                 MainAppView()
@@ -55,38 +59,6 @@ struct RootView: View {
             await MainActor.run {
                 isLoading = false
             }
-        }
-    }
-}
-
-// MARK: - Loading View
-
-// TODO: use splash / pull out these views (loading view should be generic)
-/// Loading screen shown during app initialization
-struct RootLoadingView: View {
-    /// Animation state for the loading indicator
-    @State private var isAnimating = false
-
-    var body: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "figure.strengthtraining.traditional")
-                .font(.system(size: 80))
-                .foregroundColor(.blue)
-                .scaleEffect(isAnimating ? 1.1 : 1.0)
-                .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isAnimating)
-
-            Text("StoneLifting")
-                .font(.title)
-                .fontWeight(.bold)
-
-            ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: .blue))
-                .scaleEffect(1.2)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
-        .onAppear {
-            isAnimating = true
         }
     }
 }
