@@ -36,7 +36,7 @@ struct ManualCoordinateEntryView: View {
                             .fontWeight(.medium)
 
                         TextField("e.g., 40.7128", text: $localLatitude)
-                            .keyboardType(.decimalPad)
+                            .keyboardType(.numbersAndPunctuation)
                             .focused($focusedField, equals: .latitude)
                             .submitLabel(.next)
                             .onSubmit {
@@ -54,7 +54,7 @@ struct ManualCoordinateEntryView: View {
                             .fontWeight(.medium)
 
                         TextField("e.g., -74.0060", text: $localLongitude)
-                            .keyboardType(.decimalPad)
+                            .keyboardType(.numbersAndPunctuation)
                             .focused($focusedField, equals: .longitude)
                             .submitLabel(.done)
                             .onSubmit {
