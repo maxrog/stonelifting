@@ -38,7 +38,8 @@ struct CloudinaryService {
         // Build parameters for signature
         var params: [String: String] = [
             "timestamp": timestamp,
-            "folder": folder
+            "folder": folder,
+            "moderation": "aws_rek:explicit,aws_rek:suggestive,aws_rek:violence"
         ]
 
         if let publicId = publicId {
@@ -64,6 +65,7 @@ struct CloudinaryService {
         appendFormField(named: "timestamp", value: timestamp)
         appendFormField(named: "signature", value: signature)
         appendFormField(named: "folder", value: folder)
+        appendFormField(named: "moderation", value: "aws_rek:explicit,aws_rek:suggestive,aws_rek:violence")
 
         if let publicId = publicId {
             appendFormField(named: "public_id", value: publicId)
@@ -94,7 +96,39 @@ struct CloudinaryService {
         }
 
         let cloudinaryResponse = try response.content.decode(CloudinaryUploadResponse.self)
+
+        // Check moderation status
+        try checkModeration(cloudinaryResponse.moderation)
+
         return cloudinaryResponse.secureUrl
+    }
+
+    /// Check moderation results and throw if image is inappropriate
+    private func checkModeration(_ moderation: [CloudinaryModerationResult]?) throws {
+        guard let moderationResults = moderation else {
+            // If no moderation results, allow the upload (shouldn't happen with moderation enabled)
+            return
+        }
+
+        for result in moderationResults {
+            // AWS Rekognition results
+            if result.kind == "aws_rek" {
+                if let explicit = result.response?.moderation_labels?.first(where: { $0.name == "Explicit Nudity" }),
+                   explicit.confidence > 70 {
+                    throw CloudinaryError.moderationFailed("Image contains explicit nudity and cannot be uploaded")
+                }
+
+                if let suggestive = result.response?.moderation_labels?.first(where: { $0.name == "Suggestive" }),
+                   suggestive.confidence > 85 {
+                    throw CloudinaryError.moderationFailed("Image contains suggestive content and cannot be uploaded")
+                }
+
+                if let violence = result.response?.moderation_labels?.first(where: { $0.name == "Violence" }),
+                   violence.confidence > 80 {
+                    throw CloudinaryError.moderationFailed("Image contains violent content and cannot be uploaded")
+                }
+            }
+        }
     }
 
     /// Generate signature for Cloudinary API authentication
@@ -124,6 +158,7 @@ struct CloudinaryUploadResponse: Content {
     let width: Int
     let height: Int
     let bytes: Int
+    let moderation: [CloudinaryModerationResult]?
 
     enum CodingKeys: String, CodingKey {
         case secureUrl = "secure_url"
@@ -132,7 +167,24 @@ struct CloudinaryUploadResponse: Content {
         case width
         case height
         case bytes
+        case moderation
     }
+}
+
+struct CloudinaryModerationResult: Content {
+    let kind: String
+    let status: String
+    let response: CloudinaryModerationResponse?
+}
+
+struct CloudinaryModerationResponse: Content {
+    let moderation_labels: [CloudinaryModerationLabel]?
+}
+
+struct CloudinaryModerationLabel: Content {
+    let name: String
+    let confidence: Double
+    let parent_name: String?
 }
 
 // MARK: - Errors
@@ -140,6 +192,7 @@ struct CloudinaryUploadResponse: Content {
 enum CloudinaryError: Error, LocalizedError {
     case uploadFailed(String)
     case invalidConfiguration
+    case moderationFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -147,6 +200,8 @@ enum CloudinaryError: Error, LocalizedError {
             return "Cloudinary upload failed: \(message)"
         case .invalidConfiguration:
             return "Cloudinary configuration is invalid or missing"
+        case .moderationFailed(let message):
+            return message
         }
     }
 }

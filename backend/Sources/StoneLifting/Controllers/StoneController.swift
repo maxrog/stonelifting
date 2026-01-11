@@ -12,6 +12,7 @@ struct StoneController: RouteCollection {
         protectedStones.get("public", use: getPublicStones)
         protectedStones.delete(":stoneID", use: delete)
         protectedStones.put(":stoneID", use: update)
+        protectedStones.post(":stoneID", "report", use: reportStone)
     }
     
     func create(req: Request) async throws -> StoneResponse {
@@ -57,38 +58,40 @@ struct StoneController: RouteCollection {
     
     func getNearbyStones(req: Request) async throws -> [StoneResponse] {
         _ = try req.auth.require(User.self)
-        
+
         guard let lat = req.query[Double.self, at: "lat"],
               let lon = req.query[Double.self, at: "lon"],
               let radius = req.query[Double.self, at: "radius"] else {
             throw Abort(.badRequest, reason: "Missing required parameters: lat, lon, radius")
         }
-        
+
         // TODO
         // Simple bounding box query (for production, use PostGIS for proper geospatial queries)
         let latRange = calculateLatRange(centerLat: lat, radiusKm: radius)
         let lonRange = calculateLonRange(centerLon: lon, radiusKm: radius, latitude: lat)
-        
+
         let stones = try await Stone.query(on: req.db)
             .filter(\.$isPublic == true)
+            .filter(\.$isHidden == false)
             .filter(\.$latitude >= latRange.min)
             .filter(\.$latitude <= latRange.max)
             .filter(\.$longitude >= lonRange.min)
             .filter(\.$longitude <= lonRange.max)
             .with(\.$user)
             .all()
-        
+
         return stones.map { StoneResponse(stone: $0, user: $0.user) }
     }
     
     func getPublicStones(req: Request) async throws -> [StoneResponse] {
         let stones = try await Stone.query(on: req.db)
             .filter(\.$isPublic == true)
+            .filter(\.$isHidden == false)
             .with(\.$user)
             .sort(\.$createdAt, .descending)
             .limit(100)
             .all()
-        
+
         return stones.map { StoneResponse(stone: $0, user: $0.user) }
     }
     
@@ -145,10 +148,39 @@ struct StoneController: RouteCollection {
         stone.liftingLevel = updateStone.liftingLevel
 
         try await stone.save(on: req.db)
-        
+
         return StoneResponse(stone: stone, user: user)
     }
-    
+
+    func reportStone(req: Request) async throws -> MessageResponse {
+        _ = try req.auth.require(User.self)
+
+        guard let stoneID = req.parameters.get("stoneID", as: UUID.self) else {
+            throw Abort(.badRequest, reason: "Invalid stone ID")
+        }
+
+        guard let stone = try await Stone.query(on: req.db)
+            .filter(\.$id == stoneID)
+            .with(\.$user)
+            .first() else {
+            throw Abort(.notFound, reason: "Stone not found")
+        }
+
+        stone.reportCount += 1
+
+        // Auto-hide if report count reaches threshold
+        if stone.reportCount >= 3 {
+            stone.isHidden = true
+            req.logger.warning("Stone \(stoneID) auto-hidden after \(stone.reportCount) reports")
+        }
+
+        try await stone.save(on: req.db)
+
+        req.logger.info("Stone \(stoneID) reported. Total reports: \(stone.reportCount)")
+
+        return MessageResponse(message: "Stone reported successfully")
+    }
+
     // MARK: - Helper Methods
     private func calculateLatRange(centerLat: Double, radiusKm: Double) -> (min: Double, max: Double) {
         let latDegreesPerKm = 1.0 / 111.0

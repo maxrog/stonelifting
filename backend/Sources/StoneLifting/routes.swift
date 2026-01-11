@@ -222,10 +222,22 @@ func uploadImage(req: Request) async throws -> ImageUploadResponse {
                                                         on: req.client)
 
         req.logger.info("Image uploaded successfully to Cloudinary: \(imageURL)")
-        
+
         return ImageUploadResponse(success: true,
                                    imageUrl: imageURL,
                                    message: "Image uploaded successfully")
+    } catch let error as CloudinaryError {
+        switch error {
+        case .moderationFailed(let message):
+            req.logger.warning("Image moderation failed: \(message)")
+            throw Abort(.badRequest, reason: message)
+        case .uploadFailed(let message):
+            req.logger.error("Failed to upload image to Cloudinary: \(message)")
+            throw Abort(.internalServerError, reason: "Failed to upload image")
+        case .invalidConfiguration:
+            req.logger.error("Cloudinary configuration is invalid")
+            throw Abort(.internalServerError, reason: "Service configuration error")
+        }
     } catch {
         req.logger.error("Failed to upload image to Cloudinary: \(error)")
         throw Abort(.internalServerError, reason: "Failed to upload image")

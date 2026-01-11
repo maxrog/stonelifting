@@ -40,12 +40,18 @@ final class Stone: Model, Content, @unchecked Sendable {
     @Field(key: "lifting_level")
     var liftingLevel: String
 
+    @Field(key: "report_count")
+    var reportCount: Int
+
+    @Field(key: "is_hidden")
+    var isHidden: Bool
+
     @Parent(key: "user_id")
     var user: User
-    
+
     @Timestamp(key: "created_at", on: .create)
     var createdAt: Date?
-    
+
     @Timestamp(key: "updated_at", on: .update)
     var updatedAt: Date?
     
@@ -63,6 +69,8 @@ final class Stone: Model, Content, @unchecked Sendable {
          locationName: String? = nil,
          isPublic: Bool = true,
          liftingLevel: String,
+         reportCount: Int = 0,
+         isHidden: Bool = false,
          userID: UUID) {
         self.id = id
         self.name = name
@@ -76,6 +84,8 @@ final class Stone: Model, Content, @unchecked Sendable {
         self.locationName = locationName
         self.isPublic = isPublic
         self.liftingLevel = liftingLevel
+        self.reportCount = reportCount
+        self.isHidden = isHidden
         self.$user.id = userID
     }
 }
