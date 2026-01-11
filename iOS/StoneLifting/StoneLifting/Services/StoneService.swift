@@ -377,6 +377,30 @@ final class StoneService {
         stoneError = nil
     }
 
+    #if DEBUG
+    // MARK: - Debug Methods
+
+    /// Load stones from cache (for testing purposes only)
+    func loadFromCache() async -> Bool {
+        do {
+            async let userFetch = cacheService.fetchCachedStones(category: .userStones)
+            async let publicFetch = cacheService.fetchCachedStones(category: .publicStones)
+
+            let (cachedUser, cachedPublic) = await (try userFetch, try publicFetch)
+
+            userStones = cachedUser
+            publicStones = cachedPublic
+
+            logger.info("DEBUG: Loaded \(cachedUser.count) user stones and \(cachedPublic.count) public stones from cache")
+            return true
+        } catch {
+            logger.error("DEBUG: Failed to load from cache", error: error)
+            stoneError = .networkError
+            return false
+        }
+    }
+    #endif
+
     // MARK: - Background Refresh
 
     /// Refresh stones if needed (throttled to 5 minutes minimum)

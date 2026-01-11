@@ -141,6 +141,23 @@ final class StoneCacheService {
             throw StoneCacheError.saveFailed(error)
         }
     }
+
+    /// Clear all cached stones
+    /// Runs in background thread for performance
+    /// - Throws: StoneCacheError if operation fails
+    func clearAllCache() async throws {
+        guard let actor = cacheActor else {
+            logger.error("Cache actor not configured")
+            throw StoneCacheError.notConfigured
+        }
+
+        do {
+            try await actor.clearAllCache()
+        } catch {
+            logger.error("Failed to clear all cache", error: error)
+            throw StoneCacheError.saveFailed(error)
+        }
+    }
 }
 
 // MARK: - Stone Cache Actor
@@ -333,5 +350,17 @@ actor StoneCacheActor {
 
         try context.save()
         logger.info("Background: Cleared cache for category: \(category.rawValue)")
+    }
+
+    /// Clear all cached stones
+    func clearAllCache() throws {
+        let context = modelContext
+
+        let descriptor = FetchDescriptor<CachedStone>()
+        let toDelete = try context.fetch(descriptor)
+        toDelete.forEach { context.delete($0) }
+
+        try context.save()
+        logger.info("Background: Cleared all cache (\(toDelete.count) items)")
     }
 }

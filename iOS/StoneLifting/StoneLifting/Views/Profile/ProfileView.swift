@@ -18,6 +18,9 @@ struct ProfileView: View {
     private let logger = AppLogger()
 
     @State private var stats: StoneStats?
+    #if DEBUG
+    @State private var showDebugSettings = false
+    #endif
 
     private var username: String {
         authService.currentUser?.username ?? "User"
@@ -42,12 +45,28 @@ struct ProfileView: View {
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                #if DEBUG
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showDebugSettings = true
+                    } label: {
+                        Image(systemName: "wrench.and.screwdriver")
+                    }
+                }
+                #endif
+            }
             .onAppear {
                 loadStats()
             }
             .refreshable {
                 await refreshStats()
             }
+            #if DEBUG
+            .sheet(isPresented: $showDebugSettings) {
+                DebugSettingsView()
+            }
+            #endif
         }
     }
 
