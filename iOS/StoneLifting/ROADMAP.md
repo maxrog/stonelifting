@@ -78,6 +78,15 @@
 - [ ] Performance profiling
 - [ ] Unit/UI tests
 
+### Performance & Caching
+- [ ] Stale-While-Revalidate pattern
+  - Load SwiftData cache FIRST on app launch (instant UI)
+  - Fetch fresh data in background and update silently
+  - Increase background refresh throttle to 15-30 min (stones rarely change)
+  - Consider HTTP cache headers (ETag/Cache-Control) for bandwidth savings
+  - Current: Show spinner → fetch → cache → show data
+  - Goal: Show cache → silent refresh → update if changed
+
 ### UI/UX Design
 - [ ] Rework add stone form (currently feels cluttered)
 - [ ] Update app icon: SF Symbol circle.dotted.and.circle (rotated, wiggle animation) - icons 8

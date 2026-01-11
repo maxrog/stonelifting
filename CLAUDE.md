@@ -68,10 +68,18 @@ Use MARK comments to organize files:
 ```
 
 ### Documentation
-- Add documentation for public APIs and complex logic
-- Use triple-slash `///` for doc comments
-- Include parameter and return value descriptions
-- Keep inline comments minimal - code should be self-documenting
+- **Only document when necessary** - avoid redundant comments on self-explanatory code
+- Add documentation for:
+  - Public APIs that need usage explanation
+  - Complex algorithms or non-obvious logic
+  - Architectural decisions or "why" explanations
+- **Do NOT document:**
+  - Self-explanatory function/variable names (e.g., `fetchUserStones()`, `isLoading`)
+  - Obvious getters/setters
+  - Simple one-line implementations
+- Use triple-slash `///` for doc comments when documenting
+- Include parameter and return value descriptions only for complex cases
+- Code should be self-documenting through clear naming
 
 ### SwiftUI Patterns
 
