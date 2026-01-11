@@ -20,6 +20,8 @@ final class StoneService {
     private let logger = AppLogger()
 
     private let apiService = APIService.shared
+    private let cacheService = StoneCacheService.shared
+    private let networkMonitor = NetworkMonitor.shared
 
     private(set) var userStones: [Stone] = []
     private(set) var publicStones: [Stone] = []
@@ -29,6 +31,12 @@ final class StoneService {
 
     /// Current error
     private(set) var stoneError: StoneError?
+
+    /// Last fetch timestamp for throttling background refreshes
+    private var lastFetch: Date?
+
+    /// Minimum time between background refreshes (5 minutes)
+    private let refreshThrottle: TimeInterval = 5 * 60
 
     // MARK: - Initialization
 
@@ -62,11 +70,17 @@ final class StoneService {
                 logger.debug("Added stone to public stones list. Total public stones: \(publicStones.count)")
             }
 
+            // Update cache after creating stone
+            try? await cacheService.cacheStones(userStones, category: .userStones)
+            if stone.isPublic {
+                try? await cacheService.cacheStones(publicStones, category: .publicStones)
+            }
+
             return stone
 
         } catch {
             logger.error("Failed to create stone", error: error)
-            await handleStoneError(error)
+            handleStoneError(error)
             return nil
         }
     }
@@ -74,12 +88,37 @@ final class StoneService {
     // MARK: - Stone Fetching
 
     /// Fetch user's stones
+    /// - Parameter shouldCache: Whether to update cache (default: false)
     /// - Returns: Success status
     @MainActor
-    func fetchUserStones() async -> Bool {
-        logger.info("Fetching user stones")
+    func fetchUserStones(shouldCache: Bool = false) async -> Bool {
+        logger.info("Fetching user stones (cache: \(shouldCache))")
         isLoadingUserStones = true
         stoneError = nil
+
+        if !networkMonitor.isConnected {
+            logger.info("Device is OFFLINE - attempting to load user stones from cache")
+            do {
+                let cachedStones = try await cacheService.fetchCachedStones(category: .userStones)
+                logger.info("Cache returned \(cachedStones.count) stones")
+                if !cachedStones.isEmpty {
+                    userStones = cachedStones
+                    logger.info("Successfully loaded \(cachedStones.count) user stones from cache")
+                    isLoadingUserStones = false
+                    return true
+                } else {
+                    logger.warning("Cache is empty - no user stones available offline")
+                    isLoadingUserStones = false
+                    return false
+                }
+            } catch {
+                logger.error("Failed to fetch from cache", error: error)
+                isLoadingUserStones = false
+                return false
+            }
+        } else {
+            logger.info("Device is ONLINE - will fetch from API")
+        }
 
         do {
             let stones: [Stone] = try await apiService.get(
@@ -87,27 +126,64 @@ final class StoneService {
                 requiresAuth: true,
                 type: [Stone].self
             )
-
             userStones = stones
             logger.info("Successfully fetched \(stones.count) user stones")
+
+            if shouldCache {
+                try? await cacheService.cacheStones(stones, category: .userStones)
+            }
+
             isLoadingUserStones = false
             return true
 
         } catch {
             logger.error("Failed to fetch user stones", error: error)
-            await handleStoneError(error)
+            do {
+                let cachedStones = try await cacheService.fetchCachedStones(category: .userStones)
+                if !cachedStones.isEmpty {
+                    userStones = cachedStones
+                    logger.info("Using \(cachedStones.count) cached user stones as fallback")
+                    isLoadingUserStones = false
+                    return true
+                }
+            } catch {
+                logger.error("Cache fallback also failed", error: error)
+            }
+            handleStoneError(error)
             isLoadingUserStones = false
             return false
         }
     }
 
     /// Fetch public stones feed
+    /// - Parameter shouldCache: Whether to update cache (default: false)
     /// - Returns: Success status
     @MainActor
-    func fetchPublicStones() async -> Bool {
-        logger.info("Fetching public stones")
+    func fetchPublicStones(shouldCache: Bool = false) async -> Bool {
+        logger.info("Fetching public stones (cache: \(shouldCache))")
         isLoadingPublicStones = true
         stoneError = nil
+
+        if !networkMonitor.isConnected {
+            logger.info("Device is OFFLINE - attempting to load public stones from cache")
+            do {
+                let cachedStones = try await cacheService.fetchCachedStones(category: .publicStones)
+                if !cachedStones.isEmpty {
+                    publicStones = cachedStones
+                    logger.info("Loaded \(cachedStones.count) public stones from cache")
+                    isLoadingPublicStones = false
+                    return true
+                } else {
+                    logger.warning("No cached public stones available")
+                    isLoadingPublicStones = false
+                    return false
+                }
+            } catch {
+                logger.error("Failed to fetch from cache", error: error)
+                isLoadingPublicStones = false
+                return false
+            }
+        }
 
         do {
             let stones: [Stone] = try await apiService.get(
@@ -118,12 +194,30 @@ final class StoneService {
 
             publicStones = stones
             logger.info("Successfully fetched \(stones.count) public stones")
+
+            if shouldCache {
+                try? await cacheService.cacheStones(stones, category: .publicStones)
+            }
+
             isLoadingPublicStones = false
             return true
 
         } catch {
             logger.error("Failed to fetch public stones", error: error)
-            await handleStoneError(error)
+
+            do {
+                let cachedStones = try await cacheService.fetchCachedStones(category: .publicStones)
+                if !cachedStones.isEmpty {
+                    publicStones = cachedStones
+                    logger.info("Using \(cachedStones.count) cached public stones as fallback")
+                    isLoadingPublicStones = false
+                    return true
+                }
+            } catch {
+                logger.error("Cache fallback also failed", error: error)
+            }
+
+            handleStoneError(error)
             isLoadingPublicStones = false
             return false
         }
@@ -134,10 +228,25 @@ final class StoneService {
     ///   - latitude: Current latitude
     ///   - longitude: Current longitude
     ///   - radius: Search radius in kilometers
+    ///   - shouldCache: Whether to update cache (default: true) accumulate nearby ones
     /// - Returns: Nearby stones
+    // TODO: Not currently used - will be integrated when "Nearby" map filter is implemented
+    // See ROADMAP.md: "Nearby stones discovery"
     @MainActor
-    func fetchNearbyStones(latitude: Double, longitude: Double, radius: Double = 10.0) async -> [Stone] {
+    func fetchNearbyStones(latitude: Double, longitude: Double, radius: Double = 10.0, shouldCache: Bool = true) async -> [Stone] {
         logger.info("Fetching nearby stones at lat: \(latitude), lon: \(longitude), radius: \(radius)km")
+
+        if !networkMonitor.isConnected {
+            logger.info("Device is OFFLINE - attempting to load nearby stones from cache")
+            do {
+                let cachedStones = try await cacheService.fetchCachedStones(category: .nearbyStones)
+                logger.info("Loaded \(cachedStones.count) nearby stones from cache")
+                return cachedStones
+            } catch {
+                logger.error("Failed to fetch from cache", error: error)
+                return []
+            }
+        }
 
         do {
             let endpoint = "\(APIConfig.Endpoints.nearbyStones)?lat=\(latitude)&lon=\(longitude)&radius=\(radius)"
@@ -149,11 +258,27 @@ final class StoneService {
             )
 
             logger.info("Successfully fetched \(stones.count) nearby stones")
+
+            if shouldCache {
+                try? await cacheService.cacheStones(stones, category: .nearbyStones)
+            }
+
             return stones
 
         } catch {
             logger.error("Failed to fetch nearby stones", error: error)
-            await handleStoneError(error)
+
+            do {
+                let cachedStones = try await cacheService.fetchCachedStones(category: .nearbyStones)
+                if !cachedStones.isEmpty {
+                    logger.info("Using \(cachedStones.count) cached nearby stones as fallback")
+                    return cachedStones
+                }
+            } catch {
+                logger.error("Cache fallback also failed", error: error)
+            }
+
+            handleStoneError(error)
             return []
         }
     }
@@ -197,11 +322,14 @@ final class StoneService {
                 logger.debug("Added updated stone to public stones list")
             }
 
-            return stone
+            // Update cache after editing stone
+            try? await cacheService.cacheStones(userStones, category: .userStones)
+            try? await cacheService.cacheStones(publicStones, category: .publicStones)
 
+            return stone
         } catch {
             logger.error("Failed to update stone with ID: \(stoneId.uuidString)", error: error)
-            await handleStoneError(error)
+            handleStoneError(error)
             return nil
         }
     }
@@ -229,11 +357,15 @@ final class StoneService {
             publicStones.removeAll { $0.id == stoneId }
             logger.debug("Removed stone from public stones. Count: \(publicStonesCountBefore) -> \(publicStones.count)")
 
+            // Update cache after deleting stone
+            try? await cacheService.cacheStones(userStones, category: .userStones)
+            try? await cacheService.cacheStones(publicStones, category: .publicStones)
+
             return true
 
         } catch {
             logger.error("Failed to delete stone with ID: \(stoneId.uuidString)", error: error)
-            await handleStoneError(error)
+            handleStoneError(error)
             return false
         }
     }
@@ -243,6 +375,43 @@ final class StoneService {
     /// Clear current error
     func clearError() {
         stoneError = nil
+    }
+
+    // MARK: - Background Refresh
+
+    /// Refresh stones if needed (throttled to 5 minutes minimum)
+    /// Called when app returns to foreground
+    /// - Returns: Whether a refresh was performed
+    @MainActor
+    func refreshIfNeeded() async -> Bool {
+        logger.info("Checking if background refresh is needed")
+
+        guard networkMonitor.isConnected else {
+            logger.info("Skipping background refresh - offline")
+            return false
+        }
+
+        let now = Date()
+        let shouldRefresh = lastFetch.map { now.timeIntervalSince($0) >= refreshThrottle } ?? true
+
+        if shouldRefresh {
+            logger.info("Background refresh needed - last fetch > 5 min ago")
+
+            async let userFetch = fetchUserStones(shouldCache: true)
+            async let publicFetch = fetchPublicStones(shouldCache: true)
+
+            let (userSuccess, publicSuccess) = await (userFetch, publicFetch)
+
+            if userSuccess || publicSuccess {
+                lastFetch = Date()
+                logger.info("Background refresh completed successfully")
+                return true
+            }
+        } else {
+            logger.info("Skipping background refresh - last fetch < 5 min ago")
+        }
+
+        return false
     }
 
     // MARK: - Statistics

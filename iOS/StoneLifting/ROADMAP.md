@@ -10,6 +10,11 @@
 - [ ] Data export (CSV/JSON)
 - [ ] Statistics dashboard
 - [ ] Log completions of other users' stones
+- [ ] Nearby stones discovery
+  - Fetch stones within visible map region
+  - "Nearby" filter on map (separate from user/public stones)
+  - Cache discovered areas for offline camping trips
+  - Auto-refresh when panning map to new areas
 
 ### Weight Estimation Improvements
 - [ ] Stone type AI detection (use branded colors)
@@ -57,7 +62,7 @@
 ### Authentication & Backend
 - [ ] Password Reset
 - [ ] Apple/Google/Phone Sign In
-- [ ] Fix Associated Domains for AutoFill Passwords (bundleID: com.marfodub.StoneLifting)
+- [ ] Associated Domains (password autofill, universal links, handoff - requires web interface first)
 - [ ] Database indexes
 - [ ] Sentry error tracking
 - [ ] Rate limiting
@@ -80,12 +85,7 @@
 - [ ] Consider sparkle effect for weight estimation feature
 
 ### Code Quality & Technical Debt
-- [ ] Address DRY violations (StoneListView:242, StoneDetailView:407, StoneDetailsFormView:19)
-- [ ] Finalize image compression settings for production (ImageUploadService:100,120,124)
-- [ ] Implement offline stone saving (AddStoneView)
-- [ ] Improve form validation UX feedback (AddStoneView:12 - clarify required fields)
-- [ ] Add user avatar placeholder (StoneDetailView:362)
-- [ ] Refactor loading view (RootView:64 - use splash screen / extract views)
+- []
 
 ### Development Automation Tools
 

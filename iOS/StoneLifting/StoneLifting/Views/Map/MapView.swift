@@ -248,6 +248,7 @@ enum MapFilter: CaseIterable {
     case all
     case myStones
     case publicStones
+    // TODO: Add .nearby filter - fetch stones in visible map region using StoneService.fetchNearbyStones()
 
     var title: String {
         switch self {

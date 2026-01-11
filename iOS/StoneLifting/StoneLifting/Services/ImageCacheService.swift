@@ -48,7 +48,8 @@ final class ImageCacheService {
         }
 
         // Check if already downloading
-        if let ongoingTask = ongoingDownloads[urlString] {
+        let existingTask = await getOngoingDownload(for: urlString)
+        if let ongoingTask = existingTask {
             logger.debug("Image download already in progress: \(urlString)")
             return await ongoingTask.value
         }
@@ -59,11 +60,26 @@ final class ImageCacheService {
             await downloadImage(from: urlString)
         }
 
-        ongoingDownloads[urlString] = downloadTask
+        await setOngoingDownload(downloadTask, for: urlString)
         let image = await downloadTask.value
-        ongoingDownloads.removeValue(forKey: urlString)
+        await removeOngoingDownload(for: urlString)
 
         return image
+    }
+
+    @MainActor
+    private func getOngoingDownload(for urlString: String) -> Task<UIImage?, Never>? {
+        return ongoingDownloads[urlString]
+    }
+
+    @MainActor
+    private func setOngoingDownload(_ task: Task<UIImage?, Never>, for urlString: String) {
+        ongoingDownloads[urlString] = task
+    }
+
+    @MainActor
+    private func removeOngoingDownload(for urlString: String) {
+        ongoingDownloads.removeValue(forKey: urlString)
     }
 
     /// Preload images for upcoming content (e.g., next items in scroll)
@@ -75,7 +91,8 @@ final class ImageCacheService {
                 guard cache.object(forKey: urlString as NSString) == nil else { continue }
 
                 // Skip if already downloading
-                guard ongoingDownloads[urlString] == nil else { continue }
+                let isDownloading = await getOngoingDownload(for: urlString) != nil
+                guard !isDownloading else { continue }
 
                 // Download in background
                 _ = await image(for: urlString)

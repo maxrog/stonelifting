@@ -18,7 +18,6 @@ struct ProfileView: View {
     private let logger = AppLogger()
 
     @State private var stats: StoneStats?
-    @State private var isLoadingStats = false
 
     private var username: String {
         authService.currentUser?.username ?? "User"
@@ -89,11 +88,7 @@ struct ProfileView: View {
                 .font(.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            if isLoadingStats {
-                ProgressView()
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 40)
-            } else if let stats = stats {
+            if let stats = stats {
                 VStack(spacing: 12) {
                     HStack(spacing: 12) {
                         StatCard(
@@ -162,11 +157,7 @@ struct ProfileView: View {
                 .font(.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            if isLoadingStats {
-                ProgressView()
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 40)
-            } else if let stats = stats, stats.totalStones > 0 {
+            if let stats = stats, stats.totalStones > 0 {
                 let earnedAchievements = getEarnedAchievements(from: stats.stones)
 
                 if earnedAchievements.isEmpty {
@@ -229,20 +220,11 @@ struct ProfileView: View {
     }
 
     private func loadStats() {
-        isLoadingStats = true
-
-        Task {
-            await stoneService.fetchUserStones()
-
-            await MainActor.run {
-                stats = stoneService.userStats
-                isLoadingStats = false
-            }
-        }
+        stats = stoneService.userStats
     }
 
     private func refreshStats() async {
-        await stoneService.fetchUserStones()
+        await stoneService.fetchUserStones(shouldCache: true)
         stats = stoneService.userStats
     }
 

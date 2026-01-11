@@ -54,6 +54,25 @@ struct RootView: View {
             // Attempt to refresh user data if token exists
             if authService.isAuthenticated {
                 _ = await authService.refreshCurrentUser()
+
+                // Fetch and cache stones once on app launch
+                let stoneService = StoneService.shared
+
+                // Fetch concurrently
+                async let userFetch = stoneService.fetchUserStones(shouldCache: false)
+                async let publicFetch = stoneService.fetchPublicStones(shouldCache: false)
+                let (userSuccess, publicSuccess) = await (userFetch, publicFetch)
+
+                if userSuccess && publicSuccess {
+                    try? await StoneCacheService.shared.cacheStonesInBatch([
+                        (stoneService.userStones, .userStones),
+                        (stoneService.publicStones, .publicStones)
+                    ])
+                } else if userSuccess {
+                    try? await StoneCacheService.shared.cacheStones(stoneService.userStones, category: .userStones)
+                } else if publicSuccess {
+                    try? await StoneCacheService.shared.cacheStones(stoneService.publicStones, category: .publicStones)
+                }
             }
 
             await MainActor.run {
@@ -66,27 +85,71 @@ struct RootView: View {
 // MARK: - Main App View
 
 struct MainAppView: View {
+    private let networkMonitor = NetworkMonitor.shared
+    private let cacheService = StoneCacheService.shared
+    private let stoneService = StoneService.shared
+
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some View {
-        TabView {
-            StoneListView()
-                .tabItem {
-                    Image(systemName: "figure.strengthtraining.traditional")
-                    Text("Stones")
-                }
+        VStack(spacing: 0) {
+            if !networkMonitor.isConnected {
+                offlineBanner
+            }
 
-            MapView()
-                .tabItem {
-                    Image(systemName: "map")
-                    Text("Map")
-                }
+            TabView {
+                StoneListView()
+                    .tabItem {
+                        Image(systemName: "figure.strengthtraining.traditional")
+                        Text("Stones")
+                    }
 
-            // Profile tab
-            ProfileView()
-                .tabItem {
-                    Image(systemName: "person.circle")
-                    Text("Profile")
-                }
+                MapView()
+                    .tabItem {
+                        Image(systemName: "map")
+                        Text("Map")
+                    }
+
+                // Profile tab
+                ProfileView()
+                    .tabItem {
+                        Image(systemName: "person.circle")
+                        Text("Profile")
+                    }
+            }
         }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            handleScenePhaseChange(oldPhase: oldPhase, newPhase: newPhase)
+        }
+    }
+
+    // MARK: - Actions
+
+    private func handleScenePhaseChange(oldPhase: ScenePhase, newPhase: ScenePhase) {
+        // Detect background → foreground transition
+        if oldPhase == .background && newPhase == .active {
+            Task {
+                _ = await stoneService.refreshIfNeeded()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var offlineBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wifi.slash")
+                .font(.caption)
+
+            Text("Offline Mode")
+                .font(.caption)
+                .fontWeight(.medium)
+
+            Spacer()
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .background(Color.orange)
     }
 }
 

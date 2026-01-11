@@ -85,20 +85,6 @@ final class MapViewModel {
     /// Initial setup for map view
     func setupMapView() async {
         logger.info("Setting up MapView for filter \(mapFilter)")
-
-        switch mapFilter {
-        case .all:
-            // Use async let to fetch both in parallel
-            async let publicFetch = stoneService.fetchPublicStones()
-            async let userFetch = stoneService.fetchUserStones()
-            // Wait for both to complete
-            _ = await (publicFetch, userFetch)
-        case .myStones:
-            _ = await stoneService.fetchUserStones()
-        case .publicStones:
-            _ = await stoneService.fetchPublicStones()
-        }
-
         await MainActor.run {
             guard mapRegion == nil else { return }
             Task { await centerOnUserLocation(zoomSpan: initialLoadSpan) }

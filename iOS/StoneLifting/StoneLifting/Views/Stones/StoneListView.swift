@@ -16,6 +16,7 @@ struct StoneListView: View {
 
     @State private var viewModel = StoneListViewModel()
 
+    private let offlineSyncService = OfflineSyncService.shared
     private let logger = AppLogger()
 
     @State private var selectedFilter: StoneFilter = .myStones
@@ -24,7 +25,6 @@ struct StoneListView: View {
     @State private var showingAddStone = false
     @State private var selectedStone: Stone?
     @State private var showingStoneDetail = false
-    @State private var hasLoadedInitially = false
 
     // MARK: - Body
 
@@ -33,11 +33,11 @@ struct StoneListView: View {
             VStack(spacing: 0) {
                 filterSection
 
-                if viewModel.isLoading && !hasLoadedInitially {
-                    LoadingView(message: "Loading stones...")
-                } else {
-                    stoneListContent
+                if offlineSyncService.pendingCount > 0 {
+                    pendingSyncBanner
                 }
+
+                stoneListContent
             }
             .navigationTitle("Stones")
             .navigationBarTitleDisplayMode(.large)
@@ -74,6 +74,54 @@ struct StoneListView: View {
     // MARK: - View Components
 
     @ViewBuilder
+    private var pendingSyncBanner: some View {
+        Button(action: {
+            Task {
+                await offlineSyncService.syncPendingStones()
+            }
+        }) {
+            HStack(spacing: 12) {
+                if offlineSyncService.isSyncing {
+                    ProgressView()
+                        .tint(.white)
+                } else {
+                    Image(systemName: "arrow.clockwise.circle.fill")
+                        .font(.title3)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("^[\(offlineSyncService.pendingCount) stone](inflect: true) waiting to sync")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+
+                    Text(offlineSyncService.isSyncing ? "Syncing..." : "Tap to sync now")
+                        .font(.caption)
+                        .opacity(0.9)
+                }
+
+                Spacer()
+
+                if !offlineSyncService.isSyncing {
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                }
+            }
+            .foregroundColor(.white)
+            .padding(16)
+            .background(
+                LinearGradient(
+                    colors: [.blue, .cyan],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+        }
+        .disabled(offlineSyncService.isSyncing)
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
     private var filterSection: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
@@ -84,7 +132,6 @@ struct StoneListView: View {
                         isSelected: selectedFilter == filter
                     ) {
                         selectedFilter = filter
-                        loadStonesForFilter()
                     }
                 }
             }
@@ -161,34 +208,17 @@ struct StoneListView: View {
 
     private func setupView() {
         logger.info("Setting up StoneListView")
-        loadStonesForFilter()
-    }
-
-    private func loadStonesForFilter() {
-        logger.info("Loading stones for filter: \(selectedFilter.title)")
-
-        Task {
-            switch selectedFilter {
-            case .myStones, .heavy, .recent:
-                await viewModel.fetchUserStones()
-            case .publicStones:
-                await viewModel.fetchPublicStones()
-            }
-
-            if !hasLoadedInitially {
-                hasLoadedInitially = true
-            }
-        }
     }
 
     private func refreshStonesAsync() async {
         logger.info("Pull to refresh for filter: \(selectedFilter.title)")
 
         switch selectedFilter {
+            // TODO should heavy use combined user and public probably?
         case .myStones, .heavy, .recent:
-            await viewModel.fetchUserStones()
+            await viewModel.fetchUserStones(shouldCache: true)
         case .publicStones:
-            await viewModel.fetchPublicStones()
+            await viewModel.fetchPublicStones(shouldCache: true)
         }
     }
 }

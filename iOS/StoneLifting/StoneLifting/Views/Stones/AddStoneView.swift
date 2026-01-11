@@ -8,7 +8,6 @@
 import PhotosUI
 import SwiftUI
 
-// TODO: offline saving
 // MARK: - Add Stone View
 
 /// Stone creation view with camera, weight input, and location capture
@@ -20,6 +19,8 @@ struct AddStoneView: View {
     @State private var viewModel = StoneFormViewModel()
 
     @Bindable private var locationService = LocationService.shared
+    private let networkMonitor = NetworkMonitor.shared
+    private let offlineSyncService = OfflineSyncService.shared
     private let logger = AppLogger()
 
     @State private var stoneName: String = ""
@@ -87,6 +88,11 @@ struct AddStoneView: View {
                         sectionDivider
 
                         visibilitySection
+
+                        if !networkMonitor.isConnected {
+                            offlineStatusBanner
+                        }
+
                         if !isFormValid {
                             formValidationMessage
                         }
@@ -116,7 +122,7 @@ struct AddStoneView: View {
                     setupView()
                 }
                 if viewModel.isLoading {
-                    LoadingView(message: "Adding stone...")
+                    LoadingView(message: networkMonitor.isConnected ? "Adding stone..." : "Saving offline...")
                 }
             }
         }
@@ -425,6 +431,32 @@ struct AddStoneView: View {
             .frame(height: 1)
             .padding(.vertical, 8)
     }
+
+    @ViewBuilder
+    private var offlineStatusBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "wifi.slash")
+                .font(.title3)
+                .foregroundColor(.orange)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("No Internet Connection")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.orange)
+
+                Text("Your stone will be saved locally and uploaded when you're back online.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(16)
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(12)
+    }
+
     @ViewBuilder
     private var formValidationMessage: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -633,10 +665,23 @@ struct AddStoneView: View {
                 liftingLevel: liftingLevel.rawValue
             )
 
-            let stone = await viewModel.saveStone(request: request, photoData: photoData)
+            if networkMonitor.isConnected {
+                let stone = await viewModel.saveStone(request: request, photoData: photoData)
 
-            if stone != nil {
-                dismiss()
+                if stone != nil {
+                    dismiss()
+                }
+            } else {
+                // Offline - save locally for later sync
+                logger.info("No network connection - saving stone offline")
+                let success = await offlineSyncService.saveStoneOffline(request: request, photoData: photoData)
+
+                if success {
+                    logger.info("Stone saved offline successfully")
+                    dismiss()
+                } else {
+                    logger.error("Failed to save stone offline")
+                }
             }
         }
     }

@@ -28,13 +28,15 @@ final class StoneListViewModel {
     // MARK: - Actions
 
     /// Fetch user stones
-    func fetchUserStones() async {
-        _ = await stoneService.fetchUserStones()
+    /// - Parameter shouldCache: Whether to update cache (default: false)
+    func fetchUserStones(shouldCache: Bool = false) async {
+        _ = await stoneService.fetchUserStones(shouldCache: shouldCache)
     }
 
     /// Fetch public stones
-    func fetchPublicStones() async {
-        _ = await stoneService.fetchPublicStones()
+    /// - Parameter shouldCache: Whether to update cache (default: false)
+    func fetchPublicStones(shouldCache: Bool = false) async {
+        _ = await stoneService.fetchPublicStones(shouldCache: shouldCache)
     }
 
     /// Refresh all stones
