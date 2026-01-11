@@ -56,6 +56,14 @@ struct MapView: View {
             .task(id: viewModel.mapFilter) {
                 await viewModel.setupMapView()
             }
+            .onChange(of: locationService.authorizationStatus) { _, newStatus in
+                if [.authorizedWhenInUse, .authorizedAlways].contains(newStatus) {
+                    Task {
+                        await viewModel.centerOnUserLocation(zoomSpan: MKCoordinateSpan(latitudeDelta: 0.2, longitudeDelta: 0.2))
+                        viewModel.isTrackingUser = true
+                    }
+                }
+            }
             .sheet(isPresented: $viewModel.showingFilters) {
                 MapFilterView(selectedFilter: $viewModel.mapFilter)
             }

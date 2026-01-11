@@ -260,6 +260,24 @@ struct AddStoneView: View {
 
                 Toggle("Include Location", isOn: $includeLocation)
                     .labelsHidden()
+                    .onChange(of: includeLocation) { _, newValue in
+                        if !newValue {
+                            // User toggled OFF - clear location
+                            manualLatitude = ""
+                            manualLongitude = ""
+                            locationService.clearCachedLocation()
+                        } else if newValue {
+                            // User toggled ON - auto-fetch if no location exists
+                            let hasLocation = (!manualLatitude.isEmpty && !manualLongitude.isEmpty) ||
+                                            locationService.currentLocation != nil
+
+                            if !hasLocation {
+                                if [.authorizedWhenInUse, .authorizedAlways].contains(locationService.authorizationStatus) {
+                                    requestLocation(userInitiated: false)
+                                }
+                            }
+                        }
+                    }
             }
 
             if includeLocation {
@@ -423,7 +441,6 @@ struct AddStoneView: View {
         }
     }
 
-
     @ViewBuilder
     private var sectionDivider: some View {
         Rectangle()
@@ -569,7 +586,10 @@ struct AddStoneView: View {
         case .denied, .restricted:
             logger.info("Location permissions denied - user can enable via 'Get Location' button if desired")
         case .authorizedWhenInUse, .authorizedAlways:
-            logger.info("Location permissions granted - user can choose input method")
+            logger.info("Location permissions granted")
+            if includeLocation {
+                requestLocation(userInitiated: false)
+            }
         @unknown default:
             break
         }

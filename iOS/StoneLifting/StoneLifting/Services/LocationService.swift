@@ -257,6 +257,11 @@ actor LocationContinuationManager {
 
     /// Sets a new continuation for location request
     func setContinuation(_ cont: CheckedContinuation<CLLocation?, Never>) {
+        // Resume any existing continuation before overwriting
+        if !hasResumed, let existingCont = continuation {
+            existingCont.resume(returning: nil)
+        }
+
         continuation = cont
         hasResumed = false
     }
