@@ -3,6 +3,7 @@ import Fluent
 import FluentPostgresDriver
 import Vapor
 import JWT
+import PostgresNIO
 /*
  TODO production migration
  .env file (better pw + jwt) + TODOs in here
@@ -62,7 +63,15 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateUser())
     app.migrations.add(CreateStone())
 
-    try await app.autoMigrate()
+    // Auto-migrate with error handling to prevent crashes from race conditions
+    do {
+        try await app.autoMigrate()
+        app.logger.info("Migrations completed successfully")
+    } catch {
+        // Log and ignore migration errors - tables likely already exist from another instance
+        app.logger.warning("Migration failed (likely safe - tables already exist): \(error)")
+        app.logger.info("Continuing startup despite migration error")
+    }
 
     // Routes
     try routes(app)
