@@ -117,14 +117,28 @@ final class AuthService {
     }
 
     /// Logout current user
-    /// Clears stored token and user data
+    /// Clears stored token, user data, and all cached stones
     @MainActor
     func logout() {
         logger.info("Logging out user with id: \(String(describing: currentUser?.id)), username: \(currentUser?.username ?? "")")
+
+        // Clear authentication data
         apiService.clearAuthToken()
         currentUser = nil
         isAuthenticated = false
         authError = nil
+
+        // Clear all stone-related data
+        Task {
+            // Clear persistent cache
+            try? await StoneCacheService.shared.clearAllCache()
+            logger.info("Cleared all stone caches on logout")
+
+            await MainActor.run {
+                StoneService.shared.clearAllStones()
+                logger.info("Cleared in-memory stones on logout")
+            }
+        }
     }
 
     /// Refresh current user data from server
