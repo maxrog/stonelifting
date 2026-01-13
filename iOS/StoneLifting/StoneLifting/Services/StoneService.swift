@@ -370,6 +370,31 @@ final class StoneService {
         }
     }
 
+    /// Report a stone for inappropriate content
+    /// - Parameter stoneId: ID of stone to report
+    /// - Returns: Success status
+    @MainActor
+    func reportStone(id stoneId: UUID) async -> Bool {
+        logger.info("Reporting stone with ID: \(stoneId.uuidString)")
+
+        do {
+            let _: MessageResponse = try await apiService.post(
+                endpoint: "\(APIConfig.Endpoints.stones)/\(stoneId)/report",
+                body: EmptyBody(),
+                requiresAuth: true,
+                responseType: MessageResponse.self
+            )
+
+            logger.info("Successfully reported stone with ID: \(stoneId.uuidString)")
+            return true
+
+        } catch {
+            logger.error("Failed to report stone with ID: \(stoneId.uuidString)", error: error)
+            handleStoneError(error)
+            return false
+        }
+    }
+
     // MARK: - Error Handling
 
     /// Clear current error
@@ -497,7 +522,7 @@ enum StoneError: Error, LocalizedError {
     case stoneNotFound
     case networkError
     case invalidData
-    case imageUploadFailed
+    case imageUploadFailed(String)
     case unknownError(String)
 
     var errorDescription: String? {
@@ -510,8 +535,8 @@ enum StoneError: Error, LocalizedError {
             return "We're having trouble connecting to the internet. Please check your connection and try again."
         case .invalidData:
             return "Something went wrong with your stone information. Please check all fields and try again."
-        case .imageUploadFailed:
-            return "We couldn't upload your photo. You can try again or save your stone without a photo for now."
+        case let .imageUploadFailed(message):
+            return message
         case let .unknownError(message):
             return message
         }

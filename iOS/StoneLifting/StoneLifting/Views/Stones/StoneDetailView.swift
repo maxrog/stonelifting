@@ -23,6 +23,11 @@ struct StoneDetailView: View {
 
     @State private var showingEdit = false
     @State private var showingDeleteConfirmation = false
+    @State private var showingReportConfirmation = false
+    @State private var isReporting = false
+    @State private var hasReported = false
+    @State private var reportSuccessMessage: String?
+    @State private var reportErrorMessage: String?
 
     private var isOwnStone: Bool {
         stone.user.id == authService.currentUser?.id
@@ -45,6 +50,10 @@ struct StoneDetailView: View {
                     }
 
                     ownerSection
+
+                    if !isOwnStone {
+                        reportSection
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 32)
@@ -58,8 +67,8 @@ struct StoneDetailView: View {
                     }
                 }
 
-                if isOwnStone {
-                    ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if isOwnStone {
                         Menu {
                             Button("Edit Stone") {
                                 showingEdit = true
@@ -88,6 +97,33 @@ struct StoneDetailView: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Are you sure you want to delete \"\(stone.name ?? "this stone")\"? This action cannot be undone.")
+            }
+            .confirmationDialog(
+                "Report Stone",
+                isPresented: $showingReportConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Report", role: .destructive) {
+                    reportStone()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Report this stone for inappropriate content? The stone will be hidden if multiple users report it.")
+            }
+            .alert("Report Submitted", isPresented: .constant(reportSuccessMessage != nil)) {
+                Button("OK") {
+                    reportSuccessMessage = nil
+                    dismiss()
+                }
+            } message: {
+                Text(reportSuccessMessage ?? "")
+            }
+            .alert("Report Failed", isPresented: .constant(reportErrorMessage != nil)) {
+                Button("OK") {
+                    reportErrorMessage = nil
+                }
+            } message: {
+                Text(reportErrorMessage ?? "")
             }
         }
     }
@@ -370,6 +406,65 @@ struct StoneDetailView: View {
     }
 
     @ViewBuilder
+    private var reportSection: some View {
+        VStack(spacing: 12) {
+            if hasReported {
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.title2)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Report Submitted")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+
+                        Text("Thank you for helping keep our community safe")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+                }
+                .padding(16)
+                .background(Color.green.opacity(0.1))
+                .cornerRadius(12)
+            } else {
+                Button(action: {
+                    showingReportConfirmation = true
+                }) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundColor(.red)
+                            .font(.title3)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Report Inappropriate Content")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
+
+                            Text("Help us maintain community standards")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(16)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    @ViewBuilder
     private var ownerSection: some View {
         VStack(spacing: 12) {
             Text("Stone Logger")
@@ -444,6 +539,30 @@ struct StoneDetailView: View {
                     dismiss()
                 } else {
                     logger.error("Failed to delete stone")
+                }
+            }
+        }
+    }
+
+    private func reportStone() {
+        guard let stoneId = stone.id else { return }
+
+        logger.info("Reporting stone: \(stone.name ?? "unnamed")")
+        isReporting = true
+
+        Task {
+            let success = await stoneService.reportStone(id: stoneId)
+
+            await MainActor.run {
+                isReporting = false
+
+                if success {
+                    logger.info("Stone reported successfully")
+                    hasReported = true
+                    reportSuccessMessage = "Thank you for reporting this stone. We'll review it shortly and take appropriate action if needed."
+                } else {
+                    logger.error("Failed to report stone")
+                    reportErrorMessage = stoneService.stoneError?.localizedDescription ?? "We couldn't submit your report. Please check your connection and try again."
                 }
             }
         }

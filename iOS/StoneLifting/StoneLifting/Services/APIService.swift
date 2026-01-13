@@ -192,6 +192,8 @@ private extension APIService {
                 throw APIError.invalidResponse
             }
 
+            logger.debug("HTTP Status: \(httpResponse.statusCode)")
+
             switch httpResponse.statusCode {
             case 200 ... 299:
                 logger.info("Successful response for url: \(request.url?.absoluteString ?? "")")
@@ -217,7 +219,16 @@ private extension APIService {
                 throw APIError.unauthorized
 
             case 400:
-                logger.error("Error loading url: \(request.url?.absoluteString ?? "")", error: APIError.badRequest)
+                // Try to decode error message from backend
+                logger.debug("Got 400 response. Raw data: \(String(data: data, encoding: .utf8) ?? "unable to decode")")
+
+                if let errorResponse = try? decoder.decode(ErrorResponse.self, from: data),
+                   let reason = errorResponse.reason {
+                    logger.error("Error loading url: \(request.url?.absoluteString ?? "") | Error: \(reason)")
+                    throw APIError.badRequestWithMessage(reason)
+                }
+
+                logger.error("Error loading url: \(request.url?.absoluteString ?? "") | Error: Could not decode error response")
                 throw APIError.badRequest
 
             case 404:
@@ -225,6 +236,14 @@ private extension APIService {
                 throw APIError.notFound
 
             case 500 ... 599:
+                logger.debug("Got \(httpResponse.statusCode) response. Raw data: \(String(data: data, encoding: .utf8) ?? "unable to decode")")
+
+                if let errorResponse = try? decoder.decode(ErrorResponse.self, from: data),
+                   let reason = errorResponse.reason {
+                    logger.error("Error loading url: \(request.url?.absoluteString ?? "") | Error: \(reason)")
+                    throw APIError.serverErrorWithMessage(reason)
+                }
+
                 logger.error("Error loading url: \(request.url?.absoluteString ?? "")", error: APIError.serverError)
                 throw APIError.serverError
 
@@ -250,6 +269,12 @@ private extension APIService {
 private struct EmptyResponse: Codable {}
 struct EmptyBody: Codable {}
 
+/// Error response from backend
+private struct ErrorResponse: Codable {
+    let error: Bool?
+    let reason: String?
+}
+
 /// API error types
 enum APIError: Error, LocalizedError {
     case invalidURL
@@ -259,9 +284,11 @@ enum APIError: Error, LocalizedError {
     case networkError(Error)
     case invalidResponse
     case badRequest
+    case badRequestWithMessage(String)
     case unauthorized
     case notFound
     case serverError
+    case serverErrorWithMessage(String)
     case unknown(Int)
 
     var errorDescription: String? {
@@ -280,12 +307,16 @@ enum APIError: Error, LocalizedError {
             return "We received an unexpected response from the server. Please try again later."
         case .badRequest:
             return "Something's not quite right with your request. Please check your information and try again."
+        case let .badRequestWithMessage(message):
+            return message
         case .unauthorized:
             return "Your session has expired. Please sign in again to continue."
         case .notFound:
             return "We couldn't find what you're looking for. It may have been moved or deleted."
         case .serverError:
             return "Our servers are experiencing issues. Please try again in a few moments."
+        case let .serverErrorWithMessage(message):
+            return message
         case let .unknown(code):
             return "Something unexpected happened (error \(code)). Please try again or contact support if this continues."
         }

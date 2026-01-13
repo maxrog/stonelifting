@@ -25,6 +25,20 @@ struct StoneController: RouteCollection {
             throw Abort(.badRequest, reason: "At least one weight (weight or estimatedWeight) is required")
         }
 
+        // Moderate text content for inappropriate language
+        if let openAIKey = Environment.get("OPENAI_API_KEY") {
+            let moderationService = ModerationService(apiKey: openAIKey)
+            let result = try await moderationService.moderateFields([
+                "stone name": createStone.name,
+                "description": createStone.description,
+                "location name": createStone.locationName
+            ], on: req.client)
+
+            if result.flagged {
+                throw Abort(.badRequest, reason: result.errorMessage)
+            }
+        }
+
         let stone = Stone(
             name: createStone.name,
             weight: createStone.weight,
@@ -39,9 +53,9 @@ struct StoneController: RouteCollection {
             liftingLevel: createStone.liftingLevel,
             userID: try user.requireID()
         )
-        
+
         try await stone.save(on: req.db)
-        
+
         return StoneResponse(stone: stone, user: user)
     }
     
@@ -127,14 +141,28 @@ struct StoneController: RouteCollection {
         guard let stoneID = req.parameters.get("stoneID", as: UUID.self) else {
             throw Abort(.badRequest, reason: "Invalid stone ID")
         }
-        
+
         guard let stone = try await Stone.query(on: req.db)
             .filter(\.$id == stoneID)
             .filter(\.$user.$id == user.requireID())
             .first() else {
             throw Abort(.notFound, reason: "Stone not found")
         }
-        
+
+        // Moderate text content for inappropriate language
+        if let openAIKey = Environment.get("OPENAI_API_KEY") {
+            let moderationService = ModerationService(apiKey: openAIKey)
+            let result = try await moderationService.moderateFields([
+                "stone name": updateStone.name,
+                "description": updateStone.description,
+                "location name": updateStone.locationName
+            ], on: req.client)
+
+            if result.flagged {
+                throw Abort(.badRequest, reason: result.errorMessage)
+            }
+        }
+
         stone.name = updateStone.name
         stone.weight = updateStone.weight
         stone.estimatedWeight = updateStone.estimatedWeight

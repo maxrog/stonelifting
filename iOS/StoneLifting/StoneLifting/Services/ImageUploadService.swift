@@ -170,6 +170,7 @@ enum ImageUploadError: LocalizedError {
     case networkError(Error)
     case serverError(String)
     case fileTooLarge
+    case moderationFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -181,6 +182,8 @@ enum ImageUploadError: LocalizedError {
             return "We couldn't upload your photo right now. Please try again in a moment. (\(message))"
         case .fileTooLarge:
             return "That photo is too large to upload. Try taking a new photo or selecting a smaller one."
+        case let .moderationFailed(message):
+            return message
         }
     }
 }

@@ -66,7 +66,11 @@ final class StoneFormViewModel {
         // Check if photo upload failed when photo was provided
         if photoData != nil, hasPhotoChanged, uploadedImageURL == nil {
             logger.error("Failed to upload image for stone")
-            stoneError = .imageUploadFailed
+
+            let errorMessage = imageUploadService.uploadError?.localizedDescription
+                ?? "We couldn't upload your photo. You can try again or save your stone without a photo for now."
+
+            stoneError = .imageUploadFailed(errorMessage)
             isLoading = false
             return nil
         }

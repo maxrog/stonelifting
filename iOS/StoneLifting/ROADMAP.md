@@ -68,6 +68,7 @@
 - [ ] Rate limiting
 - [ ] Custom domain
 - [ ] Switch DATABASE_PUBLIC_URL to RAILWAY_PRIVATE_DOMAIN to avoid egress fees (Currently using DATABASE_PUBLIC_URL -> RAILWAY_TCP_PROXY_DOMAIN)
+- [ ] Upgrade OpenAI Moderation to paid tier for production (~$0.01/1000 stones, removes rate limits, currently using free tier with retry logic)
 
 ### App Quality
 - [ ] CI/CD pipeline

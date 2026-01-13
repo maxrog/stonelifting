@@ -39,6 +39,18 @@ func register(req: Request) async throws -> HTTPStatus {
     try CreateUserRequest.validate(content: req)
     let create = try req.content.decode(CreateUserRequest.self)
 
+    // Moderate username for inappropriate content
+    if let openAIKey = Environment.get("OPENAI_API_KEY") {
+        let moderationService = ModerationService(apiKey: openAIKey)
+        let result = try await moderationService.moderateText(create.username, on: req.client)
+
+        if result.flagged {
+            throw Abort(.badRequest, reason: "Username contains inappropriate content. Please choose a different username.")
+        }
+    } else {
+        req.logger.warning("OPENAI_API_KEY not set - skipping content moderation")
+    }
+
     // Check if user exists
     let existingUser = try await User.query(on: req.db)
         .group(.or) { group in
@@ -46,17 +58,17 @@ func register(req: Request) async throws -> HTTPStatus {
             group.filter(\.$email == create.email)
         }
         .first()
-    
+
     if existingUser != nil {
         throw Abort(.conflict, reason: "Username or email already exists")
     }
-    
+
     let user = User(
         username: create.username,
         email: create.email,
         passwordHash: try Bcrypt.hash(create.password)
     )
-    
+
     try await user.save(on: req.db)
     return .created
 }

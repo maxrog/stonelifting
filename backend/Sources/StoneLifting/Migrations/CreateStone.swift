@@ -4,6 +4,7 @@ import Fluent
 struct CreateStone: AsyncMigration {
     func prepare(on database: any Database) async throws {
         try await database.schema("stones")
+            .ignoreExisting()
             .id()
             .field("name", .string, .required)
             .field("weight", .double)
@@ -23,7 +24,7 @@ struct CreateStone: AsyncMigration {
             .field("updated_at", .datetime)
             .create()
     }
-    
+
     func revert(on database: any Database) async throws {
         try await database.schema("stones").delete()
     }

@@ -26,6 +26,10 @@ struct StoneListView: View {
     @State private var selectedStone: Stone?
     @State private var showingStoneDetail = false
 
+    private var isPresentingSheet: Bool {
+        showingAddStone || selectedStone != nil
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -58,7 +62,10 @@ struct StoneListView: View {
             .sheet(item: $selectedStone) { stone in
                 StoneDetailView(stone: stone)
             }
-            .alert("Error", isPresented: .constant(viewModel.stoneError != nil)) {
+            .alert("Error", isPresented: Binding(
+                get: { viewModel.stoneError != nil && !isPresentingSheet },
+                set: { if !$0 { viewModel.clearError() } }
+            )) {
                 Button("OK") {
                     viewModel.clearError()
                 }

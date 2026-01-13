@@ -82,7 +82,7 @@ enum TestDataGenerator {
                 estimatedWeight: hasEstimatedWeight ? weight : nil,
                 stoneType: nil,
                 description: descriptions.randomElement() ?? nil,
-                imageUrl: nil,  
+                imageUrl: nil,
                 latitude: lat,
                 longitude: lon,
                 locationName: "Test Location \(i + 1)",

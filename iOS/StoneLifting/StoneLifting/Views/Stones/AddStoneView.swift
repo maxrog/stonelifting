@@ -589,9 +589,6 @@ struct AddStoneView: View {
             logger.info("Location permissions denied - user can enable via 'Get Location' button if desired")
         case .authorizedWhenInUse, .authorizedAlways:
             logger.info("Location permissions granted")
-            if includeLocation {
-                requestLocation(userInitiated: false)
-            }
         @unknown default:
             break
         }

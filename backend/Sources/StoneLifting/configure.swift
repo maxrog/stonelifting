@@ -63,15 +63,13 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateUser())
     app.migrations.add(CreateStone())
 
-    // Auto-migrate with error handling to prevent crashes from race conditions
-    do {
-        try await app.autoMigrate()
-        app.logger.info("Migrations completed successfully")
-    } catch {
-        // Log and ignore migration errors - tables likely already exist from another instance
-        app.logger.warning("Migration failed (likely safe - tables already exist): \(error)")
-        app.logger.info("Continuing startup despite migration error")
-    }
+    // Run migrations
+    // Note: Migrations now use .ignoreExisting() to be idempotent and safe for
+    // concurrent deployments. If a migration fails, it indicates a real problem
+    // that should prevent the app from starting.
+    app.logger.info("Running database migrations...")
+    try await app.autoMigrate()
+    app.logger.info("Database migrations completed successfully")
 
     // Routes
     try routes(app)
