@@ -107,6 +107,14 @@ final class AuthService {
             isAuthenticated = true
 
             logger.info("Successfully logged in user with id: \(response.user.id), username: \(response.user.username)")
+
+            Task {
+                logger.info("Fetching stones after login")
+                async let userFetch = StoneService.shared.fetchUserStones(shouldCache: true)
+                async let publicFetch = StoneService.shared.fetchPublicStones(shouldCache: true)
+                _ = await (userFetch, publicFetch)
+            }
+
             return true
 
         } catch {
