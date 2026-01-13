@@ -377,6 +377,17 @@ final class StoneService {
         stoneError = nil
     }
 
+    @MainActor
+    func clearAllStones() {
+        userStones = []
+        publicStones = []
+        stoneError = nil
+        isLoadingUserStones = false
+        isLoadingPublicStones = false
+        lastFetch = nil
+        logger.info("Cleared all in-memory stone data")
+    }
+
     #if DEBUG
     // MARK: - Debug Methods
 
