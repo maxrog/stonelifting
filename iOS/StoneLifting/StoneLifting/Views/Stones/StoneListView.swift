@@ -51,9 +51,6 @@ struct StoneListView: View {
                     }
                 }
             }
-            .onAppear {
-                setupView()
-            }
             .searchable(text: $searchText, prompt: "Search stones...")
             .sheet(isPresented: $showingAddStone) {
                 AddStoneView()
@@ -206,10 +203,6 @@ struct StoneListView: View {
 
     // MARK: - Actions
 
-    private func setupView() {
-        logger.info("Setting up StoneListView")
-    }
-
     private func refreshStonesAsync() async {
         logger.info("Pull to refresh for filter: \(selectedFilter.title)")
 
@@ -323,12 +316,18 @@ struct StoneRowView: View {
                     }
 
                     HStack {
-                        // Location
-                        if stone.hasValidLocation {
+                        // Location - show if there's a location name OR valid coordinates
+                        if stone.hasValidLocation || (stone.locationName != nil && !stone.locationName!.isEmpty) {
                             Label {
-                                Text(stone.locationName ?? "Unknown Location")
+                                if let locationName = stone.locationName, !locationName.isEmpty {
+                                    Text(locationName)
+                                } else if let lat = stone.latitude, let lon = stone.longitude {
+                                    Text("\(lat, specifier: "%.2f"), \(lon, specifier: "%.2f")")
+                                } else {
+                                    Text("Unknown Location")
+                                }
                             } icon: {
-                                Image(systemName: "location.fill")
+                                Image(systemName: stone.hasValidLocation ? "location.fill" : "mappin")
                             }
                             .font(.caption)
                             .foregroundColor(.secondary)

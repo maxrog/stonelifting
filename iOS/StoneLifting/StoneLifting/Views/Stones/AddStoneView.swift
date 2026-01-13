@@ -291,14 +291,14 @@ struct AddStoneView: View {
                         .focused($focusedField, equals: .locationName)
                 }
 
-                // Show current location status
+                // Show current location status if exists
                 if let location = locationService.currentLocation {
                     HStack {
                         Image(systemName: "location.fill")
                             .foregroundColor(.green)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("GPS Location")
+                            Text("GPS Location Set")
                                 .font(.caption)
                                 .fontWeight(.medium)
                             Text("\(location.coordinate.latitude, specifier: "%.4f"), \(location.coordinate.longitude, specifier: "%.4f")")
@@ -307,12 +307,10 @@ struct AddStoneView: View {
                         }
 
                         Spacer()
-
-                        Button("Update") {
-                            requestLocation(userInitiated: true)
-                        }
-                        .font(.caption)
                     }
+                    .padding(12)
+                    .background(Color.green.opacity(0.1))
+                    .cornerRadius(8)
                 } else if !manualLatitude.isEmpty && !manualLongitude.isEmpty,
                           let lat = Double(manualLatitude), let lon = Double(manualLongitude) {
                     HStack {
@@ -320,7 +318,7 @@ struct AddStoneView: View {
                             .foregroundColor(.blue)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Manual Location")
+                            Text("Manual Location Set")
                                 .font(.caption)
                                 .fontWeight(.medium)
                             Text("\(lat, specifier: "%.4f"), \(lon, specifier: "%.4f")")
@@ -329,50 +327,54 @@ struct AddStoneView: View {
                         }
 
                         Spacer()
-
-                        Button("Edit") {
-                            showingManualEntry = true
-                        }
-                        .font(.caption)
                     }
-                } else {
-                    VStack(spacing: 12) {
+                    .padding(12)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(8)
+                }
+
+                // Always show all three location input options
+                VStack(spacing: 12) {
+                    Button(action: {
+                        // Clear manual coordinates when switching to GPS
+                        manualLatitude = ""
+                        manualLongitude = ""
+                        requestLocation(userInitiated: true)
+                    }) {
+                        Label("Use Current GPS Location", systemImage: "location.fill")
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.blue.opacity(0.1))
+                            .foregroundColor(.blue)
+                            .cornerRadius(8)
+                    }
+
+                    HStack(spacing: 12) {
                         Button(action: {
-                            requestLocation(userInitiated: true)
+                            // Don't clear GPS location - map picker will use it as initial position
+                            showingMapPicker = true
                         }) {
-                            Label("Use Current GPS Location", systemImage: "location.fill")
+                            Label("Pick on Map", systemImage: "map")
                                 .font(.subheadline)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
-                                .background(Color.blue.opacity(0.1))
-                                .foregroundColor(.blue)
+                                .background(Color.green.opacity(0.1))
+                                .foregroundColor(.green)
                                 .cornerRadius(8)
                         }
 
-                        HStack(spacing: 12) {
-                            Button(action: {
-                                showingMapPicker = true
-                            }) {
-                                Label("Pick on Map", systemImage: "map")
-                                    .font(.subheadline)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(Color.green.opacity(0.1))
-                                    .foregroundColor(.green)
-                                    .cornerRadius(8)
-                            }
-
-                            Button(action: {
-                                showingManualEntry = true
-                            }) {
-                                Label("Enter Coords", systemImage: "number")
-                                    .font(.subheadline)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(Color.orange.opacity(0.1))
-                                    .foregroundColor(.orange)
-                                    .cornerRadius(8)
-                            }
+                        Button(action: {
+                            // Don't clear GPS location - let user see current location
+                            showingManualEntry = true
+                        }) {
+                            Label("Enter Coords", systemImage: "number")
+                                .font(.subheadline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.orange.opacity(0.1))
+                                .foregroundColor(.orange)
+                                .cornerRadius(8)
                         }
                     }
                 }

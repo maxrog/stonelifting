@@ -40,7 +40,7 @@ struct StoneDetailView: View {
                     stoneInfoSection
                     stoneStatsSection
 
-                    if stone.hasValidLocation {
+                    if stone.hasValidLocation || (stone.locationName != nil && !stone.locationName!.isEmpty) {
                         locationSection
                     }
 
@@ -315,7 +315,7 @@ struct StoneDetailView: View {
 
                 // Location details
                 VStack(spacing: 8) {
-                    if let locationName = stone.locationName {
+                    if let locationName = stone.locationName, !locationName.isEmpty {
                         HStack {
                             Image(systemName: "mappin.and.ellipse")
                                 .foregroundColor(.blue)
@@ -343,6 +343,24 @@ struct StoneDetailView: View {
                         .font(.caption)
                     }
                 }
+            } else if let locationName = stone.locationName, !locationName.isEmpty {
+                // Show location name even without coordinates
+                HStack {
+                    Image(systemName: "mappin.and.ellipse")
+                        .foregroundColor(.blue)
+
+                    Text(locationName)
+                        .font(.subheadline)
+
+                    Spacer()
+                }
+                .padding(12)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(8)
+
+                Text("GPS coordinates not available")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         }
         .padding(20)
