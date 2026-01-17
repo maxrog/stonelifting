@@ -197,8 +197,8 @@ struct StoneController: RouteCollection {
 
         stone.reportCount += 1
 
-        // Auto-hide if report count reaches threshold
-        if stone.reportCount >= 3 {
+        // Auto-hide if report count reaches threshold (5 unique device reports)
+        if stone.reportCount >= 5 {
             stone.isHidden = true
             req.logger.warning("Stone \(stoneID) auto-hidden after \(stone.reportCount) reports")
         }

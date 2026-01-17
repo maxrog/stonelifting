@@ -20,6 +20,9 @@ public func configure(_ app: Application) async throws {
 
 
     // TODO prod figure out which middleware actually needed in prod
+    // Error middleware - must be first to catch all errors
+    app.middleware.use(ErrorMiddleware.default(environment: app.environment))
+
     // Filesystem middleware
     app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
 
