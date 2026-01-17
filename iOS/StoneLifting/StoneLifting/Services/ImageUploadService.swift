@@ -47,6 +47,13 @@ final class ImageUploadService {
 
             logger.debug("Image compressed to \(compressedData.count) bytes, base64 encoded")
 
+            // Check if task was cancelled (e.g., text moderation failed)
+            if Task.isCancelled {
+                logger.info("Image upload cancelled before network request")
+                isUploading = false
+                return nil
+            }
+
             let request = ImageUploadRequest(
                 imageData: base64Image,
                 contentType: "image/jpeg"

@@ -18,7 +18,7 @@ final class APIService {
     static let shared = APIService()
     private let logger = AppLogger()
 
-    private let session = URLSession.shared
+    private let session: URLSession
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
@@ -28,6 +28,12 @@ final class APIService {
     // MARK: - Initialization
 
     private init() {
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 30.0
+        configuration.timeoutIntervalForResource = 60.0
+        configuration.waitsForConnectivity = true
+        self.session = URLSession(configuration: configuration)
+
         setupDateFormatting()
         loadStoredToken()
     }
@@ -166,7 +172,6 @@ private extension APIService {
 
         var request = URLRequest(url: url)
         request.httpMethod = method
-        request.timeoutInterval = 30.0
         request.setValue(APIConfig.Headers.applicationJSON, forHTTPHeaderField: APIConfig.Headers.contentType)
 
         if requiresAuth {
