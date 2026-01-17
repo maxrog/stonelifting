@@ -89,4 +89,7 @@ enum UserDefaultsKeys {
 
     static let lastKnownLatitude = "com.marfodub.StoneLifting.last_known_latitude"
     static let lastKnownLongitude = "com.marfodub.StoneLifting.last_known_longitude"
+
+    static let reportedStones = "com.marfodub.StoneLifting.reported_stones"
+    static let deviceIdentifier = "com.marfodub.StoneLifting.device_identifier"
 }

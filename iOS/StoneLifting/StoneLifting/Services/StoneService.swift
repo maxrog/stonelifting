@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UIKit
 import Observation
 
 // MARK: - Stone Service
@@ -412,6 +413,11 @@ final class StoneService {
     func reportStone(id stoneId: UUID) async -> Bool {
         logger.info("Reporting stone with ID: \(stoneId.uuidString)")
 
+        if hasReportedStone(id: stoneId) {
+            logger.warning("Stone \(stoneId.uuidString) already reported by this device")
+            return false
+        }
+
         do {
             let _: MessageResponse = try await apiService.post(
                 endpoint: "\(APIConfig.Endpoints.stones)/\(stoneId)/report",
@@ -421,6 +427,9 @@ final class StoneService {
             )
 
             logger.info("Successfully reported stone with ID: \(stoneId.uuidString)")
+
+            markStoneAsReported(id: stoneId)
+
             return true
 
         } catch {
@@ -428,6 +437,43 @@ final class StoneService {
             handleStoneError(error)
             return false
         }
+    }
+
+    /// Check if this device has already reported a stone
+    /// - Parameter stoneId: ID of stone to check
+    /// - Returns: True if already reported by this device
+    func hasReportedStone(id stoneId: UUID) -> Bool {
+        let deviceId = getDeviceIdentifier()
+        let reportKey = "\(deviceId)_\(stoneId.uuidString)"
+        let reportedStones = UserDefaults.standard.stringArray(forKey: UserDefaultsKeys.reportedStones) ?? []
+        return reportedStones.contains(reportKey)
+    }
+
+    // MARK: - Device Identification
+
+    /// Get or create a unique device identifier
+    /// Uses IDFV (Identifier For Vendor) for device-unique tracking
+    private func getDeviceIdentifier() -> String {
+        if let storedId = UserDefaults.standard.string(forKey: UserDefaultsKeys.deviceIdentifier) {
+            return storedId
+        }
+
+        let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        UserDefaults.standard.set(deviceId, forKey: UserDefaultsKeys.deviceIdentifier)
+        logger.info("Generated new device identifier: \(deviceId)")
+        return deviceId
+    }
+
+    /// Mark a stone as reported by this device
+    private func markStoneAsReported(id stoneId: UUID) {
+        let deviceId = getDeviceIdentifier()
+        let reportKey = "\(deviceId)_\(stoneId.uuidString)"
+
+        var reportedStones = UserDefaults.standard.stringArray(forKey: UserDefaultsKeys.reportedStones) ?? []
+        reportedStones.append(reportKey)
+        UserDefaults.standard.set(reportedStones, forKey: UserDefaultsKeys.reportedStones)
+
+        logger.info("Marked stone \(stoneId.uuidString) as reported by device \(deviceId)")
     }
 
     // MARK: - Error Handling

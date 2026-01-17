@@ -25,12 +25,19 @@ struct StoneDetailView: View {
     @State private var showingDeleteConfirmation = false
     @State private var showingReportConfirmation = false
     @State private var isReporting = false
-    @State private var hasReported = false
     @State private var reportSuccessMessage: String?
     @State private var reportErrorMessage: String?
+    @State private var selectedReportReason: String = ""
+    @State private var reportRefreshTrigger = false
 
     private var isOwnStone: Bool {
         stone.user.id == authService.currentUser?.id
+    }
+
+    private var hasReported: Bool {
+        guard let stoneId = stone.id else { return false }
+        _ = reportRefreshTrigger
+        return stoneService.hasReportedStone(id: stoneId)
     }
 
     @Environment(\.dismiss) private var dismiss
@@ -97,18 +104,6 @@ struct StoneDetailView: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Are you sure you want to delete \"\(stone.name ?? "this stone")\"? This action cannot be undone.")
-            }
-            .confirmationDialog(
-                "Report Stone",
-                isPresented: $showingReportConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button("Report", role: .destructive) {
-                    reportStone()
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Report this stone for inappropriate content? The stone will be hidden if multiple users report it.")
             }
             .alert("Report Submitted", isPresented: .constant(reportSuccessMessage != nil)) {
                 Button("OK") {
@@ -419,7 +414,7 @@ struct StoneDetailView: View {
                             .font(.subheadline)
                             .fontWeight(.semibold)
 
-                        Text("Thank you for helping keep our community safe")
+                        Text("Thank you for helping keep a tidy community!")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -434,12 +429,17 @@ struct StoneDetailView: View {
                     showingReportConfirmation = true
                 }) {
                     HStack(spacing: 12) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .foregroundColor(.red)
-                            .font(.title3)
+                        if isReporting {
+                            ProgressView()
+                                .tint(.red)
+                        } else {
+                            Image(systemName: "exclamationmark.triangle")
+                                .foregroundColor(.red)
+                                .font(.title3)
+                        }
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Report Inappropriate Content")
+                            Text(isReporting ? "Reporting..." : "Report Stone")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                                 .foregroundColor(.primary)
@@ -451,15 +451,37 @@ struct StoneDetailView: View {
 
                         Spacer()
 
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        if !isReporting {
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                     .padding(16)
                     .background(Color(.systemGray6))
                     .cornerRadius(12)
                 }
                 .buttonStyle(.plain)
+                .disabled(isReporting)
+                .confirmationDialog(
+                    "Report Stone",
+                    isPresented: $showingReportConfirmation,
+                    titleVisibility: .visible
+                ) {
+                    Button("Inappropriate Content") {
+                        selectedReportReason = "inappropriate content"
+                        reportStone()
+                    }
+
+                    Button("Inaccurate Information") {
+                        selectedReportReason = "inaccurate information"
+                        reportStone()
+                    }
+
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("Why are you reporting this stone?")
+                }
             }
         }
     }
@@ -547,7 +569,7 @@ struct StoneDetailView: View {
     private func reportStone() {
         guard let stoneId = stone.id else { return }
 
-        logger.info("Reporting stone: \(stone.name ?? "unnamed")")
+        logger.info("Reporting stone: \(stone.name ?? "unnamed") for reason: \(selectedReportReason)")
         isReporting = true
 
         Task {
@@ -558,7 +580,10 @@ struct StoneDetailView: View {
 
                 if success {
                     logger.info("Stone reported successfully")
-                    hasReported = true
+
+                    // Trigger view refresh to update hasReported state
+                    reportRefreshTrigger.toggle()
+
                     reportSuccessMessage = "Thank you for reporting this stone. We'll review it shortly and take appropriate action if needed."
                 } else {
                     logger.error("Failed to report stone")

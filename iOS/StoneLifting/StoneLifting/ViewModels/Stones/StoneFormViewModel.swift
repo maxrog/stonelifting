@@ -61,28 +61,36 @@ final class StoneFormViewModel {
         isLoading = true
         stoneError = nil
 
-        async let moderationResult = stoneService.moderateText(
+        // Start text moderation
+        async let moderationTask = stoneService.moderateText(
             name: request.name,
             description: request.description,
             locationName: request.locationName
         )
 
-        async let imageUploadResult = uploadPhotoIfNeeded(
-            photoData: photoData,
-            hasPhotoChanged: hasPhotoChanged
-        )
+        // Start image upload in a cancellable task
+        let imageUploadTask = Task<String?, Never> {
+            await uploadPhotoIfNeeded(
+                photoData: photoData,
+                hasPhotoChanged: hasPhotoChanged
+            )
+        }
 
-        let (moderation, uploadedImageURL) = await (moderationResult, imageUploadResult)
-
-        // Check moderation first (fail fast if content inappropriate)
+        // Check text moderation first (fail fast)
+        let moderation = await moderationTask
         if let moderation = moderation, !moderation.passed {
             logger.warning("Pre-flight moderation failed: \(moderation.reason ?? "Unknown reason")")
+            logger.info("Cancelling image upload task to save bandwidth")
+            imageUploadTask.cancel()
             stoneError = .moderationFailed(moderation.reason ?? "Content contains inappropriate language")
             isLoading = false
             return nil
         }
 
         logger.info("Pre-flight moderation passed")
+
+        // Now wait for image upload to complete
+        let uploadedImageURL = await imageUploadTask.value
 
         // Check if photo upload failed when photo was provided
         if photoData != nil, hasPhotoChanged, uploadedImageURL == nil {
