@@ -85,6 +85,41 @@ final class StoneService {
         }
     }
 
+    // MARK: - Moderation
+
+    /// Pre-flight text moderation check
+    /// - Parameters:
+    ///   - name: Stone name
+    ///   - description: Stone description
+    ///   - locationName: Location name
+    /// - Returns: Moderation response
+    @MainActor
+    func moderateText(name: String?, description: String?, locationName: String?) async -> TextModerationResponse? {
+        logger.info("Running pre-flight text moderation")
+
+        let request = TextModerationRequest(
+            name: name,
+            description: description,
+            locationName: locationName
+        )
+
+        do {
+            let response: TextModerationResponse = try await apiService.post(
+                endpoint: APIConfig.Endpoints.moderateText,
+                body: request,
+                requiresAuth: true,
+                responseType: TextModerationResponse.self
+            )
+
+            logger.info("Pre-flight moderation result: passed=\(response.passed)")
+            return response
+
+        } catch {
+            logger.error("Pre-flight moderation failed", error: error)
+            return TextModerationResponse(passed: true, reason: nil)
+        }
+    }
+
     // MARK: - Stone Fetching
 
     /// Fetch user's stones
@@ -523,6 +558,7 @@ enum StoneError: Error, LocalizedError {
     case networkError
     case invalidData
     case imageUploadFailed(String)
+    case moderationFailed(String)
     case unknownError(String)
 
     var errorDescription: String? {
@@ -537,6 +573,8 @@ enum StoneError: Error, LocalizedError {
             return "Something went wrong with your stone information. Please check all fields and try again."
         case let .imageUploadFailed(message):
             return message
+        case let .moderationFailed(message):
+            return message
         case let .unknownError(message):
             return message
         }
@@ -549,4 +587,15 @@ enum StoneError: Error, LocalizedError {
         }
         return false
     }
+}
+
+struct TextModerationRequest: Codable {
+    let name: String?
+    let description: String?
+    let locationName: String?
+}
+
+struct TextModerationResponse: Codable {
+    let passed: Bool
+    let reason: String?
 }

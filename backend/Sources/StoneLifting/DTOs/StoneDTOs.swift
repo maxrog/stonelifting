@@ -81,3 +81,14 @@ struct StoneResponse: Content {
         self.user = UserResponse(user: user)
     }
 }
+
+struct TextModerationRequest: Content {
+    let name: String?
+    let description: String?
+    let locationName: String?
+}
+
+struct TextModerationResponse: Content {
+    let passed: Bool
+    let reason: String?
+}

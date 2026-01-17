@@ -50,6 +50,7 @@ enum APIConfig {
         static let stones = "/stones"
         static let publicStones = "/stones/public"
         static let nearbyStones = "/stones/nearby"
+        static let moderateText = "/stones/moderate-text"
         static let health = "/health"
     }
 

@@ -88,6 +88,27 @@
   - Current: Show spinner → fetch → cache → show data
   - Goal: Show cache → silent refresh → update if changed
 
+- [ ] CDN Integration
+  - **Goal**: Reduce API latency by serving backend from edge locations closer to users
+  - **Options**:
+    - Cloudflare CDN: Put Vapor backend behind Cloudflare (~$20/month, automatic global edge caching, DDoS protection)
+    - AWS CloudFront: Native integration with Railway (multiple edge locations, more control over caching, pay per use)
+    - Fastly: Real-time caching and purging, excellent for dynamic content (higher cost but better performance)
+  - **Benefits**:
+    - API calls: 200-300ms → 20-50ms (10x faster)
+    - Image loading: Faster with CDN caching
+    - Better user experience worldwide
+    - Reduced backend load
+  - **Implementation**:
+    1. Set up CDN provider
+    2. Configure edge caching rules (cache GET, bypass POST/PUT/DELETE)
+    3. Update DNS/Railway config
+    4. Test from multiple regions
+    5. Monitor performance improvement
+  - **Priority**: Medium (after core features stable)
+  - **Estimated effort**: 4-8 hours
+  - **Cost**: $20-50/month depending on usage
+
 ### UI/UX Design
 - [ ] Rework add stone form (currently feels cluttered)
 - [ ] Update app icon: SF Symbol circle.dotted.and.circle (rotated, wiggle animation) - icons 8

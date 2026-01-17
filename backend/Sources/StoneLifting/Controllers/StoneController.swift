@@ -4,7 +4,7 @@ import Vapor
 struct StoneController: RouteCollection {
     func boot(routes: any RoutesBuilder) throws {
         let stones = routes.grouped("stones")
-        
+
         let protectedStones = stones.grouped(AuthController.JWTAuthenticator())
         protectedStones.post(use: create)
         protectedStones.get(use: getUserStones)
@@ -13,6 +13,7 @@ struct StoneController: RouteCollection {
         protectedStones.delete(":stoneID", use: delete)
         protectedStones.put(":stoneID", use: update)
         protectedStones.post(":stoneID", "report", use: reportStone)
+        protectedStones.post("moderate-text", use: moderateText)
     }
     
     func create(req: Request) async throws -> StoneResponse {
@@ -207,6 +208,37 @@ struct StoneController: RouteCollection {
         req.logger.info("Stone \(stoneID) reported. Total reports: \(stone.reportCount)")
 
         return MessageResponse(message: "Stone reported successfully")
+    }
+
+    func moderateText(req: Request) async throws -> TextModerationResponse {
+        _ = try req.auth.require(User.self)
+
+        let fields = try req.content.decode(TextModerationRequest.self)
+
+        guard let openAIKey = Environment.get("OPENAI_API_KEY") else {
+            req.logger.warning("OPENAI_API_KEY not set - skipping pre-flight moderation")
+            return TextModerationResponse(passed: true, reason: nil)
+        }
+
+        let moderationService = ModerationService(apiKey: openAIKey)
+
+        do {
+            let result = try await moderationService.moderateFields([
+                "stone name": fields.name,
+                "description": fields.description,
+                "location name": fields.locationName
+            ], on: req.client)
+
+            if result.flagged {
+                req.logger.info("Pre-flight moderation failed: \(result.errorMessage)")
+                return TextModerationResponse(passed: false, reason: result.errorMessage)
+            }
+
+            return TextModerationResponse(passed: true, reason: nil)
+        } catch {
+            req.logger.error("Pre-flight moderation error: \(error)")
+            return TextModerationResponse(passed: true, reason: nil)
+        }
     }
 
     // MARK: - Helper Methods
