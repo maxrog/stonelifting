@@ -64,8 +64,7 @@ final class StoneFormViewModel {
         // Start text moderation
         async let moderationTask = stoneService.moderateText(
             name: request.name,
-            description: request.description,
-            locationName: request.locationName
+            description: request.description
         )
 
         // Start image upload in a cancellable task
@@ -128,7 +127,6 @@ final class StoneFormViewModel {
             imageUrl: finalImageURL,
             latitude: request.latitude,
             longitude: request.longitude,
-            locationName: request.locationName,
             isPublic: request.isPublic,
             liftingLevel: request.liftingLevel
         )

@@ -27,8 +27,7 @@ struct AddStoneView: View {
     @State private var weight: String = ""
     @State private var estimatedWeight: String = ""
     @State private var stoneType: StoneType = .granite
-    @State private var description: String = ""
-    @State private var locationName: String = ""
+    @State private var notes: String = ""
     @State private var isPublic = true
     @State private var liftingLevel: LiftingLevel = .notLifted
     @State private var includeLocation = true
@@ -66,7 +65,7 @@ struct AddStoneView: View {
 
                         StoneDetailsFormView(
                             stoneName: $stoneName,
-                            description: $description,
+                            notes: $notes,
                             liftingLevel: $liftingLevel,
                             focusedField: $focusedField
                         )
@@ -281,16 +280,6 @@ struct AddStoneView: View {
             }
 
             if includeLocation {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Location Name (Optional)")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-
-                    TextField("e.g., Central Park, Rocky Trail", text: $locationName)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .focused($focusedField, equals: .locationName)
-                }
-
                 // Show current location status if exists
                 if let location = locationService.currentLocation {
                     HStack {
@@ -675,11 +664,10 @@ struct AddStoneView: View {
                 weight: weight.isEmpty ? nil : Double(weight),
                 estimatedWeight: estimatedWeight.isEmpty ? nil : Double(estimatedWeight),
                 stoneType: stoneType.rawValue,
-                description: description.isEmpty ? nil : description,
+                description: notes.isEmpty ? nil : notes,
                 imageUrl: nil, // Will be set by ViewModel after upload
                 latitude: finalLatitude,
                 longitude: finalLongitude,
-                locationName: locationName.isEmpty ? nil : locationName,
                 isPublic: isPublic,
                 liftingLevel: liftingLevel.rawValue
             )
@@ -713,8 +701,7 @@ enum StoneFormField {
     case name
     case weight
     case estimatedWeight
-    case description
-    case locationName
+    case notes
 }
 
 // MARK: - Preview

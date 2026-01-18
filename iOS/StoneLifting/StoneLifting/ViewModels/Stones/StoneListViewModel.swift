@@ -88,8 +88,7 @@ final class StoneListViewModel {
         } else {
             return stones.filter { stone in
                 stone.name?.localizedCaseInsensitiveContains(searchText) == true ||
-                    stone.description?.localizedCaseInsensitiveContains(searchText) == true ||
-                    stone.locationName?.localizedCaseInsensitiveContains(searchText) == true
+                    stone.description?.localizedCaseInsensitiveContains(searchText) == true
             }
         }
     }

@@ -12,7 +12,7 @@ import SwiftUI
 /// Details input for stone creation
 struct StoneDetailsFormView: View {
     @Binding var stoneName: String
-    @Binding var description: String
+    @Binding var notes: String
     @Binding var liftingLevel: LiftingLevel
     @FocusState.Binding var focusedField: StoneFormField?
 
@@ -59,10 +59,14 @@ struct StoneDetailsFormView: View {
     private var detailsSection: some View {
         VStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                TextField("Description (optional)", text: $description, axis: .vertical)
+                TextField("Notes (optional)", text: $notes, axis: .vertical)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .focused($focusedField, equals: .description)
+                    .focused($focusedField, equals: .notes)
                     .lineLimit(3 ... 6)
+
+                Text("Add lifting or accessibility tips")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
             VStack(alignment: .leading, spacing: 8) {

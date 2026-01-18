@@ -92,9 +92,6 @@ struct Stone: Codable, Identifiable {
     /// Geographic longitude of the stone's location
     var longitude: Double?
 
-    /// Human-readable location name (e.g., "Central Park")
-    var locationName: String?
-
     /// Whether this stone is visible to other users
     var isPublic: Bool
 
@@ -135,9 +132,6 @@ struct CreateStoneRequest: Codable {
 
     /// Longitude coordinate
     let longitude: Double?
-
-    /// Human-readable location name
-    let locationName: String?
 
     /// Whether to make this stone visible to other users
     let isPublic: Bool

@@ -66,7 +66,7 @@ struct EditStoneView: View {
 
                         StoneDetailsFormView(
                             stoneName: nameBinding,
-                            description: descriptionBinding,
+                            notes: notesBinding,
                             liftingLevel: $stone.liftingLevel,
                             focusedField: $focusedField
                         )
@@ -235,7 +235,6 @@ struct EditStoneView: View {
                             // User toggled OFF - clear location
                             stone.latitude = nil
                             stone.longitude = nil
-                            stone.locationName = nil
                         } else if newValue && !stone.hasValidLocation {
                             // User toggled ON but no location
                             // Only auto-fetch if they have permissions, otherwise show button
@@ -247,19 +246,6 @@ struct EditStoneView: View {
             }
 
             if includeLocation {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Location Name (Optional)")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-
-                    TextField("e.g., Central Park, Rocky Trail", text: Binding(
-                        get: { stone.locationName ?? "" },
-                        set: { stone.locationName = $0.isEmpty ? nil : $0 }
-                    ))
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .focused($focusedField, equals: .locationName)
-                }
-
                 if let latitude = stone.latitude, let longitude = stone.longitude {
                     VStack(spacing: 8) {
                         HStack {
@@ -429,7 +415,7 @@ struct EditStoneView: View {
         )
     }
 
-    private var descriptionBinding: Binding<String> {
+    private var notesBinding: Binding<String> {
         Binding(
             get: { stone.description ?? "" },
             set: { stone.description = $0.isEmpty ? nil : $0 }
@@ -463,13 +449,6 @@ struct EditStoneView: View {
         )
     }
 
-    private var locationNameBinding: Binding<String> {
-        Binding(
-            get: { stone.locationName ?? "" },
-            set: { stone.locationName = $0.isEmpty ? nil : $0 }
-        )
-    }
-
     private var includeLocationBinding: Binding<Bool> {
         Binding(
             get: { stone.hasValidLocation },
@@ -477,7 +456,6 @@ struct EditStoneView: View {
                 if !includeLocation {
                     stone.latitude = nil
                     stone.longitude = nil
-                    stone.locationName = nil
                 }
             }
         )
@@ -612,7 +590,6 @@ struct EditStoneView: View {
                 imageUrl: stone.imageUrl,
                 latitude: stone.latitude,
                 longitude: stone.longitude,
-                locationName: stone.locationName,
                 isPublic: stone.isPublic,
                 liftingLevel: stone.liftingLevel.rawValue
             )
@@ -643,7 +620,6 @@ struct EditStoneView: View {
         imageUrl: nil,
         latitude: 40.7128,
         longitude: -74.0060,
-        locationName: "Central Park",
         isPublic: true,
         liftingLevel: .chest,
         createdAt: Date(),

@@ -92,16 +92,14 @@ final class StoneService {
     /// - Parameters:
     ///   - name: Stone name
     ///   - description: Stone description
-    ///   - locationName: Location name
     /// - Returns: Moderation response
     @MainActor
-    func moderateText(name: String?, description: String?, locationName: String?) async -> TextModerationResponse? {
+    func moderateText(name: String?, description: String?) async -> TextModerationResponse? {
         logger.info("Running pre-flight text moderation")
 
         let request = TextModerationRequest(
             name: name,
-            description: description,
-            locationName: locationName
+            description: description
         )
 
         do {
@@ -638,7 +636,6 @@ enum StoneError: Error, LocalizedError {
 struct TextModerationRequest: Codable {
     let name: String?
     let description: String?
-    let locationName: String?
 }
 
 struct TextModerationResponse: Codable {

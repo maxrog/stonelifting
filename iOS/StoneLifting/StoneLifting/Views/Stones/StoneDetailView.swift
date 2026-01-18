@@ -52,7 +52,7 @@ struct StoneDetailView: View {
                     stoneInfoSection
                     stoneStatsSection
 
-                    if stone.hasValidLocation || (stone.locationName != nil && !stone.locationName!.isEmpty) {
+                    if stone.hasValidLocation {
                         locationSection
                     }
 
@@ -208,10 +208,10 @@ struct StoneDetailView: View {
                 }
             }
 
-            // Description
+            // Notes
             if let description = stone.description, !description.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Description")
+                    Text("Notes")
                         .font(.headline)
 
                     Text(description)
@@ -345,53 +345,21 @@ struct StoneDetailView: View {
                 .cornerRadius(12)
 
                 // Location details
-                VStack(spacing: 8) {
-                    if let locationName = stone.locationName, !locationName.isEmpty {
-                        HStack {
-                            Image(systemName: "mappin.and.ellipse")
-                                .foregroundColor(.blue)
-
-                            Text(locationName)
-                                .font(.subheadline)
-
-                            Spacer()
-                        }
-                    }
-
-                    HStack {
-                        Image(systemName: "location")
-                            .foregroundColor(.secondary)
-
-                        Text("\(latitude, specifier: "%.4f"), \(longitude, specifier: "%.4f")")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        Spacer()
-
-                        Button("Open in Maps") {
-                            openInMaps(latitude: latitude, longitude: longitude)
-                        }
-                        .font(.caption)
-                    }
-                }
-            } else if let locationName = stone.locationName, !locationName.isEmpty {
-                // Show location name even without coordinates
                 HStack {
-                    Image(systemName: "mappin.and.ellipse")
-                        .foregroundColor(.blue)
+                    Image(systemName: "location")
+                        .foregroundColor(.secondary)
 
-                    Text(locationName)
-                        .font(.subheadline)
+                    Text("\(latitude, specifier: "%.4f"), \(longitude, specifier: "%.4f")")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
 
                     Spacer()
-                }
-                .padding(12)
-                .background(Color.blue.opacity(0.1))
-                .cornerRadius(8)
 
-                Text("GPS coordinates not available")
+                    Button("Open in Maps") {
+                        openInMaps(latitude: latitude, longitude: longitude)
+                    }
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                }
             }
         }
         .padding(20)
@@ -635,7 +603,6 @@ struct StatCard: View {
         imageUrl: nil,
         latitude: 40.7128,
         longitude: -74.0060,
-        locationName: "Central Park",
         isPublic: true,
         liftingLevel: .chest,
         createdAt: Date(),

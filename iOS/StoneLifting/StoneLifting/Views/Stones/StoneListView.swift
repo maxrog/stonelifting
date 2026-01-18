@@ -323,18 +323,12 @@ struct StoneRowView: View {
                     }
 
                     HStack {
-                        // Location - show if there's a location name OR valid coordinates
-                        if stone.hasValidLocation || (stone.locationName != nil && !stone.locationName!.isEmpty) {
+                        // Location - show if there are valid coordinates
+                        if stone.hasValidLocation, let lat = stone.latitude, let lon = stone.longitude {
                             Label {
-                                if let locationName = stone.locationName, !locationName.isEmpty {
-                                    Text(locationName)
-                                } else if let lat = stone.latitude, let lon = stone.longitude {
-                                    Text("\(lat, specifier: "%.2f"), \(lon, specifier: "%.2f")")
-                                } else {
-                                    Text("Unknown Location")
-                                }
+                                Text("\(lat, specifier: "%.2f"), \(lon, specifier: "%.2f")")
                             } icon: {
-                                Image(systemName: stone.hasValidLocation ? "location.fill" : "mappin")
+                                Image(systemName: "location.fill")
                             }
                             .font(.caption)
                             .foregroundColor(.secondary)

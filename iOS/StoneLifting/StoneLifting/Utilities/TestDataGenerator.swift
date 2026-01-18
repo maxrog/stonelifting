@@ -85,7 +85,6 @@ enum TestDataGenerator {
                 imageUrl: nil,
                 latitude: lat,
                 longitude: lon,
-                locationName: "Test Location \(i + 1)",
                 isPublic: isPublic,
                 liftingLevel: liftingLevel,
                 createdAt: Date().addingTimeInterval(-Double.random(in: 0...2_592_000)), // Random date within last 30 days
