@@ -14,7 +14,6 @@ struct CreateStone: AsyncMigration {
             .field("image_url", .string)
             .field("latitude", .double)
             .field("longitude", .double)
-            .field("location_name", .string)
             .field("is_public", .bool, .required)
             .field("lifting_level", .string, .required)
             .field("report_count", .int, .required, .sql(.default(0)))

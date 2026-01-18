@@ -30,10 +30,7 @@ final class Stone: Model, Content, @unchecked Sendable {
     
     @Field(key: "longitude")
     var longitude: Double?
-    
-    @Field(key: "location_name")
-    var locationName: String?
-    
+
     @Field(key: "is_public")
     var isPublic: Bool
     
@@ -66,7 +63,6 @@ final class Stone: Model, Content, @unchecked Sendable {
          imageUrl: String? = nil,
          latitude: Double? = nil,
          longitude: Double? = nil,
-         locationName: String? = nil,
          isPublic: Bool = true,
          liftingLevel: String,
          reportCount: Int = 0,
@@ -81,7 +77,6 @@ final class Stone: Model, Content, @unchecked Sendable {
         self.imageUrl = imageUrl
         self.latitude = latitude
         self.longitude = longitude
-        self.locationName = locationName
         self.isPublic = isPublic
         self.liftingLevel = liftingLevel
         self.reportCount = reportCount

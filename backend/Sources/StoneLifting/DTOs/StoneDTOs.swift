@@ -9,7 +9,6 @@ struct CreateStoneRequest: Content {
     let imageUrl: String?
     let latitude: Double?
     let longitude: Double?
-    let locationName: String?
     let isPublic: Bool
     let liftingLevel: String
 }
@@ -40,9 +39,6 @@ extension CreateStoneRequest: Validatable {
         // Longitude: valid range if provided
         validations.add("longitude", as: Double?.self, is: .nil || .range(-180...180), required: false)
 
-        // Location name: max 200 chars if provided
-        validations.add("locationName", as: String?.self, is: .nil || .count(...200), required: false)
-
         // Lifting level: max 50 chars (should be enum in future)
         validations.add("liftingLevel", as: String.self, is: .count(...50))
     }
@@ -58,7 +54,6 @@ struct StoneResponse: Content {
     let imageUrl: String?
     let latitude: Double?
     let longitude: Double?
-    let locationName: String?
     let isPublic: Bool
     let liftingLevel: String
     let createdAt: Date?
@@ -74,7 +69,6 @@ struct StoneResponse: Content {
         self.imageUrl = stone.imageUrl
         self.latitude = stone.latitude
         self.longitude = stone.longitude
-        self.locationName = stone.locationName
         self.isPublic = stone.isPublic
         self.liftingLevel = stone.liftingLevel
         self.createdAt = stone.createdAt
@@ -85,7 +79,6 @@ struct StoneResponse: Content {
 struct TextModerationRequest: Content {
     let name: String?
     let description: String?
-    let locationName: String?
 }
 
 struct TextModerationResponse: Content {

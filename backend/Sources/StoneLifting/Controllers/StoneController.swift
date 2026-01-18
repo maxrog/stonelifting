@@ -31,8 +31,7 @@ struct StoneController: RouteCollection {
             let moderationService = ModerationService(apiKey: openAIKey)
             let result = try await moderationService.moderateFields([
                 "stone name": createStone.name,
-                "description": createStone.description,
-                "location name": createStone.locationName
+                "notes": createStone.description
             ], on: req.client)
 
             if result.flagged {
@@ -49,7 +48,6 @@ struct StoneController: RouteCollection {
             imageUrl: createStone.imageUrl,
             latitude: createStone.latitude,
             longitude: createStone.longitude,
-            locationName: createStone.locationName,
             isPublic: createStone.isPublic,
             liftingLevel: createStone.liftingLevel,
             userID: try user.requireID()
@@ -155,8 +153,7 @@ struct StoneController: RouteCollection {
             let moderationService = ModerationService(apiKey: openAIKey)
             let result = try await moderationService.moderateFields([
                 "stone name": updateStone.name,
-                "description": updateStone.description,
-                "location name": updateStone.locationName
+                "notes": updateStone.description
             ], on: req.client)
 
             if result.flagged {
@@ -172,7 +169,6 @@ struct StoneController: RouteCollection {
         stone.imageUrl = updateStone.imageUrl
         stone.latitude = updateStone.latitude
         stone.longitude = updateStone.longitude
-        stone.locationName = updateStone.locationName
         stone.isPublic = updateStone.isPublic
         stone.liftingLevel = updateStone.liftingLevel
 
@@ -225,8 +221,7 @@ struct StoneController: RouteCollection {
         do {
             let result = try await moderationService.moderateFields([
                 "stone name": fields.name,
-                "description": fields.description,
-                "location name": fields.locationName
+                "notes": fields.description
             ], on: req.client)
 
             if result.flagged {
