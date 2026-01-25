@@ -56,8 +56,12 @@ struct MapView: View {
             .task(id: viewModel.mapFilter) {
                 await viewModel.setupMapView()
             }
-            .onChange(of: locationService.authorizationStatus) { _, newStatus in
-                if [.authorizedWhenInUse, .authorizedAlways].contains(newStatus) {
+            .onChange(of: locationService.authorizationStatus) { oldStatus, newStatus in
+                // Only auto-center when permissions are FIRST granted (not on every status check)
+                let wasNotAuthorized = oldStatus == .notDetermined || oldStatus == .denied || oldStatus == .restricted
+                let isNowAuthorized = [.authorizedWhenInUse, .authorizedAlways].contains(newStatus)
+
+                if wasNotAuthorized && isNowAuthorized {
                     Task {
                         await viewModel.centerOnUserLocation(zoomSpan: MKCoordinateSpan(latitudeDelta: 0.2, longitudeDelta: 0.2))
                         viewModel.isTrackingUser = true
