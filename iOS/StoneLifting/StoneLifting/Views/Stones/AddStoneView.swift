@@ -322,7 +322,6 @@ struct AddStoneView: View {
                     .cornerRadius(8)
                 }
 
-                // Always show all three location input options
                 VStack(spacing: 12) {
                     Button(action: {
                         // Clear manual coordinates when switching to GPS
@@ -565,10 +564,6 @@ struct AddStoneView: View {
     private func setupView() {
         logger.info("Setting up AddStoneView")
 
-        // Clear any cached location from previous views
-        // This ensures the user sees all three location input options
-        locationService.clearCachedLocation()
-
         // Handle location permissions
         switch locationService.authorizationStatus {
         case .notDetermined:
@@ -578,6 +573,17 @@ struct AddStoneView: View {
             logger.info("Location permissions denied - user can enable via 'Get Location' button if desired")
         case .authorizedWhenInUse, .authorizedAlways:
             logger.info("Location permissions granted")
+            // Auto-fetch location if toggle is on and no recent (< 30 seconds old) location exists
+            if includeLocation {
+                if let existing = locationService.currentLocation {
+                    let age = -existing.timestamp.timeIntervalSinceNow
+                    if age > 30 {
+                        requestLocation(userInitiated: false)
+                    }
+                } else {
+                    requestLocation(userInitiated: false)
+                }
+            }
         @unknown default:
             break
         }

@@ -14,6 +14,7 @@ import Observation
 /// Service responsible for location-related operations
 /// Handles GPS coordinates, location permissions, and nearby stone searches
 @Observable
+@MainActor
 final class LocationService: NSObject {
     // MARK: - Properties
 
@@ -44,10 +45,8 @@ final class LocationService: NSObject {
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
         locationManager.distanceFilter = 10 // Update every 10 meters
 
-        Task { @MainActor in
-            authorizationStatus = locationManager.authorizationStatus
-            isLocationEnabled = authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways
-        }
+        authorizationStatus = locationManager.authorizationStatus
+        isLocationEnabled = authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways
     }
 
     // MARK: - Permission Management
@@ -97,9 +96,7 @@ final class LocationService: NSObject {
             logger.warning("Cannot get location - not authorized")
             locationError = .notAuthorized
             if showAlertOnFailure {
-                await MainActor.run {
-                    showSettingsAlert = true
-                }
+                showSettingsAlert = true
             }
             return nil
         }
@@ -108,9 +105,7 @@ final class LocationService: NSObject {
             logger.warning("Cannot get location - services disabled")
             locationError = .servicesDisabled
             if showAlertOnFailure {
-                await MainActor.run {
-                    showSettingsAlert = true
-                }
+                showSettingsAlert = true
             }
             return nil
         }

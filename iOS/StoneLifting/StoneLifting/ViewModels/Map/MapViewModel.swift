@@ -98,11 +98,11 @@ final class MapViewModel {
         guard !hasRequestedLocation else { return }
         hasRequestedLocation = true
 
-        if locationService.authorizationStatus == .notDetermined {
-            locationService.requestLocationPermission()
+        if await locationService.authorizationStatus == .notDetermined {
+            await locationService.requestLocationPermission()
         }
 
-        if [.authorizedWhenInUse, .authorizedAlways].contains(locationService.authorizationStatus) {
+        if await [.authorizedWhenInUse, .authorizedAlways].contains(locationService.authorizationStatus) {
             isTrackingUser = true
             await centerOnUserLocation(zoomSpan: initialLoadSpan)
         }
