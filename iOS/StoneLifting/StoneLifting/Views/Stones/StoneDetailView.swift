@@ -19,6 +19,7 @@ struct StoneDetailView: View {
 
     private let stoneService = StoneService.shared
     private let authService = AuthService.shared
+    private let geocodingService = ReverseGeocodingService.shared
     private let logger = AppLogger()
 
     @State private var showingEdit = false
@@ -29,6 +30,7 @@ struct StoneDetailView: View {
     @State private var reportErrorMessage: String?
     @State private var selectedReportReason: String = ""
     @State private var reportRefreshTrigger = false
+    @State private var locationName: String?
 
     private var isOwnStone: Bool {
         stone.user.id == authService.currentUser?.id
@@ -119,6 +121,11 @@ struct StoneDetailView: View {
                 }
             } message: {
                 Text(reportErrorMessage ?? "")
+            }
+            .task {
+                if let lat = stone.latitude, let lon = stone.longitude {
+                    locationName = await geocodingService.locationName(for: lat, longitude: lon)
+                }
             }
         }
     }
@@ -345,20 +352,36 @@ struct StoneDetailView: View {
                 .cornerRadius(12)
 
                 // Location details
-                HStack {
-                    Image(systemName: "location")
-                        .foregroundColor(.secondary)
+                VStack(spacing: 8) {
+                    if let locationName = locationName {
+                        HStack {
+                            Image(systemName: "mappin.and.ellipse")
+                                .foregroundColor(.blue)
 
-                    Text("\(latitude, specifier: "%.4f"), \(longitude, specifier: "%.4f")")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                            Text(locationName)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
 
-                    Spacer()
-
-                    Button("Open in Maps") {
-                        openInMaps(latitude: latitude, longitude: longitude)
+                            Spacer()
+                        }
                     }
-                    .font(.caption)
+
+                    // Coordinates
+                    HStack {
+                        Image(systemName: "location")
+                            .foregroundColor(.secondary)
+
+                        Text("\(latitude, specifier: "%.4f"), \(longitude, specifier: "%.4f")")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Spacer()
+
+                        Button("Open in Maps") {
+                            openInMaps(latitude: latitude, longitude: longitude)
+                        }
+                        .font(.caption)
+                    }
                 }
             }
         }

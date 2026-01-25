@@ -269,6 +269,9 @@ struct StoneRowView: View {
     let stone: Stone
     let onTap: () -> Void
 
+    private let geocodingService = ReverseGeocodingService.shared
+    @State private var locationName: String?
+
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
@@ -324,14 +327,25 @@ struct StoneRowView: View {
 
                     HStack {
                         // Location - show if there are valid coordinates
-                        if stone.hasValidLocation, let lat = stone.latitude, let lon = stone.longitude {
+                        if stone.hasValidLocation {
                             Label {
-                                Text("\(lat, specifier: "%.2f"), \(lon, specifier: "%.2f")")
+                                if let locationName = locationName {
+                                    Text(locationName)
+                                } else if let lat = stone.latitude, let lon = stone.longitude {
+                                    Text("\(lat, specifier: "%.2f"), \(lon, specifier: "%.2f")")
+                                }
                             } icon: {
-                                Image(systemName: "location.fill")
+                                Image(systemName: "mappin.and.ellipse")
                             }
                             .font(.caption)
                             .foregroundColor(.secondary)
+                            .task {
+                                if locationName == nil,
+                                   let lat = stone.latitude,
+                                   let lon = stone.longitude {
+                                    locationName = await geocodingService.locationName(for: lat, longitude: lon)
+                                }
+                            }
                         }
 
                         Spacer()
