@@ -159,6 +159,18 @@
 - [ ] Widgets
 - [ ] Push notifications
 
+### Marketing & Web Presence
+- [ ] Landing Website
+  - Responsive design showcasing app features
+  - Smart platform detection (iOS/Android/Desktop)
+  - Direct App Store links for mobile users
+  - Email signup for Android waitlist / updates
+  - Screenshots and demo videos
+  - SEO optimization for discoverability
+  - Universal links integration (deeplink to app if installed)
+  - Prerequisites: Custom domain, Associated Domains configured
+  - Enables: Password autofill, universal links, handoff features
+
 ---
 
 ## Device Support
