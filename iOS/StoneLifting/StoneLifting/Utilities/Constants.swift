@@ -39,18 +39,21 @@ enum APIConfig {
 
     /// API endpoints
     enum Endpoints {
-        static let register = "/auth/register"
-        static let login = "/auth/login"
-        static let forgotPassword = "/auth/forgot-password"
-        static let resetPassword = "/auth/reset-password"
-        static let checkUsername = "/auth/check-username"
-        static let checkEmail = "/auth/check-email"
+        // OAuth authentication
+        static let appleSignIn = "/auth/apple"
+        static let googleSignIn = "/auth/google"
+
+        // User endpoints
         static let me = "/me"
         static let stats = "/stats"
+
+        // Stone endpoints
         static let stones = "/stones"
         static let publicStones = "/stones/public"
         static let nearbyStones = "/stones/nearby"
         static let moderateText = "/stones/moderate-text"
+
+        // Health check
         static let health = "/health"
     }
 

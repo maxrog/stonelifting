@@ -8,11 +8,16 @@ struct CreateUser: AsyncMigration {
             .id()
             .field("username", .string, .required)
             .field("email", .string, .required)
-            .field("password_hash", .string, .required)
+            .field("password_hash", .string)
+            .field("apple_id", .string)
+            .field("google_id", .string)
+            .field("auth_provider", .string, .required, .sql(.default("apple")))
             .field("created_at", .datetime)
             .field("updated_at", .datetime)
             .unique(on: "username")
             .unique(on: "email")
+            .unique(on: "apple_id")
+            .unique(on: "google_id")
             .create()
     }
 

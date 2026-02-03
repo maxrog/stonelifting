@@ -14,6 +14,9 @@ import SwiftData
 struct StoneLiftingApp: App {
     private let networkMonitor = NetworkMonitor.shared
     private let offlineSyncService = OfflineSyncService.shared
+    private let googleSignInService = GoogleSignInService.shared
+    private let appleSignInService = AppleSignInService.shared
+    private let authService = AuthService.shared
 
     let sharedContainer: ModelContainer = {
         do {
@@ -32,11 +35,39 @@ struct StoneLiftingApp: App {
     init() {
         StoneCacheService.shared.configure(with: sharedContainer)
         OfflineSyncService.shared.configure(with: sharedContainer)
+
+        // Check Apple Sign In credential state at app launch
+        Task { @MainActor in
+            if let credentialState = await AppleSignInService.shared.checkCredentialState() {
+                switch credentialState {
+                case .authorized:
+                    break
+                case .revoked, .notFound:
+                    AuthService.shared.logout()
+                case .transferred:
+                    break
+                @unknown default:
+                    break
+                }
+            }
+        }
+
+        // Restore previous Google Sign In session if available
+        Task { @MainActor in
+            if let tokens = await GoogleSignInService.shared.restorePreviousSignIn() {
+                // Silently authenticate with backend using restored tokens
+                _ = await AuthService.shared.loginWithGoogle()
+            }
+        }
     }
 
     var body: some Scene {
         WindowGroup {
             RootView()
+                .onOpenURL { url in
+                    // Handle Google Sign In OAuth redirects
+                    _ = googleSignInService.handleURL(url)
+                }
         }
         .modelContainer(sharedContainer)
     }

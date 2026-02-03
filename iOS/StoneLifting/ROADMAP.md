@@ -60,8 +60,21 @@
 ## Platform & Infrastructure
 
 ### Authentication & Backend
-- [ ] Password Reset
-- [ ] Apple/Google/Phone Sign In
+- [ ] Phone Number Sign In (low priority - OAuth already includes phone verification)
+
+### Security & Anti-Spam (PRE-LAUNCH CRITICAL)
+- [ ] Fix report system - Unique reporter tracking (CRITICAL BUG - 3-4 hours)
+- [ ] Rate limiting - Stone creation (10/day new users, 50/day established - 2 hours)
+- [ ] Rate limiting - API endpoints (prevent abuse/scrapers - 3-4 hours)
+- [ ] Rate limiting - OAuth endpoints (prevent token injection - 1 hour)
+- [ ] New account restrictions (<7 days = reduced limits - 1-2 hours)
+- [ ] Duplicate stone detection (same image/location - Phase 2)
+- [ ] Location validation (GPS spoofing detection - Phase 2)
+- [ ] Admin moderation dashboard (Phase 3)
+
+**Total Pre-Launch: ~9-11 hours** | See `/SECURITY_ANTI_SPAM.md` for implementation guide
+
+### Infrastructure
 - [ ] Associated Domains (password autofill, universal links, handoff - requires web interface first)
 - [ ] Database indexes
 - [ ] Sentry error tracking

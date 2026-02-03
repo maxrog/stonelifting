@@ -18,19 +18,21 @@ struct User: Codable, Identifiable {
     let createdAt: Date?
 }
 
-// MARK: - Authentication Request Models
+// MARK: - OAuth Authentication Request Models
 
-/// Request payload for creating a new user account
-struct CreateUserRequest: Codable {
-    let username: String // unique
-    let email: String // unique
-    let password: String // hashed on backend
+/// Request payload for Apple Sign In
+struct AppleSignInRequest: Codable {
+    let identityToken: String
+    let authorizationCode: String
+    let fullName: PersonNameComponents?
+    let email: String?
+    let nonce: String
 }
 
-/// Request payload for user login
-struct LoginRequest: Codable {
-    let username: String
-    let password: String
+/// Request payload for Google Sign In
+struct GoogleSignInRequest: Codable {
+    let idToken: String
+    let accessToken: String?
 }
 
 /// Response from successful authentication
@@ -38,23 +40,6 @@ struct LoginRequest: Codable {
 struct AuthResponse: Codable {
     let user: User
     let token: String
-}
-
-/// Request payload for initiating password reset
-struct ForgotPasswordRequest: Codable {
-    let email: String
-}
-
-/// Request payload for completing password reset
-struct ResetPasswordRequest: Codable {
-    /// Email address of the account
-    let email: String
-
-    /// Reset token from email link
-    let token: String
-
-    /// New password to set
-    let newPassword: String
 }
 
 /// Generic message response

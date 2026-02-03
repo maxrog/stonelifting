@@ -2,7 +2,7 @@
 //  UserAvatarView.swift
 //  StoneLifting
 //
-//  Created by Claude on 1/7/26.
+//  Created by Max Rogers on 1/7/26.
 //
 
 import SwiftUI

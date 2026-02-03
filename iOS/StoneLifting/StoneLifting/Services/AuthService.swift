@@ -31,73 +31,37 @@ final class AuthService {
         checkAuthenticationStatus()
     }
 
-    // MARK: - Authentication Methods
+    // MARK: - OAuth Authentication Methods
 
-    /// Register a new user account
+    /// Login with Apple Sign In
     /// - Parameters:
-    ///   - username: Desired username
-    ///   - email: User's email address
-    ///   - password: User's password
+    ///   - identityToken: Apple identity token (JWT)
+    ///   - authorizationCode: Apple authorization code
+    ///   - fullName: User's full name (optional, only provided on first sign in)
+    ///   - email: User's email (optional, only provided on first sign in or if user chose to share)
+    ///   - nonce: Unhashed nonce for server-side verification (prevents replay attacks)
     /// - Returns: Success status
     @MainActor
-    func register(username: String, email: String, password: String) async -> Bool {
+    func loginWithApple(
+        identityToken: String,
+        authorizationCode: String,
+        fullName: PersonNameComponents?,
+        email: String?,
+        nonce: String
+    ) async -> Bool {
         authError = nil
 
         do {
-            let request = CreateUserRequest(
-                username: username,
+            let request = AppleSignInRequest(
+                identityToken: identityToken,
+                authorizationCode: authorizationCode,
+                fullName: fullName,
                 email: email,
-                password: password
+                nonce: nonce
             )
 
-            try await registerUser(request: request)
-
-            // Auto-login after successful registration
-            let loginSuccess = await login(username: username, password: password)
-
-            return loginSuccess
-
-        } catch {
-            await handleAuthError(error)
-            return false
-        }
-    }
-
-    private func registerUser(request: CreateUserRequest) async throws {
-        guard let url = URL(string: APIConfig.baseURL + APIConfig.Endpoints.register) else {
-            throw APIError.invalidURL
-        }
-
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.setValue(APIConfig.Headers.applicationJSON, forHTTPHeaderField: APIConfig.Headers.contentType)
-        urlRequest.httpBody = try JSONEncoder().encode(request)
-
-        let (_, response) = try await URLSession.shared.data(for: urlRequest)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 201
-        else {
-            logger.error("Error registering user", error: APIError.badRequest)
-            throw APIError.badRequest
-        }
-        logger.info("Successfully registered user")
-    }
-
-    /// Login with username and password
-    /// - Parameters:
-    ///   - username: User's username
-    ///   - password: User's password
-    /// - Returns: Success status
-    @MainActor
-    func login(username: String, password: String) async -> Bool {
-        authError = nil
-
-        do {
-            let request = LoginRequest(username: username, password: password)
-
             let response: AuthResponse = try await apiService.post(
-                endpoint: APIConfig.Endpoints.login,
+                endpoint: APIConfig.Endpoints.appleSignIn,
                 body: request,
                 responseType: AuthResponse.self
             )
@@ -106,10 +70,10 @@ final class AuthService {
             currentUser = response.user
             isAuthenticated = true
 
-            logger.info("Successfully logged in user with id: \(response.user.id), username: \(response.user.username)")
+            logger.info("Successfully logged in with Apple - user id: \(response.user.id), username: \(response.user.username)")
 
             Task {
-                logger.info("Fetching stones after login")
+                logger.info("Fetching stones after Apple login")
                 async let userFetch = StoneService.shared.fetchUserStones(shouldCache: true)
                 async let publicFetch = StoneService.shared.fetchPublicStones(shouldCache: true)
                 _ = await (userFetch, publicFetch)
@@ -119,7 +83,50 @@ final class AuthService {
 
         } catch {
             await handleAuthError(error)
-            logger.error("Error logging in user: \(username)", error: error)
+            logger.error("Error logging in with Apple", error: error)
+            return false
+        }
+    }
+
+    /// Login with Google Sign In
+    /// - Returns: Success status
+    @MainActor
+    func loginWithGoogle() async -> Bool {
+        authError = nil
+
+        do {
+            // Get Google credentials using GoogleSignInService
+            let (idToken, accessToken) = try await GoogleSignInService.shared.signIn()
+
+            let request = GoogleSignInRequest(
+                idToken: idToken,
+                accessToken: accessToken
+            )
+
+            let response: AuthResponse = try await apiService.post(
+                endpoint: APIConfig.Endpoints.googleSignIn,
+                body: request,
+                responseType: AuthResponse.self
+            )
+
+            apiService.setAuthToken(response.token)
+            currentUser = response.user
+            isAuthenticated = true
+
+            logger.info("Successfully logged in with Google - user id: \(response.user.id), username: \(response.user.username)")
+
+            Task {
+                logger.info("Fetching stones after Google login")
+                async let userFetch = StoneService.shared.fetchUserStones(shouldCache: true)
+                async let publicFetch = StoneService.shared.fetchPublicStones(shouldCache: true)
+                _ = await (userFetch, publicFetch)
+            }
+
+            return true
+
+        } catch {
+            await handleAuthError(error)
+            logger.error("Error logging in with Google", error: error)
             return false
         }
     }
@@ -188,224 +195,10 @@ final class AuthService {
         )
     }
 
-    // MARK: - Password Reset
-
-    /// Send password reset email
-    /// - Parameter email: Email address to send reset link to
-    /// - Returns: Success status and message
-    @MainActor
-    func sendPasswordReset(email: String) async -> (success: Bool, message: String) {
-        // Validate email format first
-        let emailValidation = validateEmail(email)
-        guard emailValidation.isValid else {
-            return (false, emailValidation.errorMessage ?? "Invalid email format")
-        }
-
-        do {
-            let request = ForgotPasswordRequest(email: email)
-
-            let response: MessageResponse = try await apiService.post(
-                endpoint: APIConfig.Endpoints.forgotPassword,
-                body: request,
-                responseType: MessageResponse.self
-            )
-            logger.info("Sent password reset to \(email), response: \(response.message)")
-            return (true, response.message)
-
-        } catch {
-            let errorMessage = (error as? APIError)?.localizedDescription ?? "Failed to send reset email"
-            logger.error("Failed to send password reset to \(email)", error: error)
-            return (false, errorMessage)
-        }
-    }
-
-    /// Reset password with token
-    /// - Parameters:
-    ///   - email: Email address of the account
-    ///   - token: Reset token from email
-    ///   - newPassword: New password to set
-    /// - Returns: Success status and message
-    @MainActor
-    func resetPassword(email: String, token: String, newPassword: String) async -> (success: Bool, message: String) {
-        // Validate new password
-        let passwordValidation = validatePassword(newPassword)
-        guard passwordValidation.isValid else {
-            return (false, passwordValidation.errorMessage ?? "Invalid password")
-        }
-
-        do {
-            let request = ResetPasswordRequest(
-                email: email,
-                token: token,
-                newPassword: newPassword
-            )
-
-            let response: MessageResponse = try await apiService.post(
-                endpoint: APIConfig.Endpoints.resetPassword,
-                body: request,
-                responseType: MessageResponse.self
-            )
-            logger.info("Reset password for email \(email), response: \(response.message)")
-            return (true, response.message)
-
-        } catch {
-            let errorMessage = (error as? APIError)?.localizedDescription ?? "Failed to reset password"
-            logger.error("Failed to reset password for \(email)", error: error)
-            return (false, errorMessage)
-        }
-    }
-
-    // MARK: - Availability Checking
-
-    /// Check if username is available
-    /// - Parameter username: Username to check
-    /// - Returns: True if available, false if taken
-    func checkUsernameAvailability(_ username: String) async -> Bool {
-        guard validateUsername(username).isValid else {
-            logger.info("Checking username availability but invalid username \(username)")
-            return false
-        }
-
-        do {
-            let response: AvailabilityResponse = try await apiService.get(
-                endpoint: "\(APIConfig.Endpoints.checkUsername)/\(username)",
-                requiresAuth: false,
-                type: AvailabilityResponse.self
-            )
-            logger.info("Checking username availability for \(username), available: \(response.available)")
-            return response.available
-        } catch {
-            logger.error("Error checking username availability, return true to avoid blocking", error: error)
-            return true
-        }
-    }
-
-    /// Check if email is available
-    /// - Parameter email: Email to check
-    /// - Returns: True if available, false if taken
-    func checkEmailAvailability(_ email: String) async -> Bool {
-        guard validateEmail(email).isValid else {
-            logger.info("Checking email availability but invalid email \(email)")
-            return false
-        }
-
-        do {
-            let response: AvailabilityResponse = try await apiService.get(
-                endpoint: "\(APIConfig.Endpoints.checkEmail)/\(email)",
-                requiresAuth: false,
-                type: AvailabilityResponse.self
-            )
-            logger.info("Checking email availability for \(email), available: \(response.available)")
-            return response.available
-        } catch {
-            logger.error("Error checking email availability, return true to avoid blocking", error: error)
-            return true
-        }
-    }
-
     // MARK: - Error Handling
 
     func clearError() {
         authError = nil
-    }
-
-    // MARK: - Validation
-
-    /// Validate username format
-    /// - Parameter username: Username to validate
-    /// - Returns: Validation result
-    func validateUsername(_ username: String) -> ValidationResult {
-        logger.info("Validating username \(username)...")
-
-        if username.isEmpty {
-            let result = ValidationResult.invalid("Username cannot be empty")
-            logger.error("Username: \(username) invalid, error: \(result.errorMessage ?? "")")
-            return result
-        }
-
-        if username.count < 3 {
-            let result = ValidationResult.invalid("Username must be at least 3 characters")
-            logger.error("Username: \(username) invalid, error: \(result.errorMessage ?? "")")
-            return result
-        }
-
-        if username.count > 20 {
-            let result = ValidationResult.invalid("Username cannot exceed 20 characters")
-            logger.error("Username: \(username) invalid, error: \(result.errorMessage ?? "")")
-            return result
-        }
-
-        // Check for valid characters (alphanumeric and underscore)
-        let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_"))
-        if username.rangeOfCharacter(from: allowedCharacters.inverted) != nil {
-            let result = ValidationResult.invalid("Username can only contain letters, numbers, and underscores")
-            logger.error("Username: \(username) invalid, error: \(result.errorMessage ?? "")")
-            return result
-        }
-
-        logger.info("Username: \(username) valid")
-        return .valid
-    }
-
-    /// Validate email format
-    /// - Parameter email: Email to validate
-    /// - Returns: Validation result
-    func validateEmail(_ email: String) -> ValidationResult {
-        logger.info("Validating email \(email)...")
-        if email.isEmpty {
-            let result = ValidationResult.invalid("Email cannot be empty")
-            logger.error("Email: \(email) invalid, error: \(result.errorMessage ?? "")")
-            return result
-        }
-
-        let emailRegex = #"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"#
-        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
-
-        if !emailPredicate.evaluate(with: email) {
-            let result = ValidationResult.invalid("Please enter a valid email address")
-            logger.error("Email: \(email) invalid, error: \(result.errorMessage ?? "")")
-            return result
-        }
-
-        logger.info("Email: \(email) valid")
-        return .valid
-    }
-
-    /// Validate password strength
-    /// - Parameter password: Password to validate
-    /// - Returns: Validation result
-    func validatePassword(_ password: String) -> ValidationResult {
-        logger.info("Validating password...")
-        if password.isEmpty {
-            let result = ValidationResult.invalid("Password cannot be empty")
-            logger.error("Password invalid, error: \(result.errorMessage ?? "")")
-            return result
-        }
-
-        if password.count < 8 {
-            let result = ValidationResult.invalid("Password must be at least 8 characters")
-            logger.error("Password invalid, error: \(result.errorMessage ?? "")")
-            return result
-        }
-
-        if password.count > 128 {
-            let result = ValidationResult.invalid("Password cannot exceed 128 characters")
-            logger.error("Password invalid, error: \(result.errorMessage ?? "")")
-            return result
-        }
-
-        // Check for at least one letter and one number
-        let hasLetter = password.rangeOfCharacter(from: .letters) != nil
-        let hasNumber = password.rangeOfCharacter(from: .decimalDigits) != nil
-
-        if !hasLetter || !hasNumber {
-            let result = ValidationResult.invalid("Password must contain at least one letter and one number")
-            logger.error("Password invalid, error: \(result.errorMessage ?? "")")
-            return result
-        }
-
-        logger.info("Password valid")
-        return .valid
     }
 }
 
@@ -483,25 +276,5 @@ enum AuthError: Error, LocalizedError {
         case let .unknownError(message):
             return message
         }
-    }
-}
-
-/// Validation result for form inputs
-enum ValidationResult {
-    case valid
-    case invalid(String)
-
-    var isValid: Bool {
-        if case .valid = self {
-            return true
-        }
-        return false
-    }
-
-    var errorMessage: String? {
-        if case let .invalid(message) = self {
-            return message
-        }
-        return nil
     }
 }

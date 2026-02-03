@@ -10,12 +10,10 @@ func routes(_ app: Application) throws {
         return ["status": "healthy"]
     }
     
-    // Authentication routes
+    // Authentication routes (OAuth-only)
     let authRoutes = app.grouped("auth")
-    authRoutes.post("register", use: register)
-    authRoutes.post("login", use: login)
-    authRoutes.post("forgot-password", use: forgotPassword)
-    authRoutes.post("reset-password", use: resetPassword)
+    authRoutes.post("apple", use: appleSignIn)
+    authRoutes.post("google", use: googleSignIn)
     
     // Availability check routes (no auth required)
     authRoutes.get("check-username", ":username", use: checkUsernameAvailability)
@@ -32,119 +30,130 @@ func routes(_ app: Application) throws {
     try app.register(collection: StoneController())
 }
 
-// MARK: - Auth Handlers
+// MARK: - OAuth Auth Handlers
 
-// TODO Text code verification
-func register(req: Request) async throws -> HTTPStatus {
-    try CreateUserRequest.validate(content: req)
-    let create = try req.content.decode(CreateUserRequest.self)
+func appleSignIn(req: Request) async throws -> LoginResponse {
+    try AppleSignInRequest.validate(content: req)
+    let appleRequest = try req.content.decode(AppleSignInRequest.self)
+
+    // Verify Apple identity token with proper token verification and nonce validation
+    let oauthService = OAuthVerificationService(client: req.client)
+    let appleUserInfo = try await oauthService.verifyAppleToken(appleRequest.identityToken, nonce: appleRequest.nonce)
+
+    // Check if user already exists with this Apple ID
+    if let existingUser = try await User.query(on: req.db)
+        .filter(\.$appleId == appleUserInfo.userID)
+        .first() {
+        // User exists, log them in
+        req.logger.info("Apple Sign In: Existing user logged in - userID: \(appleUserInfo.userID)")
+        let token = try AuthController.generateToken(for: existingUser, on: req)
+        return LoginResponse(user: UserResponse(user: existingUser), token: token)
+    }
+
+    // New user - create account
+    // Use email from token or from request, or generate private relay email
+    let email = appleUserInfo.email ?? appleRequest.email ?? "\(appleUserInfo.userID)@privaterelay.appleid.com"
+    let baseUsername = email.components(separatedBy: "@").first ?? "user"
+    let username = try await generateUniqueUsername(baseUsername, on: req.db)
 
     // Moderate username for inappropriate content
     if let openAIKey = Environment.get("OPENAI_API_KEY") {
         let moderationService = ModerationService(apiKey: openAIKey)
-        let result = try await moderationService.moderateText(create.username, on: req.client)
+        let result = try await moderationService.moderateText(username, on: req.client)
 
         if result.flagged {
-            throw Abort(.badRequest, reason: "Username contains inappropriate content. Please choose a different username.")
+            // If flagged, use a generic username
+            let fallbackUsername = try await generateUniqueUsername("user", on: req.db)
+            req.logger.warning("Apple Sign In: Username '\(username)' flagged, using '\(fallbackUsername)' instead")
         }
-    } else {
-        req.logger.warning("OPENAI_API_KEY not set - skipping content moderation")
-    }
-
-    // Check if user exists
-    let existingUser = try await User.query(on: req.db)
-        .group(.or) { group in
-            group.filter(\.$username == create.username)
-            group.filter(\.$email == create.email)
-        }
-        .first()
-
-    if existingUser != nil {
-        throw Abort(.conflict, reason: "Username or email already exists")
     }
 
     let user = User(
-        username: create.username,
-        email: create.email,
-        passwordHash: try Bcrypt.hash(create.password)
+        username: username,
+        email: email,
+        appleId: appleUserInfo.userID,
+        authProvider: .apple
     )
 
     try await user.save(on: req.db)
-    return .created
-}
+    req.logger.info("Apple Sign In: New user created - userID: \(appleUserInfo.userID), username: \(username)")
 
-func login(req: Request) async throws -> LoginResponse {
-    try LoginRequest.validate(content: req)
-    let loginRequest = try req.content.decode(LoginRequest.self)
-
-    guard let user = try await User.query(on: req.db)
-        .filter(\.$username == loginRequest.username)
-        .first() else {
-        throw Abort(.unauthorized)
-    }
-    
-    guard try user.verify(password: loginRequest.password) else {
-        throw Abort(.unauthorized)
-    }
-    
     let token = try AuthController.generateToken(for: user, on: req)
-    
-    return LoginResponse(
-        user: UserResponse(user: user),
-        token: token
+    return LoginResponse(user: UserResponse(user: user), token: token)
+}
+
+func googleSignIn(req: Request) async throws -> LoginResponse {
+    try GoogleSignInRequest.validate(content: req)
+    let googleRequest = try req.content.decode(GoogleSignInRequest.self)
+
+    // Verify Google ID token with Google's verification endpoint
+    let oauthService = OAuthVerificationService(client: req.client)
+    let googleUserInfo = try await oauthService.verifyGoogleToken(googleRequest.idToken)
+
+    // Check if user already exists with this Google ID
+    if let existingUser = try await User.query(on: req.db)
+        .filter(\.$googleId == googleUserInfo.userID)
+        .first() {
+        // User exists, log them in
+        req.logger.info("Google Sign In: Existing user logged in - userID: \(googleUserInfo.userID)")
+        let token = try AuthController.generateToken(for: existingUser, on: req)
+        return LoginResponse(user: UserResponse(user: existingUser), token: token)
+    }
+
+    // New user - create account
+    let baseUsername = googleUserInfo.email.components(separatedBy: "@").first ?? "user"
+    let username = try await generateUniqueUsername(baseUsername, on: req.db)
+
+    // Moderate username for inappropriate content
+    if let openAIKey = Environment.get("OPENAI_API_KEY") {
+        let moderationService = ModerationService(apiKey: openAIKey)
+        let result = try await moderationService.moderateText(username, on: req.client)
+
+        if result.flagged {
+            // If flagged, use a generic username
+            let fallbackUsername = try await generateUniqueUsername("user", on: req.db)
+            req.logger.warning("Google Sign In: Username '\(username)' flagged, using '\(fallbackUsername)' instead")
+        }
+    }
+
+    let user = User(
+        username: username,
+        email: googleUserInfo.email,
+        googleId: googleUserInfo.userID,
+        authProvider: .google
     )
-}
 
-func forgotPassword(req: Request) async throws -> MessageResponse {
-    try ForgotPasswordRequest.validate(content: req)
-    let request = try req.content.decode(ForgotPasswordRequest.self)
-
-    // Check if user exists
-    guard try await User.query(on: req.db)
-        .filter(\.$email == request.email)
-        .first() != nil else {
-        // Don't reveal if email exists or not for security
-        return MessageResponse(message: "If an account with that email exists, you will receive a password reset link.")
-    }
-    
-    // TODO
-    // Generate reset token (in production, this should be a secure random token)
-    _ = UUID().uuidString
-    
-    // TODO
-    // Store reset token with expiration (you'd need a PasswordResetToken model in production)
-
-    // In production, send email with reset link
-    // await emailService.sendPasswordResetEmail(to: user.email, token: resetToken)
-    
-    return MessageResponse(message: "If an account with that email exists, you will receive a password reset link.")
-}
-
-func resetPassword(req: Request) async throws -> MessageResponse {
-    try ResetPasswordRequest.validate(content: req)
-    let request = try req.content.decode(ResetPasswordRequest.self)
-
-    // TODO
-    // In production, validate the reset token and check expiration
-    // For demo purposes, we'll accept any token that looks like a UUID
-    guard UUID(uuidString: request.token) != nil else {
-        throw Abort(.badRequest, reason: "Invalid or expired reset token")
-    }
-    
-    // TODO
-    // Find user by email (in production, find by token)
-    guard let user = try await User.query(on: req.db)
-        .filter(\.$email == request.email)
-        .first() else {
-        throw Abort(.badRequest, reason: "Invalid reset request")
-    }
-    
-    // Update password
-    user.passwordHash = try Bcrypt.hash(request.newPassword)
     try await user.save(on: req.db)
-    
-    return MessageResponse(message: "Password has been reset successfully")
+    req.logger.info("Google Sign In: New user created - userID: \(googleUserInfo.userID), username: \(username)")
+
+    let token = try AuthController.generateToken(for: user, on: req)
+    return LoginResponse(user: UserResponse(user: user), token: token)
 }
+
+// MARK: - Helper Functions
+
+/// Generate a unique username by appending numbers if needed
+private func generateUniqueUsername(_ base: String, on db: any Database) async throws -> String {
+    // Sanitize base username
+    let sanitized = base.lowercased()
+        .filter { $0.isLetter || $0.isNumber || $0 == "_" }
+        .prefix(20)
+
+    var username = String(sanitized)
+    if username.isEmpty {
+        username = "user"
+    }
+
+    var counter = 1
+    while try await User.query(on: db).filter(\.$username == username).first() != nil {
+        username = "\(sanitized)\(counter)"
+        counter += 1
+    }
+
+    return username
+}
+
+// MARK: - Availability Check Handlers
 
 func checkUsernameAvailability(req: Request) async throws -> AvailabilityResponse {
     guard let username = req.parameters.get("username") else {
