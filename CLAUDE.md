@@ -1,11 +1,51 @@
-# StoneLifting iOS App - Development Standards
+# StoneAtlas iOS App - Development Standards
 
 ## Overview
-StoneLifting is a production iOS application for tracking stone lifting activities. This document defines code quality standards, architectural patterns, and best practices for the project.
+StoneAtlas is a production iOS application for discovering, documenting, and tracking stone lifting achievements. This document defines code quality standards, architectural patterns, and best practices for the project.
 
 **Related Documentation:**
 - **Feature Roadmap**: See `iOS/StoneLifting/ROADMAP.md` for planned features and development automation tools
 - **Development Commands**: Custom slash commands are in `.claude/commands/` directory
+- **README**: See `README.md` for project overview, setup instructions, and user-facing documentation
+
+---
+
+## Project Paths
+
+**Key File Locations:**
+```
+/Users/maxrogers/Personal/iOS/stoneatlas/
+├── README.md                                          # Project overview & setup
+├── CLAUDE.md                                          # This file - development standards
+├── iOS/StoneLifting/
+│   ├── StoneLifting.xcodeproj/                       # Xcode project (open this)
+│   │   └── project.pbxproj                           # Project configuration
+│   ├── ROADMAP.md                                    # Feature roadmap
+│   └── StoneLifting/
+│       ├── App/StoneAtlasApp.swift                   # App entry point (@main)
+│       ├── Models/                                   # Data models
+│       ├── Views/                                    # SwiftUI views
+│       ├── ViewModels/                               # View models
+│       ├── Services/                                 # Business logic & API
+│       └── Utilities/
+│           └── Constants.swift                       # API config, environment selection
+├── backend/                                          # Vapor backend
+│   └── Sources/StoneLifting/
+│       ├── Controllers/AuthController.swift          # JWT generation & auth
+│       ├── Models/                                   # Database models
+│       ├── Services/                                 # Business logic
+│       └── Migrations/                               # Database migrations
+└── .claude/commands/                                 # Custom slash commands
+```
+
+**Quick Commands:**
+- **Build iOS app**: Open `iOS/StoneLifting/StoneLifting.xcodeproj` in Xcode, press `⌘+B`
+- **Run iOS app**: Press `⌘+R` in Xcode (requires physical device for LiDAR)
+- **Run backend**: `cd backend && swift run`
+- **Run tests**: Press `⌘+U` in Xcode
+
+**Environment Configuration:**
+- iOS API endpoint: `iOS/StoneLifting/StoneLifting/Utilities/Constants.swift:25`
 
 ---
 
@@ -728,6 +768,40 @@ Before submitting to App Store:
 - [ ] Performance profiled with Instruments
 - [ ] Memory leaks checked
 - [ ] Thread Sanitizer run
+- [ ] **README.md updated** if significant features were added
+
+### README Maintenance
+
+**When to Update README.md:**
+Update the README when implementing significant features that should be documented for users or developers:
+
+- **New major features** (e.g., AR weight estimation, map clustering, offline mode)
+- **New authentication methods** (e.g., adding OAuth providers)
+- **Technology stack changes** (e.g., new frameworks, dependencies, minimum iOS version)
+- **Setup/installation changes** (e.g., new environment variables, build steps)
+- **Architecture changes** (e.g., new services, major refactors)
+
+**What to Update in README:**
+- **Features section**: Add bullet point describing the new feature from a user perspective
+- **Tech Stack section**: Update if new technologies/frameworks were added
+- **Quick Start**: Update if setup steps changed
+- **Getting Started**: Update prerequisites or setup instructions if needed
+- **Project Structure**: Update if major directories/components were added
+
+**Example:**
+```markdown
+# After adding AR weight estimation feature:
+
+## Features
+- **AR Weight Estimation**: Estimate stone weight using LiDAR and AR technology  ← ADD THIS
+- **Stone Discovery**: Find nearby stones using interactive maps
+...
+```
+
+**Process:**
+1. Implement feature
+2. Update README.md with user-facing description
+3. Commit changes together: `git commit -m "feat: add AR weight estimation + update README"`
 
 ---
 
@@ -793,8 +867,8 @@ xcodebuild test -scheme StoneLifting -enableCodeCoverage YES
 
 ---
 
-**Last Updated:** 2026-01-07
-**Project:** StoneLifting iOS App
+**Last Updated:** 2026-02-04
+**Project:** StoneAtlas iOS App
 **Language:** Swift 6.0
 **Platform:** iOS 18.0+
 **Framework:** SwiftUI
