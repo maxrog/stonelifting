@@ -82,17 +82,17 @@ enum AppConfig {
 // MARK: User Defaults
 
 enum UserDefaultsKeys {
-    static let hasCompletedOnboarding = "com.marfodub.StoneLifting.has_completed_onboarding"
+    static let hasCompletedOnboarding = "com.marfodub.StoneAtlas.has_completed_onboarding"
 
-    static let preferredWeightUnit = "com.marfodub.StoneLifting.preferred_weight_unit"
-    static let preferredDistanceUnit = "com.marfodub.StoneLifting.preferred_distance_unit"
+    static let preferredWeightUnit = "com.marfodub.StoneAtlas.preferred_weight_unit"
+    static let preferredDistanceUnit = "com.marfodub.StoneAtlas.preferred_distance_unit"
 
-    static let enableLocationServices = "com.marfodub.StoneLifting.enable_location_services"
-    static let enableNotifications = "com.marfodub.StoneLifting.enable_notifications"
+    static let enableLocationServices = "com.marfodub.StoneAtlas.enable_location_services"
+    static let enableNotifications = "com.marfodub.StoneAtlas.enable_notifications"
 
-    static let lastKnownLatitude = "com.marfodub.StoneLifting.last_known_latitude"
-    static let lastKnownLongitude = "com.marfodub.StoneLifting.last_known_longitude"
+    static let lastKnownLatitude = "com.marfodub.StoneAtlas.last_known_latitude"
+    static let lastKnownLongitude = "com.marfodub.StoneAtlas.last_known_longitude"
 
-    static let reportedStones = "com.marfodub.StoneLifting.reported_stones"
-    static let deviceIdentifier = "com.marfodub.StoneLifting.device_identifier"
+    static let reportedStones = "com.marfodub.StoneAtlas.reported_stones"
+    static let deviceIdentifier = "com.marfodub.StoneAtlas.device_identifier"
 }

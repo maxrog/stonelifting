@@ -9,6 +9,9 @@ import SwiftUI
 import SwiftData
 
 // See ROADMAP.md for feature planning and TODOs
+/*
+ TODO refactor from "StoneLifting" to "StoneAtlas"
+ */
 
 @main
 struct StoneLiftingApp: App {
@@ -52,15 +55,21 @@ struct StoneLiftingApp: App {
             }
         }
 
-        // Restore previous Google Sign In session if available and user is not already authenticated
+        // Token refresh and OAuth session restoration
         Task { @MainActor in
-            guard !AuthService.shared.isAuthenticated else {
-                return
-            }
-
-            if let tokens = await GoogleSignInService.shared.restorePreviousSignIn() {
-                // Silently authenticate with backend using restored tokens
-                _ = await AuthService.shared.loginWithGoogle()
+            if AuthService.shared.isAuthenticated {
+                // User has JWT token - check if it needs refresh
+                let refreshed = await AuthService.shared.refreshTokenIfNeeded()
+                if !refreshed {
+                    // Token expired and couldn't refresh - will be handled by 401 response
+                    // User will be prompted to sign in again when they make an API request
+                }
+            } else {
+                // No JWT token - try to restore OAuth session
+                if let tokens = await GoogleSignInService.shared.restorePreviousSignIn() {
+                    // Silently authenticate with backend using restored tokens
+                    _ = await AuthService.shared.loginWithGoogle()
+                }
             }
         }
     }

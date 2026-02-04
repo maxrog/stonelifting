@@ -2,7 +2,7 @@
 //  ReverseGeocodingService.swift
 //  StoneLifting
 //
-//  Created by Claude Code on 1/18/26.
+//  Created by Max Rogers on 1/18/26.
 //
 
 import CoreLocation

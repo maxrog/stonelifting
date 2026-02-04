@@ -30,6 +30,7 @@
 
 /* Begin PBXFileReference section */
 		AF5672CF2F328D2F0005B7D4 /* StoneAtlas-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "StoneAtlas-Info.plist"; sourceTree = "<group>"; };
+		AF568A7E2F337A640005B7D4 /* StoneAtlas.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StoneAtlas.entitlements; sourceTree = "<group>"; };
 		AFF8572D2E1FC5A400C16D6E /* StoneAtlas.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StoneAtlas.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFF8573A2E1FC5A600C16D6E /* StoneLiftingTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StoneLiftingTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFF857442E1FC5A600C16D6E /* StoneLiftingUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StoneLiftingUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -83,6 +84,7 @@
 		AFF857242E1FC5A400C16D6E = {
 			isa = PBXGroup;
 			children = (
+				AF568A7E2F337A640005B7D4 /* StoneAtlas.entitlements */,
 				AF5672CF2F328D2F0005B7D4 /* StoneAtlas-Info.plist */,
 				AFF8572F2E1FC5A400C16D6E /* StoneLifting */,
 				AFF8573D2E1FC5A600C16D6E /* StoneLiftingTests */,
@@ -431,6 +433,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = StoneAtlas.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
@@ -470,6 +473,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = StoneAtlas.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				CODE_SIGN_STYLE = Manual;

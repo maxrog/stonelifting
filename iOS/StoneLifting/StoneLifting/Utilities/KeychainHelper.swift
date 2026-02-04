@@ -146,5 +146,5 @@ final class KeychainHelper {
 
 /// Constants for Keychain storage keys
 enum KeychainKeys {
-    static let jwtToken = "com.marfodub.StoneLifting.jwtToken"
+    static let jwtToken = "com.marfodub.StoneAtlas.jwtToken"
 }

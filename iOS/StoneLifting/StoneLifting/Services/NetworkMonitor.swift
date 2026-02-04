@@ -19,7 +19,7 @@ final class NetworkMonitor {
 
     private let logger = AppLogger()
     private let monitor = NWPathMonitor()
-    private let queue = DispatchQueue(label: "com.marfodub.StoneLifting.NetworkMonitor")
+    private let queue = DispatchQueue(label: "com.marfodub.StoneAtlas.NetworkMonitor")
 
     var isConnected = false
     var isExpensive = false
