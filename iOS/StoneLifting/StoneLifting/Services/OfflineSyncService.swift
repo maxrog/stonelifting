@@ -1,6 +1,6 @@
 //
 //  OfflineSyncService.swift
-//  StoneLifting
+//  StoneAtlas
 //
 //  Created by Max Rogers on 1/7/26.
 //

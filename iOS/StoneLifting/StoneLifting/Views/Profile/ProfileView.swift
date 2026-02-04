@@ -1,6 +1,6 @@
 //
 //  ProfileView.swift
-//  StoneLifting
+//  StoneAtlas
 //
 //  Created by Max Rogers on 12/3/25.
 //

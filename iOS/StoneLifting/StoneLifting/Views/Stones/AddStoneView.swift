@@ -1,6 +1,6 @@
 //
 //  AddStoneView.swift
-//  StoneLifting
+//  StoneAtlas
 //
 //  Created by Max Rogers on 7/25/25.
 //

@@ -1,6 +1,6 @@
 //
 //  ClusterMapPin.swift
-//  StoneLifting
+//  StoneAtlas
 //
 //  Created by Max Rogers on 10/4/25.
 //

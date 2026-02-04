@@ -1,6 +1,6 @@
 //
-//  StoneLiftingApp.swift
-//  StoneLifting
+//  StoneAtlasApp.swift
+//  StoneAtlas
 //
 //  Created by Max Rogers on 7/10/25.
 //
@@ -9,12 +9,9 @@ import SwiftUI
 import SwiftData
 
 // See ROADMAP.md for feature planning and TODOs
-/*
- TODO refactor from "StoneLifting" to "StoneAtlas"
- */
 
 @main
-struct StoneLiftingApp: App {
+struct StoneAtlasApp: App {
     private let networkMonitor = NetworkMonitor.shared
     private let offlineSyncService = OfflineSyncService.shared
     private let googleSignInService = GoogleSignInService.shared

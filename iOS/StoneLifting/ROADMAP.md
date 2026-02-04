@@ -1,4 +1,4 @@
-# StoneLifting App Roadmap
+# StoneAtlas App Roadmap
 
 ## Core Features
 

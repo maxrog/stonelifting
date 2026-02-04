@@ -1,6 +1,6 @@
 //
 //  DebugSettingsView.swift
-//  StoneLifting
+//  StoneAtlas
 //
 //  Debug-only settings for testing
 //

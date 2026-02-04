@@ -1,6 +1,6 @@
 //
 //  StoneWeightMLModel.swift
-//  StoneLifting
+//  StoneAtlas
 //
 //  Created by Max Rogers on 11/15/25.
 //

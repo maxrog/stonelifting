@@ -1,6 +1,6 @@
 //
 //  SocialAuthView.swift
-//  StoneLifting
+//  StoneAtlas
 //
 //  Created by Max Rogers on 1/26/26.
 //

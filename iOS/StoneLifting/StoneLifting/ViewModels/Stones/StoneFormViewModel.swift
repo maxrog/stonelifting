@@ -1,6 +1,6 @@
 //
 //  StoneFormViewModel.swift
-//  StoneLifting
+//  StoneAtlas
 //
 //  Created by Max Rogers on 11/09/25.
 //

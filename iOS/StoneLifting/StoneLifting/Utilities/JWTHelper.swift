@@ -1,6 +1,6 @@
 //
 //  JWTHelper.swift
-//  StoneLifting
+//  StoneAtlas
 //
 //  Created by Max Rogers on 2/4/26.
 //

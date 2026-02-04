@@ -1,6 +1,6 @@
 //
 //  ManualCoordinateEntryView.swift
-//  StoneLifting
+//  StoneAtlas
 //
 //  Created by Max Rogers on 12/16/25.
 //

@@ -1,6 +1,6 @@
 //
 //  TestDataGenerator.swift
-//  StoneLifting
+//  StoneAtlas
 //
 //  Created for testing and debugging purposes only
 //

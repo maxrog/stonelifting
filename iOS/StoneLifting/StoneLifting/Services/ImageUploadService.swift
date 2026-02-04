@@ -1,6 +1,6 @@
 //
 //  ImageUploadService.swift
-//  StoneLifting
+//  StoneAtlas
 //
 //  Created by Max Rogers on 9/16/25.
 //
