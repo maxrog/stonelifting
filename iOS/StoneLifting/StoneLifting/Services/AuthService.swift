@@ -153,6 +153,10 @@ final class AuthService {
             return false
         }
 
+        if let payload = JWTHelper.decode(token) {
+            logger.info("JWT expires at: \(payload.expirationDate), is expired: \(payload.isExpired), expiring soon: \(payload.isExpiringSoon)")
+        }
+
         // Check if token is expired or expiring soon
         guard JWTHelper.isExpiringSoon(token) else {
             logger.info("Token is still valid, no refresh needed")
