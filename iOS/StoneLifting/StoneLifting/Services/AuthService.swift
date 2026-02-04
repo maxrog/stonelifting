@@ -73,7 +73,7 @@ final class AuthService {
                 responseType: AuthResponse.self
             )
 
-            apiService.setAuthToken(response.token)
+            apiService.setAuthToken(response.token, refreshToken: response.refreshToken)
             currentUser = response.user
             isAuthenticated = true
 
@@ -137,7 +137,7 @@ final class AuthService {
                 responseType: AuthResponse.self
             )
 
-            apiService.setAuthToken(response.token)
+            apiService.setAuthToken(response.token, refreshToken: response.refreshToken)
             currentUser = response.user
             isAuthenticated = true
 
@@ -159,111 +159,6 @@ final class AuthService {
             logger.error("Error logging in with Google tokens", error: error)
             return false
         }
-    }
-
-    /// Silently refresh JWT token if expired using stored OAuth session
-    /// Only works for Google (Apple requires user interaction)
-    /// - Returns: true if token was refreshed successfully
-    @MainActor
-    func refreshTokenIfNeeded() async -> Bool {
-        // Check if token exists and is expired
-        guard let token = apiService.authToken else {
-            logger.info("No token to refresh")
-            return false
-        }
-
-        if let payload = JWTHelper.decode(token) {
-            logger.info("JWT expires at: \(payload.expirationDate), is expired: \(payload.isExpired), expiring soon: \(payload.isExpiringSoon)")
-        }
-
-        // Check if token is expired or expiring soon
-        guard JWTHelper.isExpiringSoon(token) else {
-            logger.info("Token is still valid, no refresh needed")
-            return true
-        }
-
-        logger.info("JWT token is expired or expiring soon, attempting silent refresh")
-
-        // Get stored auth provider
-        guard let providerString = UserDefaults.standard.string(forKey: authProviderKey),
-              let provider = AuthProvider(rawValue: providerString) else {
-            logger.warning("No auth provider stored, cannot refresh")
-            return false
-        }
-
-        // Attempt silent token refresh based on provider
-        switch provider {
-        case .google:
-            return await refreshGoogleToken()
-        case .apple:
-            return await refreshAppleToken()
-        }
-    }
-
-    /// Silently refresh Apple OAuth credentials and exchange for new JWT
-    /// - Returns: true if successful
-    @MainActor
-    private func refreshAppleToken() async -> Bool {
-        logger.info("Attempting silent Apple token refresh")
-
-        // Try to get fresh Apple credentials silently
-        guard let (identityToken, nonce, authCode) = await AppleSignInService.shared.silentRefresh() else {
-            logger.warning("Could not refresh Apple credentials silently")
-            return false
-        }
-
-        // Exchange fresh Apple credentials for new JWT
-        do {
-            let request = AppleSignInRequest(
-                identityToken: identityToken,
-                authorizationCode: authCode,
-                fullName: nil,  // Not needed for refresh
-                email: nil,     // Not needed for refresh
-                nonce: nonce
-            )
-
-            let response: AuthResponse = try await apiService.post(
-                endpoint: APIConfig.Endpoints.appleSignIn,
-                body: request,
-                responseType: AuthResponse.self
-            )
-
-            // Update stored JWT
-            apiService.setAuthToken(response.token)
-            currentUser = response.user
-            isAuthenticated = true
-
-            logger.info("Successfully refreshed JWT token via Apple")
-            return true
-
-        } catch {
-            logger.error("Failed to refresh Apple token", error: error)
-            return false
-        }
-    }
-
-    /// Silently refresh Google OAuth token and exchange for new JWT
-    /// - Returns: true if successful
-    @MainActor
-    private func refreshGoogleToken() async -> Bool {
-        logger.info("Attempting silent Google token refresh")
-
-        // Try to restore previous Google sign-in (gets fresh tokens)
-        guard let (idToken, accessToken) = await GoogleSignInService.shared.restorePreviousSignIn() else {
-            logger.warning("Could not restore Google session for token refresh")
-            return false
-        }
-
-        // Exchange fresh Google tokens for new JWT (reuse silent login method)
-        let success = await loginWithGoogleTokens(idToken: idToken, accessToken: accessToken)
-
-        if success {
-            logger.info("Successfully refreshed JWT token via Google")
-        } else {
-            logger.error("Failed to refresh Google token")
-        }
-
-        return success
     }
 
     /// Logout current user

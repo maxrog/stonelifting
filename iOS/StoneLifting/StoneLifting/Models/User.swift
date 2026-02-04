@@ -40,6 +40,12 @@ struct GoogleSignInRequest: Codable {
 struct AuthResponse: Codable {
     let user: User
     let token: String
+    let refreshToken: String
+}
+
+/// Request payload for token refresh
+struct RefreshTokenRequest: Codable {
+    let refreshToken: String
 }
 
 /// Generic message response

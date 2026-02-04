@@ -65,6 +65,7 @@ public func configure(_ app: Application) async throws {
     // Migrations
     app.migrations.add(CreateUser())
     app.migrations.add(CreateStone())
+    app.migrations.add(CreateRefreshToken())
 
     // Run migrations
     // Note: Migrations now use .ignoreExisting() to be idempotent and safe for

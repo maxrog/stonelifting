@@ -14,6 +14,7 @@ func routes(_ app: Application) throws {
     let authRoutes = app.grouped("auth")
     authRoutes.post("apple", use: appleSignIn)
     authRoutes.post("google", use: googleSignIn)
+    authRoutes.post("refresh", use: refreshToken)
     
     // Availability check routes (no auth required)
     authRoutes.get("check-username", ":username", use: checkUsernameAvailability)
@@ -47,7 +48,8 @@ func appleSignIn(req: Request) async throws -> LoginResponse {
         // User exists, log them in
         req.logger.info("Apple Sign In: Existing user logged in - userID: \(appleUserInfo.userID)")
         let token = try AuthController.generateToken(for: existingUser, on: req)
-        return LoginResponse(user: UserResponse(user: existingUser), token: token)
+        let refreshToken = try await AuthController.generateRefreshToken(for: existingUser, on: req)
+        return LoginResponse(user: UserResponse(user: existingUser), token: token, refreshToken: refreshToken)
     }
 
     // New user - create account
@@ -79,7 +81,8 @@ func appleSignIn(req: Request) async throws -> LoginResponse {
     req.logger.info("Apple Sign In: New user created - userID: \(appleUserInfo.userID), username: \(username)")
 
     let token = try AuthController.generateToken(for: user, on: req)
-    return LoginResponse(user: UserResponse(user: user), token: token)
+    let refreshToken = try await AuthController.generateRefreshToken(for: user, on: req)
+    return LoginResponse(user: UserResponse(user: user), token: token, refreshToken: refreshToken)
 }
 
 func googleSignIn(req: Request) async throws -> LoginResponse {
@@ -97,7 +100,8 @@ func googleSignIn(req: Request) async throws -> LoginResponse {
         // User exists, log them in
         req.logger.info("Google Sign In: Existing user logged in - userID: \(googleUserInfo.userID)")
         let token = try AuthController.generateToken(for: existingUser, on: req)
-        return LoginResponse(user: UserResponse(user: existingUser), token: token)
+        let refreshToken = try await AuthController.generateRefreshToken(for: existingUser, on: req)
+        return LoginResponse(user: UserResponse(user: existingUser), token: token, refreshToken: refreshToken)
     }
 
     // New user - create account
@@ -127,7 +131,14 @@ func googleSignIn(req: Request) async throws -> LoginResponse {
     req.logger.info("Google Sign In: New user created - userID: \(googleUserInfo.userID), username: \(username)")
 
     let token = try AuthController.generateToken(for: user, on: req)
-    return LoginResponse(user: UserResponse(user: user), token: token)
+    let refreshToken = try await AuthController.generateRefreshToken(for: user, on: req)
+    return LoginResponse(user: UserResponse(user: user), token: token, refreshToken: refreshToken)
+}
+
+func refreshToken(req: Request) async throws -> LoginResponse {
+    try RefreshTokenRequest.validate(content: req)
+    let refreshRequest = try req.content.decode(RefreshTokenRequest.self)
+    return try await AuthController.refreshAccessToken(refreshToken: refreshRequest.refreshToken, on: req)
 }
 
 // MARK: - Helper Functions

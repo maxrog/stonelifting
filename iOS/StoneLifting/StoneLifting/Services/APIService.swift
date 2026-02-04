@@ -25,6 +25,15 @@ final class APIService {
     /// Current JWT token for authenticated requests
     private(set) var authToken: String?
 
+    /// Current refresh token for getting new JWT tokens
+    private(set) var refreshToken: String?
+
+    /// Task that's currently refreshing the token
+    private var refreshTask: Task<Void, Never>?
+
+    /// Queue of requests waiting for token refresh to complete
+    private var pendingRequests: [(continuation: CheckedContinuation<Void, Never>)] = []
+
     // MARK: - Initialization
 
     private init() {
@@ -47,23 +56,36 @@ final class APIService {
 
     private func loadStoredToken() {
         authToken = KeychainHelper.shared.getString(forKey: KeychainKeys.jwtToken)
+        refreshToken = KeychainHelper.shared.getString(forKey: KeychainKeys.refreshToken)
     }
 
     // MARK: - Token Management
 
-    /// Store JWT token for future requests
-    /// - Parameter token: JWT token from login response
-    func setAuthToken(_ token: String) {
+    /// Store JWT token and refresh token for future requests
+    /// - Parameters:
+    ///   - token: JWT token from login response
+    ///   - refreshToken: Refresh token from login response
+    func setAuthToken(_ token: String, refreshToken: String? = nil) {
         logger.info("Setting auth token")
         authToken = token
         KeychainHelper.shared.save(token, forKey: KeychainKeys.jwtToken)
+
+        if let refreshToken = refreshToken {
+            self.refreshToken = refreshToken
+            KeychainHelper.shared.save(refreshToken, forKey: KeychainKeys.refreshToken)
+        }
     }
 
-    /// Clear stored JWT token (for logout)
+    /// Clear stored JWT token and refresh token (for logout)
     func clearAuthToken() {
         logger.info("Clearing auth token")
         authToken = nil
+        refreshToken = nil
+        refreshTask?.cancel()
+        refreshTask = nil
+        pendingRequests.removeAll()
         KeychainHelper.shared.delete(forKey: KeychainKeys.jwtToken)
+        KeychainHelper.shared.delete(forKey: KeychainKeys.refreshToken)
     }
 
     var isAuthenticated: Bool {
@@ -151,6 +173,72 @@ final class APIService {
 // MARK: - Private Methods
 
 private extension APIService {
+    /// Refresh the access token using the refresh token
+    /// - Returns: True if refresh succeeded, false otherwise
+    func refreshAccessToken() async -> Bool {
+        // If already refreshing, wait for it to complete
+        if let existingTask = refreshTask {
+            await existingTask.value
+            return authToken != nil
+        }
+
+        // Start a new refresh task
+        refreshTask = Task { @MainActor in
+            guard let currentRefreshToken = refreshToken else {
+                logger.warning("No refresh token available for refresh")
+                clearAuthToken()
+                return
+            }
+
+            logger.info("Refreshing access token...")
+
+            do {
+                // Create the refresh request manually to avoid recursion
+                guard let url = URL(string: APIConfig.baseURL + "/auth/refresh") else {
+                    throw APIError.invalidURL
+                }
+
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue(APIConfig.Headers.applicationJSON, forHTTPHeaderField: APIConfig.Headers.contentType)
+
+                let body = RefreshTokenRequest(refreshToken: currentRefreshToken)
+                request.httpBody = try encoder.encode(body)
+
+                logger.debug("Sending refresh token request...")
+                let (data, response) = try await session.data(for: request)
+
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw APIError.invalidResponse
+                }
+
+                if httpResponse.statusCode == 200 {
+                    let authResponse = try decoder.decode(AuthResponse.self, from: data)
+                    setAuthToken(authResponse.token, refreshToken: authResponse.refreshToken)
+                    logger.info("Access token refreshed successfully")
+
+                    // Resume all pending requests
+                    let continuations = pendingRequests
+                    pendingRequests.removeAll()
+                    for pending in continuations {
+                        pending.continuation.resume()
+                    }
+                } else {
+                    logger.error("Token refresh failed with status: \(httpResponse.statusCode)")
+                    clearAuthToken()
+                }
+            } catch {
+                logger.error("Error refreshing access token", error: error)
+                clearAuthToken()
+            }
+
+            refreshTask = nil
+        }
+
+        await refreshTask?.value
+        return authToken != nil
+    }
+
     /// Core method for performing HTTP requests
     /// - Parameters:
     ///   - endpoint: API endpoint path
@@ -218,8 +306,28 @@ private extension APIService {
                 }
 
             case 401:
+                logger.warning("Got 401 Unauthorized - attempting token refresh")
+
+                // Only attempt refresh if we have a refresh token and this isn't already a refresh request
+                if refreshToken != nil && !endpoint.contains("/auth/refresh") {
+                    // Wait for any in-progress refresh or start a new one
+                    let refreshSucceeded = await refreshAccessToken()
+
+                    if refreshSucceeded {
+                        // Retry the original request with the new token
+                        logger.info("Token refreshed - retrying original request")
+                        return try await performRequest(
+                            endpoint: endpoint,
+                            method: method,
+                            body: body,
+                            requiresAuth: requiresAuth,
+                            responseType: responseType
+                        )
+                    }
+                }
+
+                // No refresh token or refresh failed - clear everything and throw
                 logger.error("Error loading url: \(request.url?.absoluteString ?? "")", error: APIError.unauthorized)
-                // Unauthorized - clear stored token
                 clearAuthToken()
                 throw APIError.unauthorized
 

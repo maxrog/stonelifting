@@ -52,17 +52,11 @@ struct StoneAtlasApp: App {
             }
         }
 
-        // Token refresh and OAuth session restoration
+        // OAuth session restoration for users without stored JWT
         Task { @MainActor in
-            if AuthService.shared.isAuthenticated {
-                // User has JWT token - check if it needs refresh
-                let refreshed = await AuthService.shared.refreshTokenIfNeeded()
-                if !refreshed {
-                    // Token expired and couldn't refresh - will be handled by 401 response
-                    // User will be prompted to sign in again when they make an API request
-                }
-            } else {
-                // No JWT token - try to restore OAuth session silently
+            if !AuthService.shared.isAuthenticated {
+                // No JWT token - try to restore Google OAuth session silently
+                // (Apple doesn't support silent session restoration)
                 if let (idToken, accessToken) = await GoogleSignInService.shared.restorePreviousSignIn() {
                     _ = await AuthService.shared.loginWithGoogleTokens(idToken: idToken, accessToken: accessToken)
                 }

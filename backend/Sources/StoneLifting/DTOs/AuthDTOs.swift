@@ -5,6 +5,17 @@ import Vapor
 struct LoginResponse: Content {
     let user: UserResponse
     let token: String
+    let refreshToken: String
+}
+
+struct RefreshTokenRequest: Content {
+    let refreshToken: String
+}
+
+extension RefreshTokenRequest: Validatable {
+    static func validations(_ validations: inout Validations) {
+        validations.add("refreshToken", as: String.self, is: !.empty)
+    }
 }
 
 struct MessageResponse: Content {
