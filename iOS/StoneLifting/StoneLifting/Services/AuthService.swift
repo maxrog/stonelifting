@@ -106,7 +106,26 @@ final class AuthService {
         do {
             // Get Google credentials using GoogleSignInService
             let (idToken, accessToken) = try await GoogleSignInService.shared.signIn()
+            return await loginWithGoogleTokens(idToken: idToken, accessToken: accessToken)
 
+        } catch {
+            await handleAuthError(error)
+            logger.error("Error logging in with Google", error: error)
+            return false
+        }
+    }
+
+    /// Login with Google tokens
+    /// Used for silent token refresh or restoring previous sessions
+    /// - Parameters:
+    ///   - idToken: Google ID token
+    ///   - accessToken: Google access token
+    /// - Returns: Success status
+    @MainActor
+    func loginWithGoogleTokens(idToken: String, accessToken: String?) async -> Bool {
+        authError = nil
+
+        do {
             let request = GoogleSignInRequest(
                 idToken: idToken,
                 accessToken: accessToken
@@ -137,7 +156,7 @@ final class AuthService {
 
         } catch {
             await handleAuthError(error)
-            logger.error("Error logging in with Google", error: error)
+            logger.error("Error logging in with Google tokens", error: error)
             return false
         }
     }
@@ -235,31 +254,16 @@ final class AuthService {
             return false
         }
 
-        // Exchange fresh Google tokens for new JWT
-        do {
-            let request = GoogleSignInRequest(
-                idToken: idToken,
-                accessToken: accessToken
-            )
+        // Exchange fresh Google tokens for new JWT (reuse silent login method)
+        let success = await loginWithGoogleTokens(idToken: idToken, accessToken: accessToken)
 
-            let response: AuthResponse = try await apiService.post(
-                endpoint: APIConfig.Endpoints.googleSignIn,
-                body: request,
-                responseType: AuthResponse.self
-            )
-
-            // Update stored JWT
-            apiService.setAuthToken(response.token)
-            currentUser = response.user
-            isAuthenticated = true
-
+        if success {
             logger.info("Successfully refreshed JWT token via Google")
-            return true
-
-        } catch {
-            logger.error("Failed to refresh Google token", error: error)
-            return false
+        } else {
+            logger.error("Failed to refresh Google token")
         }
+
+        return success
     }
 
     /// Logout current user

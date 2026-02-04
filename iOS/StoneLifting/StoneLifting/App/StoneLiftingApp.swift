@@ -65,10 +65,9 @@ struct StoneLiftingApp: App {
                     // User will be prompted to sign in again when they make an API request
                 }
             } else {
-                // No JWT token - try to restore OAuth session
-                if let tokens = await GoogleSignInService.shared.restorePreviousSignIn() {
-                    // Silently authenticate with backend using restored tokens
-                    _ = await AuthService.shared.loginWithGoogle()
+                // No JWT token - try to restore OAuth session silently
+                if let (idToken, accessToken) = await GoogleSignInService.shared.restorePreviousSignIn() {
+                    _ = await AuthService.shared.loginWithGoogleTokens(idToken: idToken, accessToken: accessToken)
                 }
             }
         }
