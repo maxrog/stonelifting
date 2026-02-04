@@ -52,8 +52,12 @@ struct StoneLiftingApp: App {
             }
         }
 
-        // Restore previous Google Sign In session if available
+        // Restore previous Google Sign In session if available and user is not already authenticated
         Task { @MainActor in
+            guard !AuthService.shared.isAuthenticated else {
+                return
+            }
+
             if let tokens = await GoogleSignInService.shared.restorePreviousSignIn() {
                 // Silently authenticate with backend using restored tokens
                 _ = await AuthService.shared.loginWithGoogle()
