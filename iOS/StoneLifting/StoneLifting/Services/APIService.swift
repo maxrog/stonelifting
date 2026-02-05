@@ -32,7 +32,7 @@ final class APIService {
     private var refreshTask: Task<Void, Never>?
 
     /// Queue of requests waiting for token refresh to complete
-    private var pendingRequests: [(continuation: CheckedContinuation<Void, Never>)] = []
+    private var pendingRequests: [CheckedContinuation<Void, Never>] = []
 
     // MARK: - Initialization
 
@@ -220,8 +220,8 @@ private extension APIService {
                     // Resume all pending requests
                     let continuations = pendingRequests
                     pendingRequests.removeAll()
-                    for pending in continuations {
-                        pending.continuation.resume()
+                    for continuation in continuations {
+                        continuation.resume()
                     }
                 } else {
                     logger.error("Token refresh failed with status: \(httpResponse.statusCode)")
@@ -247,6 +247,7 @@ private extension APIService {
     ///   - requiresAuth: Whether to include JWT token
     ///   - responseType: Expected response type
     /// - Returns: Decoded response
+    // swiftlint:disable:next cyclomatic_complexity
     func performRequest<T: Codable, U: Codable>(
         endpoint: String,
         method: String,
