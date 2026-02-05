@@ -38,7 +38,7 @@ final class RefreshToken: Model, Content, @unchecked Sendable {
     // Generate a new refresh token
     static func generate(for user: User) throws -> RefreshToken {
         let token = [UInt8].random(count: 32).base64
-        let expiresAt = Date().addingTimeInterval(60 * 60 * 24 * 30) // 30 days
+        let expiresAt = Date().addingTimeInterval(60 * 60 * 24 * 270) // 9 months
         return try RefreshToken(
             token: token,
             userID: user.requireID(),

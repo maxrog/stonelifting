@@ -20,7 +20,7 @@ struct AuthController {
         let payload = UserPayload(
             userID: try user.requireID(),
             username: user.username,
-            exp: ExpirationClaim(value: Date().addingTimeInterval(90)) // 90 seconds (TESTING ONLY)
+            exp: ExpirationClaim(value: Date().addingTimeInterval(3600)) // 1 hour
         )
 
         return try req.jwt.sign(payload)
