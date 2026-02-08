@@ -24,6 +24,7 @@ func routes(_ app: Application) throws {
     let protectedRoutes = app.grouped(AuthController.JWTAuthenticator())
     protectedRoutes.get("me", use: getMe)
     protectedRoutes.get("stats", use: getUserStats)
+    protectedRoutes.patch("me", "username", use: updateUsername)
     protectedRoutes.on(.POST, "upload", "image", body: .collect(maxSize: "5mb"), use: uploadImage)
 
     
@@ -199,15 +200,54 @@ func getMe(req: Request) async throws -> UserResponse {
 
 func getUserStats(req: Request) async throws -> UserStatsResponse {
     let user = try req.auth.require(User.self)
-    
+
     let stones = try await Stone.query(on: req.db)
         .filter(\.$user.$id == user.requireID())
         .sort(\.$createdAt, .descending)
         .all()
-    
+
     let stoneResponses = stones.map { StoneResponse(stone: $0, user: user) }
-    
+
     return UserStatsResponse(user: user, stones: stoneResponses)
+}
+
+func updateUsername(req: Request) async throws -> UserResponse {
+    let user = try req.auth.require(User.self)
+    try UpdateUsernameRequest.validate(content: req)
+    let updateRequest = try req.content.decode(UpdateUsernameRequest.self)
+
+    let newUsername = updateRequest.username.lowercased()
+
+    // Moderate username for inappropriate content
+    if let openAIKey = Environment.get("OPENAI_API_KEY") {
+        let moderationService = ModerationService(apiKey: openAIKey)
+        let result = try await moderationService.moderateText(newUsername, on: req.client)
+
+        if result.flagged {
+            req.logger.warning("Username update rejected: '\(newUsername)' flagged by moderation")
+            throw Abort(.badRequest, reason: "This username contains inappropriate content. Please choose a different username.")
+        }
+    }
+
+    // Check if username is already taken
+    if let existingUser = try await User.query(on: req.db)
+        .filter(\.$username == newUsername)
+        .first() {
+        // If it's taken by someone else, throw error
+        if existingUser.id != user.id {
+            throw Abort(.conflict, reason: "Username '\(newUsername)' is already taken")
+        }
+        // If it's the same username, just return current user
+        return UserResponse(user: user)
+    }
+
+    // Update username
+    user.username = newUsername
+    try await user.save(on: req.db)
+
+    req.logger.info("User \(user.id?.uuidString ?? "unknown") updated username to '\(newUsername)'")
+
+    return UserResponse(user: user)
 }
 
 // MARK: Image Handlers

@@ -1,5 +1,15 @@
 import Vapor
 
+struct UpdateUsernameRequest: Content {
+    let username: String
+}
+
+extension UpdateUsernameRequest: Validatable {
+    static func validations(_ validations: inout Validations) {
+        validations.add("username", as: String.self, is: .count(3...20) && .alphanumeric)
+    }
+}
+
 struct UserResponse: Content {
     let id: UUID?
     let username: String
