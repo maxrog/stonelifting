@@ -1,71 +1,54 @@
 # StoneAtlas iOS App - Development Standards
 
 ## Overview
-StoneAtlas is a production iOS application for discovering, documenting, and tracking stone lifting achievements. This document defines code quality standards, architectural patterns, and best practices for the project.
+StoneAtlas is a production iOS app for discovering, documenting, and tracking stone lifting achievements. This document defines project-specific patterns and workflows.
 
 **Related Documentation:**
-- **Feature Roadmap**: See `iOS/StoneLifting/ROADMAP.md` for planned features and development automation tools
-- **Development Commands**: Custom slash commands are in `.claude/commands/` directory
-- **README**: See `README.md` for project overview, setup instructions, and user-facing documentation
+- **Roadmap**: `iOS/StoneLifting/ROADMAP.md` - planned features
+- **General iOS/Swift Patterns**: `iOS_Swift_Best_Practices.md` - reusable best practices
+- **Slash Commands**: `.claude/commands/` - custom development tools
 
 ---
 
-## Project Paths
+## Project Structure
 
-**Key File Locations:**
 ```
 /Users/maxrogers/Personal/iOS/stoneatlas/
-├── README.md                                          # Project overview & setup
-├── CLAUDE.md                                          # This file - development standards
 ├── iOS/StoneLifting/
-│   ├── StoneLifting.xcodeproj/                       # Xcode project (open this)
-│   │   └── project.pbxproj                           # Project configuration
-│   ├── ROADMAP.md                                    # Feature roadmap
-│   └── StoneLifting/
-│       ├── App/StoneAtlasApp.swift                   # App entry point (@main)
-│       ├── Models/                                   # Data models
-│       ├── Views/                                    # SwiftUI views
-│       ├── ViewModels/                               # View models
-│       ├── Services/                                 # Business logic & API
-│       └── Utilities/
-│           └── Constants.swift                       # API config, environment selection
-├── backend/                                          # Vapor backend
-│   └── Sources/StoneLifting/
-│       ├── Controllers/AuthController.swift          # JWT generation & auth
-│       ├── Models/                                   # Database models
-│       ├── Services/                                 # Business logic
-│       └── Migrations/                               # Database migrations
-└── .claude/commands/                                 # Custom slash commands
+│   ├── StoneLifting.xcodeproj/          # Open this in Xcode
+│   ├── StoneLifting/
+│   │   ├── App/                         # App entry point
+│   │   ├── Models/                      # Data models
+│   │   ├── Views/                       # SwiftUI views
+│   │   ├── ViewModels/                  # View models
+│   │   ├── Services/                    # Business logic & API
+│   │   └── Utilities/Constants.swift    # API config (line 25 = environment)
+│   └── ROADMAP.md
+├── backend/Sources/StoneLifting/
+│   ├── Controllers/                     # Route handlers
+│   ├── Models/                          # Database models
+│   ├── Services/                        # Business logic
+│   └── Migrations/                      # Database migrations
+└── README.md
 ```
 
 **Quick Commands:**
-- **Build iOS app**: Open `iOS/StoneLifting/StoneLifting.xcodeproj` in Xcode, press `⌘+B`
-- **Run iOS app**: Press `⌘+R` in Xcode (requires physical device for LiDAR)
-- **Run backend**: `cd backend && swift run`
-- **Run tests**: Press `⌘+U` in Xcode
-
-**Environment Configuration:**
-- iOS API endpoint: `iOS/StoneLifting/StoneLifting/Utilities/Constants.swift:25`
+- Build: Open `.xcodeproj` in Xcode, press `⌘+B`
+- Run: `⌘+R` (requires physical device for LiDAR)
+- Backend: `cd backend && swift run`
+- Tests: `⌘+U`
 
 ---
 
-## Architecture Patterns
+## Architecture
 
-### MVVM Structure
-- **Views**: SwiftUI views (in `Views/`) - Handle UI only, no business logic
-- **ViewModels**: Observable view models (in `ViewModels/`) - Handle presentation logic and state
-- **Services**: Singleton services (in `Services/`) - Handle data access, API calls, device features
-- **Models**: Data models (in `Models/`) - Codable structs for data representation
+### MVVM + Services
+- **Views**: UI only, no business logic
+- **ViewModels**: `@Observable` classes, presentation logic
+- **Services**: Singletons with `static let shared`, handle data/API/device features
+- **Models**: `Codable` structs
 
-### Service Layer
-All services follow these patterns:
-- Singleton pattern with `static let shared`
-- Use `@Observable` macro for reactive state
-- Include comprehensive logging with `AppLogger()`
-- Private initializer for singletons
-- Proper error handling with custom error types
-
-**Example:**
+### Service Pattern
 ```swift
 @Observable
 final class MyService {
@@ -79,27 +62,188 @@ final class MyService {
 ```
 
 ### State Management
-- Use `@Observable` macro (not `ObservableObject`)
-- Use `@State` in views for local UI state
-- Use `@FocusState` for keyboard/focus management
+- `@State` for local UI state and ViewModel instances
+- `@FocusState` for keyboard/focus
 - Services hold shared/global state
 - ViewModels hold view-specific state
 
 ---
 
-## Swift Coding Standards
+## Swift 6 Concurrency
 
-### Naming Conventions
-- **Types**: UpperCamelCase (`UserProfile`, `StoneService`)
-- **Properties/Methods**: lowerCamelCase (`currentUser`, `fetchStones()`)
-- **Constants**: lowerCamelCase (`maxRetries`, `apiTimeout`)
-- **Enums**: UpperCamelCase for type, lowerCamelCase for cases
-- **Private members**: Prefix with `private` modifier, not underscore
+### Actor Isolation
+- Use `@MainActor` for all UI services and ViewModels
+- Use `actor` for shared mutable state across contexts
+- All services must be `actor` or `@MainActor`
 
-### Code Organization
-Use MARK comments to organize files:
 ```swift
-// MARK: - Type Definition
+@Observable
+@MainActor
+final class AuthService {
+    static let shared = AuthService()
+    var currentUser: User?
+}
+
+actor LocationContinuationManager {
+    private var continuation: CheckedContinuation<Location, Error>?
+}
+```
+
+### Parallel Operations
+```swift
+// Good: Parallel (2x faster)
+async let userFetch = stoneService.fetchUserStones()
+async let publicFetch = stoneService.fetchPublicStones()
+_ = await (userFetch, publicFetch)
+
+// Avoid: Sequential
+await stoneService.fetchUserStones()
+await stoneService.fetchPublicStones()
+```
+
+### Task Management
+- Cancel tasks in `deinit` or cleanup
+- Store task references for cancellation: `private var checkTask: Task<Void, Never>?`
+- Use `[weak self]` in Task closures within classes
+- Implement timeouts for network/location requests
+
+---
+
+## SwiftUI Patterns
+
+### View Structure
+```swift
+struct MyView: View {
+    @State private var viewModel = MyViewModel()
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        content
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        // Extract complex sections as computed properties
+    }
+
+    private func handleAction() {
+        // Actions here
+    }
+}
+```
+
+### View Extraction
+Extract when:
+- File > 200 lines
+- Repeated 2+ times
+- Clear single responsibility
+- Reusable elsewhere
+
+---
+
+## Project-Specific Patterns
+
+### OAuth Authentication
+- Apple Sign In: Nonce validation, state verification, silent refresh not supported
+- Google Sign In: Silent token refresh supported
+- JWT access token: 1 hour expiration
+- Refresh token: 9 months, rotates on each use
+- Auto token refresh on 401 (APIService handles automatically)
+
+### Content Moderation
+- OpenAI moderation for usernames and stone names
+- Retry logic for rate limits (free tier)
+- Fallback to generic "user" for flagged auto-generated usernames
+- Reject user-chosen inappropriate usernames with error message
+
+### Availability Checking
+Debounced real-time checks (username availability):
+- 500ms debounce delay
+- Show spinner while checking
+- Display errors only when invalid/taken
+- Green checkmark when valid
+
+### Form Validation
+- Validate on change, not on submit
+- `@FocusState` for keyboard management
+- Submit action on final field
+- Haptic feedback on success/error
+
+### Location Services
+- Request permissions properly
+- Handle all authorization states
+- 10 second timeout protection
+- 30 second location cache
+- Actor-based continuation management
+
+### Caching Strategy
+- SwiftData for persistent stone cache
+- Cache user stones and public stones separately
+- Clear all caches on logout
+- Parallel fetch + batch cache on app launch
+
+---
+
+## Security
+
+### OAuth & Tokens
+- Keychain for: JWT token, refresh token
+- UserDefaults for: preferences only
+- Never log tokens, passwords, PII
+- HTTPS only, certificate validation
+
+### Input Validation
+- Validate all user input before processing
+- Sanitize before API requests
+- Content moderation for user-generated content (usernames, stone names, descriptions)
+
+---
+
+## Performance Budgets
+
+- App launch: <2 seconds
+- Screen transitions: <300ms
+- List scrolling: 60 FPS
+- API requests: <500ms
+- Memory usage: <200MB typical
+
+### Image Handling
+- Resize before upload (prevent main thread blocking)
+- Async image loading in lists
+- Cache downloaded images
+- Lazy loading
+
+---
+
+## Error Handling
+
+### Custom Errors
+```swift
+enum MyServiceError: Error, LocalizedError {
+    case notFound
+    case invalidData
+
+    var errorDescription: String? {
+        switch self {
+        case .notFound: return "Item not found"
+        case .invalidData: return "Invalid data format"
+        }
+    }
+}
+```
+
+### Error Flow
+1. Services throw errors
+2. ViewModels catch and convert to user-facing messages
+3. Views display via alerts/banners
+4. Log all errors with context: `logger.error("Failed", error: error)`
+
+---
+
+## Code Organization
+
+### MARK Comments
+```swift
 // MARK: - Properties
 // MARK: - Initialization
 // MARK: - Public Methods
@@ -108,732 +252,90 @@ Use MARK comments to organize files:
 ```
 
 ### Documentation
-- **Only document when necessary** - avoid redundant comments on self-explanatory code
-- Add documentation for:
-  - Public APIs that need usage explanation
-  - Complex algorithms or non-obvious logic
-  - Architectural decisions or "why" explanations
-- **Do NOT document:**
-  - Self-explanatory function/variable names (e.g., `fetchUserStones()`, `isLoading`)
-  - Obvious getters/setters
-  - Simple one-line implementations
-- Use triple-slash `///` for doc comments when documenting
-- Include parameter and return value descriptions only for complex cases
-- Code should be self-documenting through clear naming
-
-### SwiftUI Patterns
-
-#### View Structure
-All views should follow this organization:
-```swift
-struct MyView: View {
-    // MARK: - Properties
-    @State private var viewModel = MyViewModel()
-    @Environment(\.dismiss) private var dismiss
-
-    // MARK: - Body
-    var body: some View {
-        content
-    }
-
-    // MARK: - View Components
-    @ViewBuilder
-    private var content: some View {
-        // ...
-    }
-
-    // MARK: - Actions
-    private func handleAction() {
-        // ...
-    }
-}
-```
-
-#### View Extraction Guidelines
-Extract views when:
-- View file exceeds 200 lines
-- Code block is repeated 2+ times
-- Section has clear single responsibility
-- Component could be reused elsewhere
-
-**Example:**
-```swift
-// Extract large sections
-struct StoneDetailView: View {
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                StoneDetailHeader(stone: stone)
-                StoneDetailInfo(stone: stone)
-                StoneDetailStats(stone: stone)
-            }
-        }
-    }
-}
-```
-
-#### ViewBuilder Best Practices
-- Use `@ViewBuilder` for complex composed views
-- Use `@ViewBuilder` for conditional logic
-- Use descriptive names for view components (`headerSection`, not `header`)
-- Keep view body simple and readable
-
-#### State Management in Views
-- `@State` for view-local UI state ONLY (searchText, isShowing, focusedField)
-- `@State` for ViewModel instances (`@State private var viewModel = MyViewModel()`)
-- NO business logic in views - belongs in ViewModels
-- Use `.constant()` for preview-only bindings
-- Leverage `#Preview` macro for previews
-
-**Example:**
-```swift
-// Good: UI state only in view
-struct MyView: View {
-    @State private var viewModel = MyViewModel()
-    @State private var searchText = ""  // UI state
-    @FocusState private var focusedField: Field?
-
-    var body: some View {
-        TextField("Search", text: $searchText)
-            .task {
-                await viewModel.search(searchText)  // Logic in VM
-            }
-    }
-}
-```
-
----
-
-## Async/Await & Concurrency
-
-### Prefer async/await over callbacks
-```swift
-// Good
-func fetchData() async throws -> Data {
-    try await apiService.get(endpoint: "/data")
-}
-
-// Avoid
-func fetchData(completion: @escaping (Result<Data, Error>) -> Void)
-```
-
-### Main Actor Annotation
-- Annotate UI-updating methods with `@MainActor`
-- Service methods that update observable properties should use `@MainActor`
-- Use `await MainActor.run { }` when updating from background context
-
-### Actor-Based Thread Safety
-- Use actors for shared mutable state across concurrency boundaries
-- Example: `LocationContinuationManager` actor for continuation safety
-- Prevents race conditions and data races
-
-### Task Management
-- Cancel tasks properly in cleanup
-- Use `Task { }` for async work from sync context
-- Implement timeouts for network/location requests
-- Store task references if cancellation is needed
-
-### Swift 6 Concurrency Safety
-
-#### Actor Isolation
-- Use `actor` for shared mutable state accessed from multiple contexts
-- Use `@MainActor` for all UI-updating code and services
-- Global mutable state must be actor-isolated or main-actor-isolated
-
-**Example:**
-```swift
-// Good: Actor for shared cache
-actor ImageCache {
-    private var cache: [String: UIImage] = [:]
-
-    func get(_ key: String) -> UIImage? {
-        cache[key]
-    }
-}
-
-// Good: MainActor for UI services
-@Observable
-@MainActor
-final class ThemeService {
-    static let shared = ThemeService()
-    var currentTheme: Theme = .light
-}
-```
-
-#### Sendable Conformance
-- Types crossing concurrency boundaries should conform to `Sendable`
-- Task closures require Sendable captures in Swift 6
-- Use `@MainActor` or `[weak self]` in Task blocks
-
-**Example:**
-```swift
-// Good: MainActor makes Task safe
-@MainActor
-class ViewModel {
-    func load() {
-        Task {  // Safe - MainActor isolation
-            await fetchData()
-        }
-    }
-}
-
-// Good: Weak capture for non-MainActor
-class MyClass {
-    func load() {
-        Task { [weak self] in
-            await self?.fetchData()
-        }
-    }
-}
-```
-
-#### Data Race Prevention
-- All services should be either `actor` or `@MainActor`
-- Never access mutable state from multiple contexts without protection
-- Use `isolated` parameters when passing actor instances
-- Run `/concurrency-review` regularly to catch data race risks
-
----
-
-## Error Handling
-
-### Custom Error Types
-Define typed errors with `LocalizedError`:
-```swift
-enum MyServiceError: Error, LocalizedError {
-    case notFound
-    case invalidData
-    case networkError
-
-    var errorDescription: String? {
-        switch self {
-        case .notFound: return "Item not found"
-        case .invalidData: return "Invalid data format"
-        case .networkError: return "Network connection failed"
-        }
-    }
-}
-```
-
-### Error Handling Strategy
-- Use `do-catch` blocks for throwing operations
-- Store errors in observable properties for UI display
-- Log all errors with context using `logger.error()`
-- Provide user-friendly error messages (separate from technical logs)
-- Clear errors after user acknowledgment
-
-### Error Propagation
-- Service methods throw errors up the stack
-- ViewModels catch and convert to user-facing messages
-- Views display errors via alerts/banners
-- Never silently ignore errors
-
----
-
-## Validation Patterns
-
-### Form Validation
-- Create `ValidationResult` enum for validation states
-- Validate on input change (with debouncing for API checks)
-- Show errors only, not success states (saves space)
-- Visual feedback: green checkmark on field when valid
-
-### Debouncing
-Use debouncing for expensive operations:
-```swift
-@State private var checkTask: Task<Void, Never>?
-
-func checkAvailability(_ value: String) {
-    checkTask?.cancel()
-    checkTask = Task {
-        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
-        guard !Task.isCancelled else { return }
-        // Perform check
-    }
-}
-```
-
----
-
-## Memory Management
-
-### Avoid Retain Cycles
-- Use `[weak self]` in closures that might outlive their context
-- Use `[weak self]` in Task closures within classes
-- Check `guard let self` after weak capture
-- Use `[unowned self]` only when lifetime is guaranteed
-
-### Cleanup & Lifecycle
-- Cancel tasks in deinit or cleanup methods
-- Remove observers/listeners when done
-- Clear cached data when permissions revoked
-- Implement proper view lifecycle handling
-
-### Resource Management
-- Close URLSessions when appropriate
-- Stop location updates when not needed
-- Clean up continuations to prevent leaks
-
----
-
-## Security Standards
-
-### Secrets Management
-- **NEVER** commit API keys, tokens, or credentials
-- Use environment variables or secure configuration files
-- Store sensitive data in Keychain only
-- Use `.gitignore` for credential files
-
-### Network Security
-- HTTPS only for all network requests
-- Implement certificate pinning for production APIs
-- Validate SSL certificates
-- Use URLSession with proper security configuration
-
-### Data Protection
-- Keychain for: tokens, passwords, sensitive user data
-- UserDefaults for: preferences, non-sensitive settings only
-- Never log sensitive data (passwords, tokens, PII)
-- Implement biometric authentication where appropriate
-
-### Input Validation
-- Validate all user input before processing
-- Sanitize data before API requests
-- Use parameterized queries (prevent injection)
-- Validate email formats, usernames, passwords
-
----
-
-## Logging Standards
-
-### Use AppLogger
-```swift
-private let logger = AppLogger()
-
-// Info: Normal operations
-logger.info("User logged in successfully")
-
-// Debug: Detailed debugging info
-logger.debug("Cache hit for key: \(key)")
-
-// Warning: Unexpected but handled situations
-logger.warning("Retrying request after timeout")
-
-// Error: Actual errors with context
-logger.error("Failed to fetch data", error: error)
-```
-
-### What to Log
-- Service initialization
-- State transitions (auth status, permissions)
-- Network requests/responses (without sensitive data)
-- Errors with full context
-- Performance-critical operations
-
-### What NOT to Log
-- Passwords, tokens, or credentials
-- Full user personal information
-- Excessive debug info in production
-- Secrets or API keys
-
----
-
-## Testing Requirements
-
-### Test Coverage Goals
-- Critical paths: 100% coverage (authentication, payments, data integrity)
-- New features: 80%+ coverage
-- Bug fixes: Add test that would have caught the bug
-- Overall target: 70%+ coverage
-
-### Testing Strategy
-- **Unit tests**: Business logic, validation, transformations
-- **Integration tests**: API service interactions, data flow
-- **UI tests**: Critical user flows (registration, login, core features)
-- **Snapshot tests**: Complex UI components
-
-### Test Organization
-- Mirror source structure in test target
-- Use descriptive test names: `test_methodName_scenario_expectedResult`
-- Arrange-Act-Assert structure
-- One assertion per test (or related assertions)
-
-### Async Testing
-```swift
-func testAsyncOperation() async throws {
-    let result = await service.fetchData()
-    XCTAssertNotNil(result)
-}
-```
-
-### Mocking
-- Mock external dependencies (APIs, services)
-- Use protocols for dependency injection
-- Don't mock SwiftUI or Apple frameworks
-- Verify behavior, not implementation
-
----
-
-## Code Review Checklist
-
-### Automated Code Reviews
-
-Use slash commands for comprehensive reviews:
-- `/review-staged` - Pre-commit code review against CLAUDE.md standards
-- `/concurrency-review` - Swift 6 concurrency safety audit
-- `/swiftui-refactor` - View structure and performance analysis
-- `/perf-profile` - Performance bottleneck identification
-- `/security-scan` - Security vulnerability scanning
-- `/accessibility-audit` - Accessibility compliance check
-
-### Review Frequency
-- Run `/review-staged` before every commit
-- Run `/concurrency-review` monthly or after major concurrency changes
-- Run `/swiftui-refactor` when views exceed 200 lines
-- Run `/perf-profile` before each release
-- Run `/security-scan` before production deployments
-- Run `/accessibility-audit` quarterly
-
-### Before Committing
-- [ ] Code follows Swift naming conventions
-- [ ] No force unwraps unless explicitly safe
-- [ ] Proper error handling in place
-- [ ] Memory leaks checked (weak self in closures)
-- [ ] No hardcoded credentials or secrets
-- [ ] Logging added for important operations
-- [ ] Comments explain "why", not "what"
-- [ ] No TODO comments for critical issues
-- [ ] Tests added for new functionality
-- [ ] Existing tests still pass
-
-### Security Review
-- [ ] No sensitive data in logs
-- [ ] HTTPS for all network calls
-- [ ] Input validation on boundaries
-- [ ] Keychain used for sensitive storage
-- [ ] No API keys in code
-
-### Performance Review
-- [ ] No main thread blocking
-- [ ] Efficient algorithms/data structures
-- [ ] Images optimized
-- [ ] Pagination for large lists
-- [ ] Proper resource cleanup
-
----
-
-## UI/UX Patterns
-
-### Accessibility
-- Add `.accessibilityLabel()` to all interactive elements
-- Add `.accessibilityHint()` for non-obvious actions
-- Support Dynamic Type
-- Ensure proper color contrast
-- Test with VoiceOver
-
-### Haptic Feedback
-Use haptic feedback for important user actions:
-```swift
-let generator = UINotificationFeedbackGenerator()
-generator.notificationOccurred(.success) // or .error, .warning
-```
-
-### Loading States
-- Show progress indicators for async operations
-- Disable buttons during loading (prevent double-tap)
-- Provide visual feedback for all user actions
-- Handle empty states gracefully
-
-### Form Validation UX
-- Validate on change, not on submit
-- Show errors only (not success confirmations)
-- Visual indicators: checkmarks for valid fields
-- Clear, actionable error messages
-
----
-
-## Performance Guidelines
-
-### Network Optimization
-- Batch API requests when possible
-- Implement request debouncing
-- Cache responses appropriately
-- Use pagination for large datasets
-- Implement request timeouts
-
-### Image Handling
-- Resize images before upload
-- Use appropriate image formats
-- Lazy load images in lists
-- Cache downloaded images
-- Use async image loading
-
-### Main Thread Protection
-- Never block main thread with heavy computation
-- Move network calls to background
-- Use Task for async operations
-- Profile with Instruments before release
-
-### Performance Monitoring
-- Use `/perf-profile` command for comprehensive performance analysis
-- Track metrics: app launch time, screen load time, memory usage
-- Profile with Instruments before each release
-- Set performance budgets:
-  - App launch: <2 seconds
-  - Screen transitions: <300ms
-  - List scrolling: 60 FPS
-  - Image load: <100ms
-  - API requests: <500ms
-  - Memory usage: <200MB typical
-
-### Performance Testing
-Create performance tests for critical paths:
-```swift
-func testImageUploadPerformance() async throws {
-    measure {
-        Task {
-            _ = await ImageUploadService.shared.uploadImage(testData)
-        }
-    }
-    // Target: <100ms for compression + encoding
-}
-
-func testStoneListLoadPerformance() async throws {
-    measure {
-        await viewModel.fetchStones()
-    }
-    // Target: <500ms for typical load
-}
-```
-
-### Parallel Operations
-Use `async let` or `TaskGroup` for concurrent operations:
-```swift
-// Good: Parallel requests (2x faster)
-func refreshAllStones() async {
-    async let userFetch = stoneService.fetchUserStones()
-    async let publicFetch = stoneService.fetchPublicStones()
-    _ = await (userFetch, publicFetch)
-}
-
-// Avoid: Sequential requests (slower)
-func refreshAllStones() async {
-    await stoneService.fetchUserStones()
-    await stoneService.fetchPublicStones()  // Waits for first to complete
-}
-```
-
----
-
-## Common Patterns in This Project
-
-### Availability Checking
-Debounced real-time availability checks (username, email):
-- 500ms debounce delay
-- Show spinner while checking
-- Display errors only when invalid/taken
-- Green checkmark when valid and available
-
-### Location Services
-- Request permissions properly
-- Handle all authorization states
-- Timeout protection (10 seconds)
-- Cache recent locations (30 seconds)
-- Actor-based continuation management
-
-### Form Handling
-- Focus state management with `@FocusState`
-- Field-by-field validation
-- Submit action on final field
-- Keyboard dismissal on submit
-- Haptic feedback on success
-
-### Settings Navigation
-- Alert with "Open Settings" action
-- Handle denied/restricted permissions gracefully
-- Educate users about why permissions needed
-
----
-
-## TODO Management
-
-### TODO Comment Guidelines
-- Use `// TODO:` for improvements and non-critical work
-- Use `// FIXME:` for bugs that need attention
-- Include context and reason
-- Link to issue tracker if available
-- Example: `// TODO: Add pagination when API supports it`
-
-### Critical vs Nice-to-Have
-- Critical issues should be fixed before commit
-- Non-critical TODOs can remain with context
-- Track TODOs in issue tracker for visibility
-- Review and prune TODOs regularly
+**Only document when necessary:**
+- Public APIs needing usage explanation
+- Complex algorithms or non-obvious logic
+- Architectural "why" decisions
+
+**Do NOT document:**
+- Self-explanatory names (`fetchStones()`, `isLoading`)
+- Obvious getters/setters
 
 ---
 
 ## Git Workflow
 
 ### Commit Messages
-Format: `<type>: <brief description>`
+`<type>: <brief description>`
 
-Types:
-- `feat`: New feature
-- `fix`: Bug fix
-- `refactor`: Code restructuring
-- `docs`: Documentation
-- `test`: Adding tests
-- `chore`: Maintenance tasks
+Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
 
 Examples:
-- `feat: add password strength indicator`
-- `fix: resolve location continuation leak`
-- `refactor: extract validation logic to service`
+- `feat: add username picker onboarding flow`
+- `fix: clear onboarding state on logout`
 
-### Branch Strategy
-- `main`: Production-ready code
-- Feature branches: `feature/description`
-- Bug fixes: `fix/issue-description`
-- Hotfixes: `hotfix/critical-issue`
-
-### Pull Requests
-- Descriptive title and summary
-- Link related issues
-- Include test plan
-- Request review before merging
-- Squash commits if needed
+### Branches
+- `main`: Production-ready
+- `feature/description`
+- `fix/issue-description`
+- `hotfix/critical-issue`
 
 ---
 
-## Release Management
+## Release Checklist
 
-### Versioning
-- Use semantic versioning: `MAJOR.MINOR.PATCH`
-- Increment MAJOR for breaking changes
-- Increment MINOR for new features
-- Increment PATCH for bug fixes
-
-### Changelog Maintenance
-- Keep `CHANGELOG.md` updated with all changes
-- Use `/appstore-changelog` command to generate user-facing release notes
-- Separate developer changelog from App Store release notes
-
-**Developer Changelog Format:**
-```markdown
-## [1.2.0] - 2026-01-15
-
-### Added
-- AR-based stone weight estimation with LiDAR support
-- Map clustering for nearby stones
-- Parallel network requests for faster loading
-
-### Fixed
-- Base64 encoding blocking main thread in ImageUploadService
-- Location timeout not being respected in LocationService
-
-### Performance
-- Image upload responsiveness improved by 20%
-- Stone list refresh 2x faster with parallel fetching
-- Request timeouts added to prevent hanging
-```
-
-**App Store Release Notes Format:**
-```
-What's New in Version 1.2:
-
-Point your camera at a stone and get an instant weight estimate!
-
-NEW FEATURES
-• Smart weight estimation using AR
-• See groups of nearby stones on the map
-
-IMPROVEMENTS
-• 2x faster loading
-• Smoother photo uploads
-• Better location accuracy
-```
-
-### Pre-Release Checklist
-Before submitting to App Store:
-- [ ] Version number incremented in Xcode
-- [ ] Build number incremented
-- [ ] `CHANGELOG.md` updated
-- [ ] Release notes written (use `/appstore-changelog`)
+Before App Store submission:
+- [ ] Version & build numbers incremented
+- [ ] `CHANGELOG.md` updated (use `/appstore-changelog`)
 - [ ] All tests passing
-- [ ] No critical TODOs in code
+- [ ] No critical TODOs
 - [ ] Screenshots updated if UI changed
-- [ ] Privacy policy updated if needed
-- [ ] Tested on multiple device sizes (SE, regular, Pro Max)
+- [ ] Tested on SE, regular, Pro Max sizes
 - [ ] Tested on oldest supported iOS version
-- [ ] Performance profiled with Instruments
+- [ ] Profiled with Instruments
 - [ ] Memory leaks checked
 - [ ] Thread Sanitizer run
-- [ ] **README.md updated** if significant features were added
-
-### README Maintenance
-
-**When to Update README.md:**
-Update the README when implementing significant features that should be documented for users or developers:
-
-- **New major features** (e.g., AR weight estimation, map clustering, offline mode)
-- **New authentication methods** (e.g., adding OAuth providers)
-- **Technology stack changes** (e.g., new frameworks, dependencies, minimum iOS version)
-- **Setup/installation changes** (e.g., new environment variables, build steps)
-- **Architecture changes** (e.g., new services, major refactors)
-
-**What to Update in README:**
-- **Features section**: Add bullet point describing the new feature from a user perspective
-- **Tech Stack section**: Update if new technologies/frameworks were added
-- **Quick Start**: Update if setup steps changed
-- **Getting Started**: Update prerequisites or setup instructions if needed
-- **Project Structure**: Update if major directories/components were added
-
-**Example:**
-```markdown
-# After adding AR weight estimation feature:
-
-## Features
-- **AR Weight Estimation**: Estimate stone weight using LiDAR and AR technology  ← ADD THIS
-- **Stone Discovery**: Find nearby stones using interactive maps
-...
-```
-
-**Process:**
-1. Implement feature
-2. Update README.md with user-facing description
-3. Commit changes together: `git commit -m "feat: add AR weight estimation + update README"`
+- [ ] README updated if major features added
 
 ---
 
-## Tools & Automation
+## Slash Commands
 
-### SwiftLint
-Run SwiftLint on all Swift files:
-```bash
-swiftlint lint --strict
-```
+**Pre-commit:**
+- `/review-staged` - Code review against standards
 
-Auto-fix issues:
-```bash
-swiftlint --fix
-```
+**Periodic:**
+- `/concurrency-review` - Swift 6 safety audit (monthly)
+- `/swiftui-refactor` - View structure analysis (when >200 lines)
+- `/perf-profile` - Performance profiling (before release)
+- `/security-scan` - Security scan (before production)
+- `/accessibility-audit` - Accessibility check (quarterly)
 
-### SwiftFormat
-Format code consistently:
-```bash
-swiftformat .
-```
+**Release:**
+- `/appstore-changelog` - Generate user-facing release notes
 
-### Testing
-Run full test suite:
-```bash
-swift test
-```
+---
 
-Run with coverage:
-```bash
-xcodebuild test -scheme StoneLifting -enableCodeCoverage YES
-```
+## Code Review Essentials
+
+### Before Committing
+- [ ] No force unwraps unless explicitly safe
+- [ ] Proper error handling
+- [ ] Memory leaks checked (`[weak self]` in closures)
+- [ ] No hardcoded secrets
+- [ ] Logging for important operations
+- [ ] Tests for new functionality
+
+### Security
+- [ ] No sensitive data in logs
+- [ ] HTTPS for all network calls
+- [ ] Input validation on boundaries
+- [ ] Keychain for sensitive storage
+
+### Performance
+- [ ] No main thread blocking
+- [ ] Images optimized
+- [ ] Proper resource cleanup
 
 ---
 
@@ -843,43 +345,16 @@ xcodebuild test -scheme StoneLifting -enableCodeCoverage YES
 2. **Test critical paths** - Don't skip tests
 3. **Handle errors properly** - Never ignore errors
 4. **Log with context** - Make debugging easier
-5. **Think about the user** - UX matters
-6. **Secure by default** - Security is not optional
-7. **Profile before optimizing** - Measure first
-8. **Document the why** - Not the what
-9. **Make it feel human** - Avoid AI-generated tells in UI:
-   - Use specific, contextual copy instead of generic placeholders
+5. **Secure by default** - Security is not optional
+6. **Profile before optimizing** - Measure first
+7. **Make it feel human** - Avoid AI-generated UI tells:
+   - Use specific, contextual copy (not generic placeholders)
    - Avoid excessive emojis or overly formal language
-   - Choose meaningful icons that fit the app's personality
-   - Vary spacing and layouts to feel intentional, not templated
-   - Write error messages in your app's voice, not boilerplate
-   - Use real-world examples in placeholder text
-   - Polish the details - animations, transitions, micro-interactions
+   - Write error messages in your app's voice
+   - Polish animations, transitions, micro-interactions
 
 ---
 
-## Resources
-
-- [Swift API Design Guidelines](https://swift.org/documentation/api-design-guidelines/)
-- [SwiftUI Documentation](https://developer.apple.com/documentation/swiftui)
-- [Swift Concurrency](https://docs.swift.org/swift-book/LanguageGuide/Concurrency.html)
-- [iOS Security Best Practices](https://developer.apple.com/security/)
-
----
-
-**Last Updated:** 2026-02-04
+**Last Updated:** 2026-02-12
 **Project:** StoneAtlas iOS App
-**Language:** Swift 6.0
-**Platform:** iOS 18.0+
-**Framework:** SwiftUI
-**Xcode:** 16+
-
-**Slash Commands Available:**
-- `/review-staged` - Pre-commit code review
-- `/concurrency-review` - Swift 6 concurrency safety audit
-- `/swiftui-refactor` - View structure analysis
-- `/perf-profile` - Performance profiling
-- `/security-scan` - Security vulnerability scan
-- `/accessibility-audit` - Accessibility compliance
-- `/test-gen` - Test generation
-- `/appstore-changelog` - Release notes generator
+**Language:** Swift 6.0 | **Platform:** iOS 18.0+ | **Framework:** SwiftUI
