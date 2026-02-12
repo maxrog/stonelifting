@@ -155,6 +155,27 @@ final class APIService {
         )
     }
 
+    /// Perform a PATCH request
+    /// - Parameters:
+    ///   - endpoint: API endpoint path
+    ///   - body: Request body to encode as JSON
+    ///   - requiresAuth: Whether this endpoint requires authentication
+    /// - Returns: Decoded response data
+    func patch<T: Codable, U: Codable>(
+        endpoint: String,
+        body: T,
+        requiresAuth: Bool = true,
+        responseType: U.Type
+    ) async throws -> U {
+        try await performRequest(
+            endpoint: endpoint,
+            method: "PATCH",
+            body: body,
+            requiresAuth: requiresAuth,
+            responseType: responseType
+        )
+    }
+
     /// Perform a DELETE request
     /// - Parameters:
     ///   - endpoint: API endpoint path

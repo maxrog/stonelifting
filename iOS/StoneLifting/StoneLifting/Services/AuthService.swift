@@ -174,6 +174,9 @@ final class AuthService {
         authError = nil
         UserDefaults.standard.removeObject(forKey: authProviderKey)
 
+        // Clear onboarding state so new accounts go through onboarding
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.hasCompletedOnboarding)
+
         // Clear all stone-related data
         Task {
             // Clear persistent cache
@@ -208,6 +211,33 @@ final class AuthService {
         } catch {
             await handleAuthError(error)
             logger.error("Error refreshing user with id: \(String(describing: currentUser?.id)), username: \(currentUser?.username ?? "")", error: error)
+            return false
+        }
+    }
+
+    /// Update username
+    /// - Parameter newUsername: The new username to set
+    /// - Returns: Success status
+    @MainActor
+    func updateUsername(_ newUsername: String) async -> Bool {
+        guard isAuthenticated else { return false }
+
+        do {
+            let request = UpdateUsernameRequest(username: newUsername)
+            let updatedUser: User = try await apiService.patch(
+                endpoint: APIConfig.Endpoints.updateUsername,
+                body: request,
+                requiresAuth: true,
+                responseType: User.self
+            )
+
+            currentUser = updatedUser
+            logger.info("Successfully updated username to '\(newUsername)'")
+            return true
+
+        } catch {
+            await handleAuthError(error)
+            logger.error("Error updating username", error: error)
             return false
         }
     }

@@ -48,6 +48,11 @@ struct RefreshTokenRequest: Codable {
     let refreshToken: String
 }
 
+/// Request payload for updating username
+struct UpdateUsernameRequest: Codable {
+    let username: String
+}
+
 /// Generic message response
 struct MessageResponse: Codable {
     let message: String

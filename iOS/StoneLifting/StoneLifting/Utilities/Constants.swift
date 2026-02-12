@@ -46,6 +46,7 @@ enum APIConfig {
         // User endpoints
         static let me = "/me"
         static let stats = "/stats"
+        static let updateUsername = "/me/username"
 
         // Stone endpoints
         static let stones = "/stones"

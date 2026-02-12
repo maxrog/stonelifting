@@ -17,6 +17,7 @@ struct RootView: View {
     private let authService = AuthService.shared
 
     @State private var isLoading = true
+    @State private var needsOnboarding = false
 
     // MARK: - Body
 
@@ -29,21 +30,38 @@ struct RootView: View {
                     style: .splash,
                     icon: "figure.strengthtraining.traditional"
                 )
-            } else if authService.isAuthenticated {
-                // User is logged in - show main app
-                MainAppView()
-            } else {
+            } else if !authService.isAuthenticated {
                 // User is not logged in - show authentication
                 AuthenticationView()
+            } else if needsOnboarding {
+                // User is logged in but needs onboarding
+                OnboardingView {
+                    needsOnboarding = false
+                }
+            } else {
+                // User is logged in and onboarded - show main app
+                MainAppView()
             }
         }
         .onAppear {
             checkInitialAuthState()
         }
+        .onChange(of: authService.isAuthenticated) { _, isAuthenticated in
+            if isAuthenticated {
+                checkOnboardingStatus()
+            }
+        }
         .animation(.easeInOut(duration: 0.3), value: authService.isAuthenticated)
+        .animation(.easeInOut(duration: 0.3), value: needsOnboarding)
     }
 
     // MARK: - Actions
+
+    /// Check if user needs to complete onboarding
+    private func checkOnboardingStatus() {
+        let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: UserDefaultsKeys.hasCompletedOnboarding)
+        needsOnboarding = !hasCompletedOnboarding
+    }
 
     /// Check authentication state on app launch
     private func checkInitialAuthState() {
@@ -54,6 +72,11 @@ struct RootView: View {
             // Attempt to refresh user data if token exists
             if authService.isAuthenticated {
                 _ = await authService.refreshCurrentUser()
+
+                // Check onboarding status
+                await MainActor.run {
+                    checkOnboardingStatus()
+                }
 
                 // Fetch and cache stones once on app launch
                 let stoneService = StoneService.shared
