@@ -17,6 +17,9 @@ struct EditStoneView: View {
 
     @Binding var stone: Stone
 
+    /// Local working copy — mutations stay local until Save succeeds
+    @State private var editedStone: Stone
+
     @State private var viewModel: StoneFormViewModel
 
     @Bindable private var locationService = LocationService.shared
@@ -44,12 +47,12 @@ struct EditStoneView: View {
 
     init(stone: Binding<Stone>) {
         _stone = stone
+        _editedStone = State(initialValue: stone.wrappedValue)
         if let stoneId = stone.wrappedValue.id {
             _viewModel = State(initialValue: StoneFormViewModel(stoneId: stoneId))
         } else {
             _viewModel = State(initialValue: StoneFormViewModel())
         }
-        // Initialize includeLocation based on whether stone has location
         _includeLocation = State(initialValue: stone.wrappedValue.hasValidLocation)
     }
 
@@ -67,7 +70,7 @@ struct EditStoneView: View {
                         StoneDetailsFormView(
                             stoneName: nameBinding,
                             notes: notesBinding,
-                            liftingLevel: $stone.liftingLevel,
+                            liftingLevel: $editedStone.liftingLevel,
                             focusedField: $focusedField
                         )
 
@@ -125,7 +128,7 @@ struct EditStoneView: View {
             Button("Photo Library") {
                 showingPhotoPicker = true
             }
-            if stone.imageUrl != nil || photoData != nil {
+            if editedStone.imageUrl != nil || photoData != nil {
                 Button("Remove Photo", role: .destructive) {
                     photoData = nil
                     hasPhotoChanged = true
@@ -188,22 +191,20 @@ struct EditStoneView: View {
         .sheet(isPresented: $showingManualEntry) {
             ManualCoordinateEntryView(latitude: $manualLatitude, longitude: $manualLongitude)
                 .onDisappear {
-                    // Update stone with manual coordinates when sheet closes
                     if !manualLatitude.isEmpty && !manualLongitude.isEmpty,
                        let lat = Double(manualLatitude), let lon = Double(manualLongitude) {
-                        stone.latitude = lat
-                        stone.longitude = lon
+                        editedStone.latitude = lat
+                        editedStone.longitude = lon
                     }
                 }
         }
         .sheet(isPresented: $showingMapPicker) {
             MapLocationPickerView(latitude: $manualLatitude, longitude: $manualLongitude)
                 .onDisappear {
-                    // Update stone with manual coordinates when sheet closes
                     if !manualLatitude.isEmpty && !manualLongitude.isEmpty,
                        let lat = Double(manualLatitude), let lon = Double(manualLongitude) {
-                        stone.latitude = lat
-                        stone.longitude = lon
+                        editedStone.latitude = lat
+                        editedStone.longitude = lon
                     }
                 }
         }
@@ -232,12 +233,9 @@ struct EditStoneView: View {
                     .labelsHidden()
                     .onChange(of: includeLocation) { _, newValue in
                         if !newValue {
-                            // User toggled OFF - clear location
-                            stone.latitude = nil
-                            stone.longitude = nil
-                        } else if newValue && !stone.hasValidLocation {
-                            // User toggled ON but no location
-                            // Only auto-fetch if they have permissions, otherwise show button
+                            editedStone.latitude = nil
+                            editedStone.longitude = nil
+                        } else if !editedStone.hasValidLocation {
                             if [.authorizedWhenInUse, .authorizedAlways].contains(locationService.authorizationStatus) {
                                 requestLocation(userInitiated: false)
                             }
@@ -246,7 +244,7 @@ struct EditStoneView: View {
             }
 
             if includeLocation {
-                if let latitude = stone.latitude, let longitude = stone.longitude {
+                if let latitude = editedStone.latitude, let longitude = editedStone.longitude {
                     VStack(spacing: 8) {
                         HStack {
                             Image(systemName: "location.fill")
@@ -259,7 +257,6 @@ struct EditStoneView: View {
                             Spacer()
                         }
 
-                        // Update location options
                         Menu {
                             Button(action: {
                                 requestLocation(userInitiated: true)
@@ -268,7 +265,6 @@ struct EditStoneView: View {
                             }
 
                             Button(action: {
-                                // Pre-fill with current coordinates
                                 manualLatitude = String(format: "%.6f", latitude)
                                 manualLongitude = String(format: "%.6f", longitude)
                                 showingMapPicker = true
@@ -277,7 +273,6 @@ struct EditStoneView: View {
                             }
 
                             Button(action: {
-                                // Pre-fill with current coordinates
                                 manualLatitude = String(format: "%.6f", latitude)
                                 manualLongitude = String(format: "%.6f", longitude)
                                 showingManualEntry = true
@@ -296,7 +291,6 @@ struct EditStoneView: View {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                     }
                 } else {
-                    // No current location - offer three options
                     VStack(spacing: 12) {
                         Button(action: {
                             requestLocation(userInitiated: true)
@@ -350,10 +344,10 @@ struct EditStoneView: View {
 
             VStack(spacing: 12) {
                 Button(action: {
-                    stone.isPublic = true
+                    editedStone.isPublic = true
                 }) {
                     HStack {
-                        Image(systemName: stone.isPublic ? "checkmark.circle.fill" : "circle")
+                        Image(systemName: editedStone.isPublic ? "checkmark.circle.fill" : "circle")
                             .foregroundColor(.blue)
 
                         VStack(alignment: .leading, spacing: 4) {
@@ -369,16 +363,16 @@ struct EditStoneView: View {
                         Spacer()
                     }
                     .padding()
-                    .background(stone.isPublic ? Color.blue.opacity(0.1) : Color.clear)
+                    .background(editedStone.isPublic ? Color.blue.opacity(0.1) : Color.clear)
                     .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
 
                 Button(action: {
-                    stone.isPublic = false
+                    editedStone.isPublic = false
                 }) {
                     HStack {
-                        Image(systemName: !stone.isPublic ? "checkmark.circle.fill" : "circle")
+                        Image(systemName: !editedStone.isPublic ? "checkmark.circle.fill" : "circle")
                             .foregroundColor(.blue)
 
                         VStack(alignment: .leading, spacing: 4) {
@@ -394,7 +388,7 @@ struct EditStoneView: View {
                         Spacer()
                     }
                     .padding()
-                    .background(!stone.isPublic ? Color.blue.opacity(0.1) : Color.clear)
+                    .background(!editedStone.isPublic ? Color.blue.opacity(0.1) : Color.clear)
                     .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
@@ -404,117 +398,78 @@ struct EditStoneView: View {
 
     // MARK: - Binding Helpers
 
-    /*
-     Forms intake string bindings
-     */
-
     private var nameBinding: Binding<String> {
         Binding(
-            get: { stone.name ?? "" },
-            set: { stone.name = $0.isEmpty ? nil : $0 }
+            get: { editedStone.name ?? "" },
+            set: { editedStone.name = $0.isEmpty ? nil : $0 }
         )
     }
 
     private var notesBinding: Binding<String> {
         Binding(
-            get: { stone.description ?? "" },
-            set: { stone.description = $0.isEmpty ? nil : $0 }
+            get: { editedStone.description ?? "" },
+            set: { editedStone.description = $0.isEmpty ? nil : $0 }
         )
     }
 
     private var weightBinding: Binding<String> {
         Binding(
-            get: { stone.weight != nil ? String(format: "%.1f", stone.weight!) : "" },
-            set: { stone.weight = $0.isEmpty ? nil : Double($0) }
+            get: { editedStone.weight != nil ? String(format: "%.1f", editedStone.weight!) : "" },
+            set: { editedStone.weight = $0.isEmpty ? nil : Double($0) }
         )
     }
 
     private var estimatedWeightBinding: Binding<String> {
         Binding(
-            get: { stone.estimatedWeight != nil ? String(format: "%.1f", stone.estimatedWeight!) : "" },
-            set: { stone.estimatedWeight = $0.isEmpty ? nil : Double($0) }
+            get: { editedStone.estimatedWeight != nil ? String(format: "%.1f", editedStone.estimatedWeight!) : "" },
+            set: { editedStone.estimatedWeight = $0.isEmpty ? nil : Double($0) }
         )
     }
 
     private var stoneTypeBinding: Binding<StoneType> {
         Binding(
             get: {
-                if let typeString = stone.stoneType,
+                if let typeString = editedStone.stoneType,
                    let type = StoneType(rawValue: typeString) {
                     return type
                 }
-                return .granite // Default
+                return .granite
             },
-            set: { stone.stoneType = $0.rawValue }
-        )
-    }
-
-    private var includeLocationBinding: Binding<Bool> {
-        Binding(
-            get: { stone.hasValidLocation },
-            set: { includeLocation in
-                if !includeLocation {
-                    stone.latitude = nil
-                    stone.longitude = nil
-                }
-            }
+            set: { editedStone.stoneType = $0.rawValue }
         )
     }
 
     // MARK: - Computed Properties
 
     private var isFormValid: Bool {
-        // Require stone name
-        guard !(stone.name?.isEmpty ?? true) else { return false }
+        guard !(editedStone.name?.isEmpty ?? true) else { return false }
 
-        // Require at least one weight (confirmed or estimated)
-        let hasConfirmedWeight = stone.weight ?? 0 > 0
-        let hasEstimatedWeight = stone.estimatedWeight ?? 0 > 0
-
+        let hasConfirmedWeight = editedStone.weight ?? 0 > 0
+        let hasEstimatedWeight = editedStone.estimatedWeight ?? 0 > 0
         guard hasConfirmedWeight || hasEstimatedWeight else { return false }
 
-        // Validate weight ranges (1-1000 lbs to match backend validation)
-        if let weight = stone.weight {
+        if let weight = editedStone.weight {
             guard weight >= 1 && weight <= 1000 else { return false }
         }
 
-        if let estimatedWeight = stone.estimatedWeight {
+        if let estimatedWeight = editedStone.estimatedWeight {
             guard estimatedWeight >= 1 && estimatedWeight <= 1000 else { return false }
         }
 
         return true
     }
 
-    private var hasChanges: Bool {
-        // Since we're working directly with bindings, we could track this differently
-        // For now, assume there are always potential changes if the form is valid
-        hasPhotoChanged
-    }
-
     // MARK: - Actions
 
     private func setupView() {
-        logger.info("Setting up EditStoneView for stone: \(stone.name ?? "unnamed")")
+        logger.info("Setting up EditStoneView for stone: \(editedStone.name ?? "unnamed")")
 
-        if let imageUrl = stone.imageUrl, !imageUrl.isEmpty {
+        if let imageUrl = editedStone.imageUrl, !imageUrl.isEmpty {
             loadImageFromURL(imageUrl)
         }
 
-        // Handle location permissions
-        switch locationService.authorizationStatus {
-        case .notDetermined:
-            // Request permission for first time (system dialog)
+        if locationService.authorizationStatus == .notDetermined {
             locationService.requestLocationPermission()
-        case .denied, .restricted:
-            // Don't show alert - user can tap "Get Location" button if desired
-            logger.info("Location permissions denied - user can enable via buttons if desired")
-        case .authorizedWhenInUse, .authorizedAlways:
-            // If location is enabled and stone has no location, auto-fetch silently
-            if includeLocation && !stone.hasValidLocation {
-                requestLocation(userInitiated: false)
-            }
-        @unknown default:
-            break
         }
     }
 
@@ -561,8 +516,8 @@ struct EditStoneView: View {
             let location = await locationService.getCurrentLocation(showAlertOnFailure: userInitiated)
             if let location = location {
                 await MainActor.run {
-                    stone.latitude = location.coordinate.latitude
-                    stone.longitude = location.coordinate.longitude
+                    editedStone.latitude = location.coordinate.latitude
+                    editedStone.longitude = location.coordinate.longitude
                     logger.info("Location updated for stone edit")
                 }
             }
@@ -570,28 +525,26 @@ struct EditStoneView: View {
     }
 
     private func updateStone() {
-        guard stone.id != nil else {
+        guard editedStone.id != nil else {
             viewModel.stoneError = .unknownError("Unable to update stone - missing ID")
             return
         }
 
-        logger.info("Updating stone: \(stone.name ?? "unnamed")")
-
-        // Dismiss keyboard
+        logger.info("Updating stone: \(editedStone.name ?? "unnamed")")
         focusedField = nil
 
         Task {
             let request = CreateStoneRequest(
-                name: stone.name,
-                weight: stone.weight,
-                estimatedWeight: stone.estimatedWeight,
-                stoneType: stone.stoneType,
-                description: stone.description,
-                imageUrl: stone.imageUrl,
-                latitude: stone.latitude,
-                longitude: stone.longitude,
-                isPublic: stone.isPublic,
-                liftingLevel: stone.liftingLevel.rawValue
+                name: editedStone.name,
+                weight: editedStone.weight,
+                estimatedWeight: editedStone.estimatedWeight,
+                stoneType: editedStone.stoneType,
+                description: editedStone.description,
+                imageUrl: editedStone.imageUrl,
+                latitude: editedStone.latitude,
+                longitude: editedStone.longitude,
+                isPublic: editedStone.isPublic,
+                liftingLevel: editedStone.liftingLevel.rawValue
             )
 
             let updatedStone = await viewModel.saveStone(

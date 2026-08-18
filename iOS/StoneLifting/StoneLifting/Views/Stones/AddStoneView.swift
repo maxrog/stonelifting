@@ -8,33 +8,69 @@
 import PhotosUI
 import SwiftUI
 
+// MARK: - Add Stone Step
+
+private enum AddStoneStep: Int, CaseIterable {
+    case photo
+    case details
+    case weight
+    case location
+    case visibility
+
+    var title: String {
+        switch self {
+        case .photo: "Add a Photo"
+        case .details: "Name Your Stone"
+        case .weight: "Stone Weight"
+        case .location: "Location"
+        case .visibility: "Visibility"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .photo: "Help others recognize this stone"
+        case .details: "Give your stone an identity"
+        case .weight: "How heavy is this stone?"
+        case .location: "Where can this stone be found?"
+        case .visibility: "Who can discover this stone?"
+        }
+    }
+
+    var isOptional: Bool {
+        switch self {
+        case .photo, .location, .visibility: true
+        case .details, .weight: false
+        }
+    }
+}
+
 // MARK: - Add Stone View
 
-/// Stone creation view with camera, weight input, and location capture
-/// Allows users to log new stone lifting records
+/// Multi-step stone creation flow
 // swiftlint:disable type_body_length
 struct AddStoneView: View {
+
     // MARK: - Properties
 
     @State private var viewModel = StoneFormViewModel()
-
     @Bindable private var locationService = LocationService.shared
     private let networkMonitor = NetworkMonitor.shared
     private let offlineSyncService = OfflineSyncService.shared
     private let logger = AppLogger()
 
-    @State private var stoneName: String = ""
-    @State private var weight: String = ""
-    @State private var estimatedWeight: String = ""
+    @State private var currentStep: AddStoneStep = .photo
+    @State private var isGoingForward = true
+
+    @State private var stoneName = ""
+    @State private var weight = ""
+    @State private var estimatedWeight = ""
     @State private var stoneType: StoneType = .granite
-    @State private var notes: String = ""
+    @State private var notes = ""
     @State private var isPublic = true
     @State private var liftingLevel: LiftingLevel = .notLifted
-    @State private var includeLocation = true
-    @State private var manualLatitude: String = ""
-    @State private var manualLongitude: String = ""
-    @State private var showingMapPicker = false
-    @State private var showingManualEntry = false
+    @State private var manualLatitude = ""
+    @State private var manualLongitude = ""
 
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var photoData: Data?
@@ -44,9 +80,10 @@ struct AddStoneView: View {
     @State private var showingCropView = false
     @State private var imageToCrop: UIImage?
 
-    @FocusState private var focusedField: StoneFormField?
+    @State private var showingMapPicker = false
+    @State private var showingManualEntry = false
 
-    /// Dismissal action
+    @FocusState private var focusedField: StoneFormField?
     @Environment(\.dismiss) private var dismiss
 
     // MARK: - Body
@@ -54,84 +91,51 @@ struct AddStoneView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                ScrollView {
-                    VStack(spacing: 24) {
-                        StonePhotoFormView(
-                            photoData: $photoData,
-                            showingPhotoOptions: $showingPhotoOptions
-                        )
+                VStack(spacing: 0) {
+                    progressBar
 
-                        sectionDivider
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 28) {
+                            stepHeader
 
-                        StoneDetailsFormView(
-                            stoneName: $stoneName,
-                            notes: $notes,
-                            liftingLevel: $liftingLevel,
-                            focusedField: $focusedField
-                        )
+                            Group {
+                                stepContent
+                            }
+                            .id(currentStep)
+                            .transition(.asymmetric(
+                                insertion: .move(edge: isGoingForward ? .trailing : .leading).combined(with: .opacity),
+                                removal: .move(edge: isGoingForward ? .leading : .trailing).combined(with: .opacity)
+                            ))
 
-                        sectionDivider
-
-                        StoneWeightFormView(
-                            weight: $weight,
-                            estimatedWeight: $estimatedWeight,
-                            stoneType: $stoneType,
-                            photoData: $photoData,
-                            focusedField: $focusedField
-                        )
-
-                        sectionDivider
-
-                        locationSection
-
-                        sectionDivider
-
-                        visibilitySection
-
-                        if !networkMonitor.isConnected {
-                            offlineStatusBanner
+                            if currentStep == .visibility && !networkMonitor.isConnected {
+                                offlineBanner
+                            }
                         }
-
-                        if !isFormValid {
-                            formValidationMessage
-                        }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 24)
+                        .padding(.bottom, 16)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 16)
-                }
-                .navigationTitle("Add Stone")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Cancel") {
-                            logger.info("User cancelled stone creation")
-                            dismiss()
-                        }
-                    }
-
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Save") {
-                            saveStone()
-                        }
-                        .disabled(!isFormValid || viewModel.isLoading)
-                        .fontWeight(isFormValid ? .semibold : .regular)
+                    .safeAreaInset(edge: .bottom) {
+                        bottomBar
+                            .background(Color(.systemBackground))
                     }
                 }
-                .onAppear {
-                    setupView()
-                }
+
                 if viewModel.isLoading {
                     LoadingView(message: networkMonitor.isConnected ? "Adding stone..." : "Saving offline...")
                 }
             }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+            .onAppear { setupLocationIfNeeded() }
         }
         .confirmationDialog("Add Photo", isPresented: $showingPhotoOptions) {
-            Button("Camera") {
-                showingCamera = true
-            }
-            Button("Photo Library") {
-                showingPhotoPicker = true
-            }
+            Button("Camera") { showingCamera = true }
+            Button("Photo Library") { showingPhotoPicker = true }
             Button("Cancel", role: .cancel) {}
         }
         .photosPicker(isPresented: $showingPhotoPicker, selection: $selectedPhoto, matching: .images)
@@ -142,7 +146,7 @@ struct AddStoneView: View {
             }
         }
         .sheet(isPresented: $showingCropView) {
-            if let imageToCrop = imageToCrop {
+            if let imageToCrop {
                 ImageCropView(image: imageToCrop) { croppedData in
                     self.photoData = croppedData
                 }
@@ -151,384 +155,310 @@ struct AddStoneView: View {
         .onChange(of: selectedPhoto) { _, newValue in
             loadSelectedPhoto(newValue)
         }
-        .alert("Error", isPresented: .constant(viewModel.stoneError != nil)) {
-            if let error = viewModel.stoneError, error.isImageUploadError {
-                Button("Retry") {
-                    viewModel.clearError()
-                    saveStone()
-                }
-                Button("Continue Without Photo") {
-                    photoData = nil
-                    viewModel.clearError()
-                    saveStone()
-                }
-                Button("Cancel", role: .cancel) {
-                    viewModel.clearError()
-                }
-            } else {
-                Button("OK") {
-                    viewModel.clearError()
-                }
-            }
-        } message: {
-            Text(viewModel.stoneError?.localizedDescription ?? "")
-        }
-        .alert("Location Access Needed", isPresented: $locationService.showSettingsAlert) {
-            Button("Open Settings") {
-                if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(settingsUrl)
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Location access is required to add stones with GPS coordinates. Please enable location services in Settings.")
-        }
         .sheet(isPresented: $showingManualEntry) {
             ManualCoordinateEntryView(latitude: $manualLatitude, longitude: $manualLongitude)
         }
         .sheet(isPresented: $showingMapPicker) {
             MapLocationPickerView(latitude: $manualLatitude, longitude: $manualLongitude)
         }
-    }
-
-    // MARK: - View Components
-
-    @ViewBuilder
-    private var photoSection: some View {
-        VStack(spacing: 16) {
-            Text("Stone Photo")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            if let photoData = photoData, let uiImage = UIImage(data: photoData) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(height: 200)
-                    .clipped()
-                    .cornerRadius(12)
-                    .overlay(
-                        VStack {
-                            Spacer()
-                            HStack {
-                                Spacer()
-                                Button("Change") {
-                                    showingPhotoOptions = true
-                                }
-                                .padding(8)
-                                .background(.ultraThinMaterial)
-                                .cornerRadius(8)
-                                .padding()
-                            }
-                        }
-                    )
+        .alert("Error", isPresented: .constant(viewModel.stoneError != nil)) {
+            if let error = viewModel.stoneError, error.isImageUploadError {
+                Button("Retry") { viewModel.clearError(); saveStone() }
+                Button("Continue Without Photo") { photoData = nil; viewModel.clearError(); saveStone() }
+                Button("Cancel", role: .cancel) { viewModel.clearError() }
             } else {
-                Button(action: {
-                    showingPhotoOptions = true
-                }) {
-                    VStack(spacing: 12) {
-                        Image(systemName: "camera.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(.blue)
+                Button("OK") { viewModel.clearError() }
+            }
+        } message: {
+            Text(viewModel.stoneError?.localizedDescription ?? "")
+        }
+        .alert("Location Access Needed", isPresented: $locationService.showSettingsAlert) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Location access is required to add stones with GPS coordinates. Please enable location services in Settings.")
+        }
+    }
 
-                        Text("Add Photo")
-                            .font(.headline)
+    // MARK: - Progress Bar
 
-                        Text("Take a photo or choose from library")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(height: 150)
+    private var progressBar: some View {
+        HStack(spacing: 6) {
+            ForEach(AddStoneStep.allCases, id: \.rawValue) { step in
+                Capsule()
+                    .fill(step.rawValue <= currentStep.rawValue ? Color.accentColor : Color(.systemGray4))
+                    .frame(height: 4)
+                    .animation(.easeInOut(duration: 0.3), value: currentStep)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
+    }
+
+    // MARK: - Step Header
+
+    private var stepHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if currentStep.isOptional {
+                Text("Optional")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color(.systemGray5))
+                    .cornerRadius(6)
+            }
+            Text(currentStep.title)
+                .font(.title2)
+                .fontWeight(.bold)
+            Text(currentStep.subtitle)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    // MARK: - Step Content
+
+    @ViewBuilder
+    private var stepContent: some View {
+        switch currentStep {
+        case .photo:
+            StonePhotoFormView(photoData: $photoData, showingPhotoOptions: $showingPhotoOptions)
+        case .details:
+            StoneDetailsFormView(
+                stoneName: $stoneName,
+                notes: $notes,
+                liftingLevel: $liftingLevel,
+                focusedField: $focusedField
+            )
+        case .weight:
+            StoneWeightFormView(
+                weight: $weight,
+                estimatedWeight: $estimatedWeight,
+                stoneType: $stoneType,
+                photoData: $photoData,
+                focusedField: $focusedField
+            )
+        case .location:
+            locationStepContent
+        case .visibility:
+            visibilityStepContent
+        }
+    }
+
+    // MARK: - Location Step
+
+    @ViewBuilder
+    private var locationStepContent: some View {
+        VStack(spacing: 16) {
+            if let location = locationService.currentLocation {
+                locationStatusRow(
+                    icon: "location.fill",
+                    color: .green,
+                    label: "GPS Location",
+                    detail: String(format: "%.4f, %.4f", location.coordinate.latitude, location.coordinate.longitude)
+                )
+            } else if let lat = Double(manualLatitude), let lon = Double(manualLongitude),
+                      !manualLatitude.isEmpty {
+                locationStatusRow(
+                    icon: "mappin.circle.fill",
+                    color: .blue,
+                    label: "Manual Location",
+                    detail: String(format: "%.4f, %.4f", lat, lon)
+                )
+            }
+
+            Button(action: {
+                manualLatitude = ""
+                manualLongitude = ""
+                requestLocation(userInitiated: true)
+            }) {
+                Label("Use Current GPS", systemImage: "location.fill")
+                    .font(.subheadline)
                     .frame(maxWidth: .infinity)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var locationSection: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text("Location")
-                    .font(.headline)
-
-                Spacer()
-
-                Toggle("Include Location", isOn: $includeLocation)
-                    .labelsHidden()
-                    .onChange(of: includeLocation) { _, newValue in
-                        if !newValue {
-                            // User toggled OFF - clear location
-                            manualLatitude = ""
-                            manualLongitude = ""
-                            locationService.clearCachedLocation()
-                        } else if newValue {
-                            // User toggled ON - auto-fetch if no location exists
-                            let hasLocation = (!manualLatitude.isEmpty && !manualLongitude.isEmpty) ||
-                                            locationService.currentLocation != nil
-
-                            if !hasLocation {
-                                if [.authorizedWhenInUse, .authorizedAlways].contains(locationService.authorizationStatus) {
-                                    requestLocation(userInitiated: false)
-                                }
-                            }
-                        }
-                    }
-            }
-
-            if includeLocation {
-                // Show current location status if exists
-                if let location = locationService.currentLocation {
-                    HStack {
-                        Image(systemName: "location.fill")
-                            .foregroundColor(.green)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("GPS Location Set")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                            Text("\(location.coordinate.latitude, specifier: "%.4f"), \(location.coordinate.longitude, specifier: "%.4f")")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
-                    }
-                    .padding(12)
-                    .background(Color.green.opacity(0.1))
-                    .cornerRadius(8)
-                } else if !manualLatitude.isEmpty && !manualLongitude.isEmpty,
-                          let lat = Double(manualLatitude), let lon = Double(manualLongitude) {
-                    HStack {
-                        Image(systemName: "mappin.circle.fill")
-                            .foregroundColor(.blue)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Manual Location Set")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                            Text("\(lat, specifier: "%.4f"), \(lon, specifier: "%.4f")")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
-                    }
-                    .padding(12)
+                    .padding(.vertical, 12)
                     .background(Color.blue.opacity(0.1))
+                    .foregroundColor(.blue)
                     .cornerRadius(8)
+            }
+
+            HStack(spacing: 12) {
+                Button(action: { showingMapPicker = true }) {
+                    Label("Pick on Map", systemImage: "map")
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.green.opacity(0.1))
+                        .foregroundColor(.green)
+                        .cornerRadius(8)
                 }
 
-                VStack(spacing: 12) {
-                    Button(action: {
-                        // Clear manual coordinates when switching to GPS
-                        manualLatitude = ""
-                        manualLongitude = ""
-                        requestLocation(userInitiated: true)
-                    }) {
-                        Label("Use Current GPS Location", systemImage: "location.fill")
-                            .font(.subheadline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(Color.blue.opacity(0.1))
-                            .foregroundColor(.blue)
-                            .cornerRadius(8)
-                    }
-
-                    HStack(spacing: 12) {
-                        Button(action: {
-                            // Don't clear GPS location - map picker will use it as initial position
-                            showingMapPicker = true
-                        }) {
-                            Label("Pick on Map", systemImage: "map")
-                                .font(.subheadline)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(Color.green.opacity(0.1))
-                                .foregroundColor(.green)
-                                .cornerRadius(8)
-                        }
-
-                        Button(action: {
-                            // Don't clear GPS location - let user see current location
-                            showingManualEntry = true
-                        }) {
-                            Label("Enter Coords", systemImage: "number")
-                                .font(.subheadline)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(Color.orange.opacity(0.1))
-                                .foregroundColor(.orange)
-                                .cornerRadius(8)
-                        }
-                    }
+                Button(action: { showingManualEntry = true }) {
+                    Label("Enter Coords", systemImage: "number")
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.orange.opacity(0.1))
+                        .foregroundColor(.orange)
+                        .cornerRadius(8)
                 }
+            }
+
+            let hasLocation = locationService.currentLocation != nil || !manualLatitude.isEmpty
+            if hasLocation {
+                Button(role: .destructive) {
+                    manualLatitude = ""
+                    manualLongitude = ""
+                    locationService.clearCachedLocation()
+                } label: {
+                    Text("Clear Location")
+                        .font(.caption)
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
     }
 
-    @ViewBuilder
-    private var visibilitySection: some View {
-        VStack(spacing: 16) {
-            Text("Visibility")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(spacing: 12) {
-                Button(action: {
-                    isPublic = true
-                }) {
-                    HStack {
-                        Image(systemName: isPublic ? "checkmark.circle.fill" : "circle")
-                            .foregroundColor(.blue)
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Public")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-
-                            Text("Others can see and attempt this stone")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
-                    }
-                    .padding()
-                    .background(isPublic ? Color.blue.opacity(0.1) : Color.clear)
-                    .cornerRadius(8)
-                }
-                .buttonStyle(.plain)
-
-                Button(action: {
-                    isPublic = false
-                }) {
-                    HStack {
-                        Image(systemName: !isPublic ? "checkmark.circle.fill" : "circle")
-                            .foregroundColor(.blue)
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Private")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-
-                            Text("Only you can see this stone")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
-                    }
-                    .padding()
-                    .background(!isPublic ? Color.blue.opacity(0.1) : Color.clear)
-                    .cornerRadius(8)
-                }
-                .buttonStyle(.plain)
+    private func locationStatusRow(icon: String, color: Color, label: String, detail: String) -> some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundColor(color)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                Text(detail)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
             }
+            Spacer()
+        }
+        .padding(12)
+        .background(color.opacity(0.1))
+        .cornerRadius(8)
+    }
+
+    // MARK: - Visibility Step
+
+    @ViewBuilder
+    private var visibilityStepContent: some View {
+        VStack(spacing: 12) {
+            visibilityOption(
+                title: "Public",
+                description: "Others can see and attempt this stone",
+                isSelected: isPublic,
+                action: { isPublic = true }
+            )
+            visibilityOption(
+                title: "Private",
+                description: "Only you can see this stone",
+                isSelected: !isPublic,
+                action: { isPublic = false }
+            )
         }
     }
 
-    @ViewBuilder
-    private var sectionDivider: some View {
-        Rectangle()
-            .fill(Color(.systemGray4))
-            .frame(height: 1)
-            .padding(.vertical, 8)
+    private func visibilityOption(title: String, description: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(.accentColor)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                    Text(description)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            .padding()
+            .background(isSelected ? Color.accentColor.opacity(0.1) : Color(.systemGray6))
+            .cornerRadius(10)
+        }
+        .buttonStyle(.plain)
     }
 
-    @ViewBuilder
-    private var offlineStatusBanner: some View {
+    // MARK: - Bottom Bar
+
+    private var bottomBar: some View {
+        HStack(spacing: 16) {
+            if currentStep.rawValue > 0 {
+                Button(action: retreat) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .fontWeight(.semibold)
+                        Text("Back")
+                    }
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(Color(.systemGray5))
+                    .cornerRadius(10)
+                }
+            }
+
+            Spacer()
+
+            if currentStep == .visibility {
+                Button(action: saveStone) {
+                    Text(networkMonitor.isConnected ? "Save Stone" : "Save Offline")
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(isFormValid ? Color.accentColor : Color(.systemGray3))
+                        .cornerRadius(10)
+                }
+                .disabled(!isFormValid || viewModel.isLoading)
+            } else {
+                Button(action: advance) {
+                    HStack(spacing: 4) {
+                        Text("Next")
+                        Image(systemName: "chevron.right")
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(canAdvance ? .white : Color(.systemGray))
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(canAdvance ? Color.accentColor : Color(.systemGray5))
+                    .cornerRadius(10)
+                }
+                .disabled(!canAdvance)
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 12)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color(.systemGray5))
+                .frame(height: 0.5)
+        }
+    }
+
+    // MARK: - Offline Banner
+
+    private var offlineBanner: some View {
         HStack(spacing: 12) {
             Image(systemName: "wifi.slash")
-                .font(.title3)
                 .foregroundColor(.orange)
-
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("No Internet Connection")
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.orange)
-
                 Text("Your stone will be saved locally and uploaded when you're back online.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-
             Spacer()
-        }
-        .padding(16)
-        .background(Color.orange.opacity(0.1))
-        .cornerRadius(12)
-    }
-
-    @ViewBuilder
-    private var formValidationMessage: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "info.circle.fill")
-                    .foregroundColor(.orange)
-                Text("Complete these required fields:")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.orange)
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                if stoneName.isEmpty {
-                    HStack(spacing: 6) {
-                        Image(systemName: "circle")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text("Stone name")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-
-                let hasConfirmedWeight = !weight.isEmpty && Double(weight) ?? 0 > 0
-                let hasEstimatedWeight = !estimatedWeight.isEmpty && Double(estimatedWeight) ?? 0 > 0
-
-                if !hasConfirmedWeight && !hasEstimatedWeight {
-                    HStack(spacing: 6) {
-                        Image(systemName: "circle")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text("At least one weight (confirmed or estimated)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-
-                // Check for invalid weight ranges
-                if let weightValue = Double(weight), !weight.isEmpty {
-                    if weightValue < 1 || weightValue > 1000 {
-                        HStack(spacing: 6) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                            Text("Confirmed weight must be between 1-1000 lbs")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                        }
-                    }
-                }
-
-                if let estimatedWeightValue = Double(estimatedWeight), !estimatedWeight.isEmpty {
-                    if estimatedWeightValue < 1 || estimatedWeightValue > 1000 {
-                        HStack(spacing: 6) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                            Text("Estimated weight must be between 1-1000 lbs")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                        }
-                    }
-                }
-            }
         }
         .padding(16)
         .background(Color.orange.opacity(0.1))
@@ -537,92 +467,81 @@ struct AddStoneView: View {
 
     // MARK: - Computed Properties
 
-    private var isFormValid: Bool {
-        // Require stone name
-        guard !stoneName.isEmpty else { return false }
-
-        // Require at least one weight (confirmed or estimated)
-        let hasConfirmedWeight = !weight.isEmpty && Double(weight) ?? 0 > 0
-        let hasEstimatedWeight = !estimatedWeight.isEmpty && Double(estimatedWeight) ?? 0 > 0
-
-        guard hasConfirmedWeight || hasEstimatedWeight else { return false }
-
-        // Validate weight ranges (1-1000 lbs to match backend validation)
-        if let weightValue = Double(weight), !weight.isEmpty {
-            guard weightValue >= 1 && weightValue <= 1000 else { return false }
-        }
-
-        if let estimatedWeightValue = Double(estimatedWeight), !estimatedWeight.isEmpty {
-            guard estimatedWeightValue >= 1 && estimatedWeightValue <= 1000 else { return false }
-        }
-
+    private var weightStepValid: Bool {
+        let hasConfirmedWeight = !weight.isEmpty && (Double(weight) ?? 0) > 0
+        let hasEstimatedWeight = !estimatedWeight.isEmpty && (Double(estimatedWeight) ?? 0) > 0
+        if !hasConfirmedWeight && !hasEstimatedWeight { return false }
+        if let w = Double(weight), !weight.isEmpty, w < 1 || w > 1000 { return false }
+        if let ew = Double(estimatedWeight), !estimatedWeight.isEmpty, ew < 1 || ew > 1000 { return false }
         return true
     }
 
-    // MARK: - Actions
+    private var canAdvance: Bool {
+        switch currentStep {
+        case .photo, .location, .visibility: return true
+        case .details: return !stoneName.isEmpty
+        case .weight: return weightStepValid
+        }
+    }
 
-    private func setupView() {
-        logger.info("Setting up AddStoneView")
+    private var isFormValid: Bool {
+        !stoneName.isEmpty && weightStepValid
+    }
 
-        // Handle location permissions
+    // MARK: - Navigation Actions
+
+    private func advance() {
+        guard let next = AddStoneStep(rawValue: currentStep.rawValue + 1) else { return }
+        focusedField = nil
+        isGoingForward = true
+        withAnimation(.easeInOut(duration: 0.3)) {
+            currentStep = next
+        }
+    }
+
+    private func retreat() {
+        guard let prev = AddStoneStep(rawValue: currentStep.rawValue - 1) else { return }
+        focusedField = nil
+        isGoingForward = false
+        withAnimation(.easeInOut(duration: 0.3)) {
+            currentStep = prev
+        }
+    }
+
+    // MARK: - Setup
+
+    private func setupLocationIfNeeded() {
         switch locationService.authorizationStatus {
         case .notDetermined:
-            // Request permission for first time (system dialog)
             locationService.requestLocationPermission()
-        case .denied, .restricted:
-            logger.info("Location permissions denied - user can enable via 'Get Location' button if desired")
         case .authorizedWhenInUse, .authorizedAlways:
-            logger.info("Location permissions granted")
-            // Auto-fetch location if toggle is on and no recent (< 30 seconds old) location exists
-            if includeLocation {
-                if let existing = locationService.currentLocation {
-                    let age = -existing.timestamp.timeIntervalSinceNow
-                    if age > 30 {
-                        requestLocation(userInitiated: false)
-                    }
-                } else {
+            if let existing = locationService.currentLocation {
+                if -existing.timestamp.timeIntervalSinceNow > 30 {
                     requestLocation(userInitiated: false)
                 }
+            } else {
+                requestLocation(userInitiated: false)
             }
-        @unknown default:
+        default:
             break
         }
     }
 
-    private func showPhotoOptions() {
-        let alert = UIAlertController(title: "Add Photo", message: "Choose a photo source", preferredStyle: .actionSheet)
-
-        alert.addAction(UIAlertAction(title: "Camera", style: .default) { _ in
-            showingCamera = true
-        })
-
-        alert.addAction(UIAlertAction(title: "Photo Library", style: .default) { _ in
-            showingPhotoPicker = true
-        })
-
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-
-        // TODO: better way
-        // Present alert
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
-            rootViewController.present(alert, animated: true)
+    private func requestLocation(userInitiated: Bool = false) {
+        Task {
+            _ = await locationService.getCurrentLocation(showAlertOnFailure: userInitiated)
         }
     }
 
     private func loadSelectedPhoto(_ item: PhotosPickerItem?) {
-        guard let item = item else { return }
-
-        logger.info("Loading selected photo")
-
+        guard let item else { return }
         item.loadTransferable(type: Data.self) { result in
             switch result {
             case let .success(data):
-                if let data = data, let image = UIImage(data: data) {
+                if let data, let image = UIImage(data: data) {
                     DispatchQueue.main.async {
                         self.imageToCrop = image
                         self.showingCropView = true
-                        self.logger.info("Photo loaded successfully, showing crop view")
                     }
                 }
             case let .failure(error):
@@ -631,38 +550,24 @@ struct AddStoneView: View {
         }
     }
 
-    /// Request current location
-    /// - Parameter userInitiated: Whether this was triggered by user tapping a button (shows alert on failure)
-    private func requestLocation(userInitiated: Bool = false) {
-        logger.info("Requesting current location (user initiated: \(userInitiated))")
-
-        Task {
-            _ = await locationService.getCurrentLocation(showAlertOnFailure: userInitiated)
-        }
-    }
-
     private func saveStone() {
-        let weightInfo = weight.isEmpty ? "estimated: \(estimatedWeight)" : "confirmed: \(weight)"
-        logger.info("Saving stone with weight: \(weightInfo)")
-
+        logger.info("Saving stone: \(stoneName)")
         focusedField = nil
 
         Task {
             var finalLatitude: Double?
             var finalLongitude: Double?
 
-            if includeLocation {
-                if !manualLatitude.isEmpty && !manualLongitude.isEmpty,
-                   let manualLat = Double(manualLatitude),
-                   let manualLon = Double(manualLongitude) {
-                    finalLatitude = manualLat
-                    finalLongitude = manualLon
-                    logger.info("Using manual coordinates: \(manualLat), \(manualLon)")
-                } else if let gpsLocation = locationService.currentLocation {
-                    finalLatitude = gpsLocation.coordinate.latitude
-                    finalLongitude = gpsLocation.coordinate.longitude
-                    logger.info("Using GPS coordinates")
-                }
+            if !manualLatitude.isEmpty && !manualLongitude.isEmpty,
+               let manualLat = Double(manualLatitude),
+               let manualLon = Double(manualLongitude) {
+                finalLatitude = manualLat
+                finalLongitude = manualLon
+                logger.info("Using manual coordinates: \(manualLat), \(manualLon)")
+            } else if let gpsLocation = locationService.currentLocation {
+                finalLatitude = gpsLocation.coordinate.latitude
+                finalLongitude = gpsLocation.coordinate.longitude
+                logger.info("Using GPS coordinates")
             }
 
             let request = CreateStoneRequest(
@@ -671,7 +576,7 @@ struct AddStoneView: View {
                 estimatedWeight: estimatedWeight.isEmpty ? nil : Double(estimatedWeight),
                 stoneType: stoneType.rawValue,
                 description: notes.isEmpty ? nil : notes,
-                imageUrl: nil, // Will be set by ViewModel after upload
+                imageUrl: nil,
                 latitude: finalLatitude,
                 longitude: finalLongitude,
                 isPublic: isPublic,
@@ -679,17 +584,12 @@ struct AddStoneView: View {
             )
 
             if networkMonitor.isConnected {
-                let stone = await viewModel.saveStone(request: request, photoData: photoData)
-
-                if stone != nil {
+                if await viewModel.saveStone(request: request, photoData: photoData) != nil {
                     dismiss()
                 }
             } else {
-                // Offline - save locally for later sync
                 logger.info("No network connection - saving stone offline")
-                let success = await offlineSyncService.saveStoneOffline(request: request, photoData: photoData)
-
-                if success {
+                if await offlineSyncService.saveStoneOffline(request: request, photoData: photoData) {
                     logger.info("Stone saved offline successfully")
                     dismiss()
                 } else {
