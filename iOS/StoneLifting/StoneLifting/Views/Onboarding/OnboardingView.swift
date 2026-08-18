@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct OnboardingView: View {
-    
+
     @State private var currentStep: OnboardingStep = .username
 
     let onComplete: () -> Void

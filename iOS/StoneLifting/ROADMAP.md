@@ -60,6 +60,14 @@
 ## Platform & Infrastructure
 
 ### Authentication & Backend
+- [ ] Guest Mode
+  - Skip login option on authentication screen
+  - Skip username picker (no account creation)
+  - View-only access: Browse stones on map and list
+  - No posting/editing/reporting capabilities
+  - Prompt to sign up when attempting protected actions
+  - Convert to full account on sign up (preserve any local preferences)
+  - Benefits: Lower barrier to entry, users can explore before committing
 - [ ] Phone Number Sign In (low priority - OAuth already includes phone verification)
 
 ### Security & Anti-Spam (PRE-LAUNCH CRITICAL)

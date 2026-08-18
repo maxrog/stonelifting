@@ -31,7 +31,6 @@ final class UsernamePickerViewModel {
         isValid && !isCheckingAvailability && !isSubmitting
     }
 
-
     func validateUsername() {
         // Cancel any pending availability check
         checkTask?.cancel()
