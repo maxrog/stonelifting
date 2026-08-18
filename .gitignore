@@ -3,35 +3,35 @@
 # gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
 
 ## User settings
-ios/**/*.xcuserstate
-ios/**/*.xcworkspace/xcuserdata/
-ios/**/*.xcodeproj/xcuserdata/
-ios/**/*.xcodeproj/project.xcworkspace/xcuserdata/
+iOS/**/*.xcuserstate
+iOS/**/*.xcworkspace/xcuserdata/
+iOS/**/*.xcodeproj/xcuserdata/
+iOS/**/*.xcodeproj/project.xcworkspace/xcuserdata/
 
 ## compatibility with Xcode 8 and earlier (ignoring not required starting Xcode 9)
-ios/**/*.xcscmblueprint
-ios/**/*.xccheckout
+iOS/**/*.xcscmblueprint
+iOS/**/*.xccheckout
 
 ## compatibility with Xcode 3 and earlier (ignoring not required starting Xcode 4)
-ios/**/build/
-ios/**/DerivedData/
-ios/**/*.moved-aside
-ios/**/*.pbxuser
-ios/**/*.mode1v3
-ios/**/*.mode2v3
-ios/**/*.perspectivev3
+iOS/**/build/
+iOS/**/DerivedData/
+iOS/**/*.moved-aside
+iOS/**/*.pbxuser
+iOS/**/*.mode1v3
+iOS/**/*.mode2v3
+iOS/**/*.perspectivev3
 
 ## Obj-C/Swift specific
-ios/**/*.hmap
+iOS/**/*.hmap
 
 ## App packaging
-ios/**/*.ipa
-ios/**/*.dSYM.zip
-ios/**/*.dSYM
+iOS/**/*.ipa
+iOS/**/*.dSYM.zip
+iOS/**/*.dSYM
 
 ## Playgrounds
-ios/**/timeline.xctimeline
-ios/**/playground.xcworkspace
+iOS/**/timeline.xctimeline
+iOS/**/playground.xcworkspace
 
 # Swift Package Manager
 #
@@ -43,11 +43,11 @@ ios/**/playground.xcworkspace
 #
 # Xcode automatically generates this directory with a .xcworkspacedata file and xcuserdata
 # hence it is not needed unless you have added a package configuration file to your project
-ios/**/.swiftpm
+iOS/**/.swiftpm
 
-ios/**/*.xcodeproj/project.xcworkspace/
-ios/**/*.xcodeproj/xcuserdata/
-ios/**/*.xcworkspace/xcuserdata/
+iOS/**/*.xcodeproj/project.xcworkspace/
+iOS/**/*.xcodeproj/xcuserdata/
+iOS/**/*.xcworkspace/xcuserdata/
 
 # CocoaPods
 #
@@ -55,19 +55,19 @@ ios/**/*.xcworkspace/xcuserdata/
 # you should judge for yourself, the pros and cons are mentioned at:
 # https://guides.cocoapods.org/using/using-cocoapods.html#should-i-check-the-pods-directory-into-source-control
 #
-ios/**/Pods/
-ios/**/*.xcworkspace
+iOS/**/Pods/
+iOS/**/*.xcworkspace
 
 # Carthage
 #
 # Add this line if you want to avoid checking in source code from Carthage dependencies.
 # Carthage/Checkouts
 
-ios/**/Carthage/Build/
+iOS/**/Carthage/Build/
 
 # Accio dependency management
-ios/**/Dependencies/
-ios/**/.accio/
+iOS/**/Dependencies/
+iOS/**/.accio/
 
 # fastlane
 #
@@ -76,17 +76,17 @@ ios/**/.accio/
 # For more information about the recommended setup visit:
 # https://docs.fastlane.tools/best-practices/source-control/#source-control
 
-ios/**/fastlane/report.xml
-ios/**/fastlane/Preview.html
-ios/**/fastlane/screenshots/**/*.png
-ios/**/fastlane/test_output
+iOS/**/fastlane/report.xml
+iOS/**/fastlane/Preview.html
+iOS/**/fastlane/screenshots/**/*.png
+iOS/**/fastlane/test_output
 
 # Code Injection
 #
 # After new code Injection tools there's a generated folder /iOSInjectionProject
 # https://github.com/johnno1962/injectionforxcode
 
-ios/**/iOSInjectionProject/
+iOS/**/iOSInjectionProject/
 
 # macOS
 .DS_Store
