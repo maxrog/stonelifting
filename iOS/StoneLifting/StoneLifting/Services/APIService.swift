@@ -354,33 +354,34 @@ private extension APIService {
                 throw APIError.unauthorized
 
             case 400:
-                // Try to decode error message from backend
-                logger.debug("Got 400 response. Raw data: \(String(data: data, encoding: .utf8) ?? "unable to decode")")
-
-                if let errorResponse = try? decoder.decode(ErrorResponse.self, from: data),
-                   let reason = errorResponse.reason {
-                    logger.error("Error loading url: \(request.url?.absoluteString ?? "") | Error: \(reason)")
-                    throw APIError.badRequestWithMessage(reason)
-                }
-
-                logger.error("Error loading url: \(request.url?.absoluteString ?? "") | Error: Could not decode error response")
-                throw APIError.badRequest
+                try throwDecodedError(
+                    data: data, statusCode: 400, url: request.url?.absoluteString ?? "",
+                    messageError: APIError.badRequestWithMessage, fallbackError: .badRequest
+                )
 
             case 404:
                 logger.error("Error loading url: \(request.url?.absoluteString ?? "")", error: APIError.notFound)
                 throw APIError.notFound
 
+            case 409:
+                try throwDecodedError(
+                    data: data, statusCode: 409, url: request.url?.absoluteString ?? "",
+                    messageError: APIError.conflict,
+                    fallbackError: .conflict("This couldn't be completed because of a conflict with existing data.")
+                )
+
+            case 429:
+                try throwDecodedError(
+                    data: data, statusCode: 429, url: request.url?.absoluteString ?? "",
+                    messageError: APIError.rateLimited,
+                    fallbackError: .rateLimited("You're doing that too much. Please try again later.")
+                )
+
             case 500 ... 599:
-                logger.debug("Got \(httpResponse.statusCode) response. Raw data: \(String(data: data, encoding: .utf8) ?? "unable to decode")")
-
-                if let errorResponse = try? decoder.decode(ErrorResponse.self, from: data),
-                   let reason = errorResponse.reason {
-                    logger.error("Error loading url: \(request.url?.absoluteString ?? "") | Error: \(reason)")
-                    throw APIError.serverErrorWithMessage(reason)
-                }
-
-                logger.error("Error loading url: \(request.url?.absoluteString ?? "")", error: APIError.serverError)
-                throw APIError.serverError
+                try throwDecodedError(
+                    data: data, statusCode: httpResponse.statusCode, url: request.url?.absoluteString ?? "",
+                    messageError: APIError.serverErrorWithMessage, fallbackError: .serverError
+                )
 
             default:
                 logger.error("Error loading url: \(request.url?.absoluteString ?? "")", error: APIError.unknown(httpResponse.statusCode))
@@ -396,6 +397,27 @@ private extension APIService {
                 throw APIError.networkError(error)
             }
         }
+    }
+
+    /// Decodes the backend's `{ reason: String }` error body if present, logs it, and throws.
+    /// Falls back to a generic error when the body can't be decoded.
+    private func throwDecodedError(
+        data: Data,
+        statusCode: Int,
+        url: String,
+        messageError: (String) -> APIError,
+        fallbackError: APIError
+    ) throws -> Never {
+        logger.debug("Got \(statusCode) response. Raw data: \(String(data: data, encoding: .utf8) ?? "unable to decode")")
+
+        if let errorResponse = try? decoder.decode(ErrorResponse.self, from: data),
+           let reason = errorResponse.reason {
+            logger.error("Error loading url: \(url) | Error: \(reason)")
+            throw messageError(reason)
+        }
+
+        logger.error("Error loading url: \(url) | Error: Could not decode error response")
+        throw fallbackError
     }
 }
 
@@ -422,6 +444,8 @@ enum APIError: Error, LocalizedError {
     case badRequestWithMessage(String)
     case unauthorized
     case notFound
+    case conflict(String)
+    case rateLimited(String)
     case serverError
     case serverErrorWithMessage(String)
     case unknown(Int)
@@ -448,6 +472,10 @@ enum APIError: Error, LocalizedError {
             return "Your session has expired. Please sign in again to continue."
         case .notFound:
             return "We couldn't find what you're looking for. It may have been moved or deleted."
+        case let .conflict(message):
+            return message
+        case let .rateLimited(message):
+            return message
         case .serverError:
             return "Our servers are experiencing issues. Please try again in a few moments."
         case let .serverErrorWithMessage(message):

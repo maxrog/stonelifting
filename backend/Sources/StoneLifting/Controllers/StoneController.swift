@@ -18,6 +18,22 @@ struct StoneController: RouteCollection {
     
     func create(req: Request) async throws -> StoneResponse {
         let user = try req.auth.require(User.self)
+        let userID = try user.requireID()
+
+        let newAccountWindow: TimeInterval = 7 * 24 * 60 * 60
+        let isNewAccount = (user.createdAt.map { Date().timeIntervalSince($0) < newAccountWindow }) ?? true
+        let dailyLimit = isNewAccount ? 10 : 50
+
+        let oneDayAgo = Date().addingTimeInterval(-24 * 60 * 60)
+        let stonesCreatedToday = try await Stone.query(on: req.db)
+            .filter(\.$user.$id == userID)
+            .filter(\.$createdAt >= oneDayAgo)
+            .count()
+
+        guard stonesCreatedToday < dailyLimit else {
+            throw Abort(.tooManyRequests, reason: "You've reached today's limit of \(dailyLimit) stones. Please try again tomorrow.")
+        }
+
         try CreateStoneRequest.validate(content: req)
         let createStone = try req.content.decode(CreateStoneRequest.self)
 
@@ -50,7 +66,7 @@ struct StoneController: RouteCollection {
             longitude: createStone.longitude,
             isPublic: createStone.isPublic,
             liftingLevel: createStone.liftingLevel,
-            userID: try user.requireID()
+            userID: userID
         )
 
         try await stone.save(on: req.db)
@@ -178,7 +194,8 @@ struct StoneController: RouteCollection {
     }
 
     func reportStone(req: Request) async throws -> MessageResponse {
-        _ = try req.auth.require(User.self)
+        let user = try req.auth.require(User.self)
+        let userID = try user.requireID()
 
         guard let stoneID = req.parameters.get("stoneID", as: UUID.self) else {
             throw Abort(.badRequest, reason: "Invalid stone ID")
@@ -191,9 +208,20 @@ struct StoneController: RouteCollection {
             throw Abort(.notFound, reason: "Stone not found")
         }
 
+        let alreadyReported = try await StoneReport.query(on: req.db)
+            .filter(\.$stone.$id == stoneID)
+            .filter(\.$user.$id == userID)
+            .first() != nil
+
+        guard !alreadyReported else {
+            throw Abort(.conflict, reason: "You've already reported this stone")
+        }
+
+        try await StoneReport(stoneID: stoneID, userID: userID).save(on: req.db)
+
         stone.reportCount += 1
 
-        // Auto-hide if report count reaches threshold (5 unique device reports)
+        // Auto-hide if report count reaches threshold (5 unique reporters)
         if stone.reportCount >= 5 {
             stone.isHidden = true
             req.logger.warning("Stone \(stoneID) auto-hidden after \(stone.reportCount) reports")
@@ -201,7 +229,7 @@ struct StoneController: RouteCollection {
 
         try await stone.save(on: req.db)
 
-        req.logger.info("Stone \(stoneID) reported. Total reports: \(stone.reportCount)")
+        req.logger.info("Stone \(stoneID) reported by user \(userID). Total reports: \(stone.reportCount)")
 
         return MessageResponse(message: "Stone reported successfully")
     }
