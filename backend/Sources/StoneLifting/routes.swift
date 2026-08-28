@@ -10,26 +10,39 @@ func routes(_ app: Application) throws {
         return ["status": "healthy"]
     }
     
-    // Authentication routes (OAuth-only)
-    let authRoutes = app.grouped("auth")
+    let oauthRateLimiter = RateLimiter()
+    let apiRateLimiter = RateLimiter()
+
+    // Authentication routes (OAuth-only) - rate limited per IP to prevent brute force/token injection
+    let authRoutes = app.grouped("auth").grouped(RateLimitMiddleware(
+        limiter: oauthRateLimiter,
+        limit: 10,
+        window: 60,
+        message: "Too many authentication attempts. Please wait a minute and try again."
+    ))
     authRoutes.post("apple", use: appleSignIn)
     authRoutes.post("google", use: googleSignIn)
     authRoutes.post("refresh", use: refreshToken)
-    
+
     // Availability check routes (no auth required)
     authRoutes.get("check-username", ":username", use: checkUsernameAvailability)
     authRoutes.get("check-email", ":email", use: checkEmailAvailability)
-    
-    // Protected routes
-    let protectedRoutes = app.grouped(AuthController.JWTAuthenticator())
+
+    // Protected routes - rate limited per user to prevent API abuse/scraping
+    let protectedRoutes = app.grouped(AuthController.JWTAuthenticator()).grouped(RateLimitMiddleware(
+        limiter: apiRateLimiter,
+        limit: 100,
+        window: 60,
+        message: "You're making requests too quickly. Please slow down."
+    ))
     protectedRoutes.get("me", use: getMe)
     protectedRoutes.get("stats", use: getUserStats)
     protectedRoutes.patch("me", "username", use: updateUsername)
     protectedRoutes.on(.POST, "upload", "image", body: .collect(maxSize: "5mb"), use: uploadImage)
 
-    
+
     // API routes
-    try app.register(collection: StoneController())
+    try app.register(collection: StoneController(apiRateLimiter: apiRateLimiter))
 }
 
 // MARK: - OAuth Auth Handlers

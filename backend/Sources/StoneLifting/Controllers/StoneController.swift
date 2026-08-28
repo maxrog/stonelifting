@@ -2,10 +2,17 @@ import Fluent
 import Vapor
 
 struct StoneController: RouteCollection {
+    let apiRateLimiter: RateLimiter
+
     func boot(routes: any RoutesBuilder) throws {
         let stones = routes.grouped("stones")
 
-        let protectedStones = stones.grouped(AuthController.JWTAuthenticator())
+        let protectedStones = stones.grouped(AuthController.JWTAuthenticator()).grouped(RateLimitMiddleware(
+            limiter: apiRateLimiter,
+            limit: 100,
+            window: 60,
+            message: "You're making requests too quickly. Please slow down."
+        ))
         protectedStones.post(use: create)
         protectedStones.get(use: getUserStones)
         protectedStones.get("nearby", use: getNearbyStones)

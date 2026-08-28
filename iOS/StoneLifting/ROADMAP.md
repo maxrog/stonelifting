@@ -71,13 +71,11 @@
 - [ ] Phone Number Sign In (low priority - OAuth already includes phone verification)
 
 ### Security & Anti-Spam (PRE-LAUNCH CRITICAL)
-- [ ] Rate limiting - API endpoints (prevent abuse/scrapers - 3-4 hours)
-- [ ] Rate limiting - OAuth endpoints (prevent token injection - 1 hour)
 - [ ] Duplicate stone detection (same image/location - Phase 2)
 - [ ] Location validation (GPS spoofing detection - Phase 2)
 - [ ] Admin moderation dashboard (Phase 3)
 
-**Total Pre-Launch: ~4-5 hours** | See `/SECURITY_ANTI_SPAM.md` for implementation guide
+See `/SECURITY_ANTI_SPAM.md` for implementation guide
 
 ### Infrastructure
 - [ ] Associated Domains (password autofill, universal links, handoff - requires web interface first)
